@@ -1,0 +1,12 @@
+3D model processing commands v0.1
+Usage:
+  mm command [OPTION...]
+
+Command help:
+  mm command --help
+
+Command:
+  sample     Convert mesh to point cloud
+  compare    Compare model A vs model B
+  quantize   Quantize model (mesh or point cloud) positions
+

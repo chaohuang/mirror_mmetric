@@ -1,0 +1,20 @@
+Skipping map read, will parse use vertex color if any
+Loading file: ./test/cpv_plane.obj
+Time on loading: 0.001 sec.
+Input model: ./test/cpv_plane.obj
+  n_vertices: 5
+  n_uvs: 0
+  n_cols: 7
+Sampling in FACE mode
+  Resolution = 10
+  Thickness = 0
+  Bilinear = 0
+  PerVertexColor = 1
+  UseFloat = 1
+minbox = -5,-5,0
+maxbox = 5,5,0
+step = 1
+0/41/42/43/4
+Generated 180 points
+Time on processing: 0 sec.
+Saving file: ./tmp/sample_face_cpv_plane_10.ply

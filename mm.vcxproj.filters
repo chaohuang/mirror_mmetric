@@ -1,0 +1,125 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="3rdparty\pcqm\pcqm.cpp">
+      <Filter>3rdparty\pcqm</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\pcc\pcc_distortion.cpp">
+      <Filter>3rdparty\pcc</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\pcc\pcc_processing.cpp">
+      <Filter>3rdparty\pcc</Filter>
+    </ClCompile>
+    <ClCompile Include="source\main.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="source\mmCompare.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="source\mmGeometry.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="source\mmImage.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="source\mmIO.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="source\mmQuantize.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="source\mmSample.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="3rdparty\pcqm\pcqm.h">
+      <Filter>3rdparty\pcqm</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\pcqm\PointSet.h">
+      <Filter>3rdparty\pcqm</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\pcqm\resources.h">
+      <Filter>3rdparty\pcqm</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\pcqm\utilities.h">
+      <Filter>3rdparty\pcqm</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\pcc\pcc_distortion.hpp">
+      <Filter>3rdparty\pcc</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\pcc\pcc_processing.hpp">
+      <Filter>3rdparty\pcc</Filter>
+    </ClInclude>
+    <ClInclude Include="source\mmCompare.h">
+      <Filter>source</Filter>
+    </ClInclude>
+    <ClInclude Include="source\mmGeometry.h">
+      <Filter>source</Filter>
+    </ClInclude>
+    <ClInclude Include="source\mmImage.h">
+      <Filter>source</Filter>
+    </ClInclude>
+    <ClInclude Include="source\mmIO.h">
+      <Filter>source</Filter>
+    </ClInclude>
+    <ClInclude Include="source\mmModel.h">
+      <Filter>source</Filter>
+    </ClInclude>
+    <ClInclude Include="source\mmQuantize.h">
+      <Filter>source</Filter>
+    </ClInclude>
+    <ClInclude Include="source\mmSample.h">
+      <Filter>source</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="3rdparty">
+      <UniqueIdentifier>{9a9648ea-78c9-4e2c-b93f-0a3084f2be56}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rdparty\pcqm">
+      <UniqueIdentifier>{33fc23c6-4a9d-48ee-9faf-d7c0f8a3cee9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rdparty\pcc">
+      <UniqueIdentifier>{086e50a6-6d6f-4fe5-b77e-4815770ad4ee}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source">
+      <UniqueIdentifier>{faa2eaca-c79c-4cc8-b819-874ce4a42ffe}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="test">
+      <UniqueIdentifier>{f09e706a-6700-46f3-83de-c30fc0e47120}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="test\test-compare-eq.sh">
+      <Filter>test</Filter>
+    </None>
+    <None Include="test\test-compare-pcc.sh">
+      <Filter>test</Filter>
+    </None>
+    <None Include="test\test-compare-pcqm.sh">
+      <Filter>test</Filter>
+    </None>
+    <None Include="test\test-help.sh">
+      <Filter>test</Filter>
+    </None>
+    <None Include="test\test-quantize.sh">
+      <Filter>test</Filter>
+    </None>
+    <None Include="test\test-sample-face.sh">
+      <Filter>test</Filter>
+    </None>
+    <None Include="test\test-sample-grid.sh">
+      <Filter>test</Filter>
+    </None>
+    <None Include="test\test-sample-map.sh">
+      <Filter>test</Filter>
+    </None>
+    <None Include="test\config.sh">
+      <Filter>test</Filter>
+    </None>
+    <None Include="test\test-all.sh">
+      <Filter>test</Filter>
+    </None>
+  </ItemGroup>
+</Project>

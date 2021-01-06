@@ -1,0 +1,10 @@
+Sort the model positions in 3D space
+Usage:
+  mm.exe sort [OPTION...]
+
+  -i, --inputModel arg   path to input model (obj or ply file)
+  -o, --outputModel arg  path to output model (obj or ply file)
+      --float            if set the processings and outputs will be float32,
+                         int32 otherwise (default: true)
+  -h, --help             Print usage
+

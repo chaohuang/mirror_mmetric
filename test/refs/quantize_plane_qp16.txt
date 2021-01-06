@@ -1,0 +1,10 @@
+Loading file: ./test/plane.obj
+Time on loading: 0 sec.
+Input model: ./test/plane.obj
+  n_vertices: 5
+  n_uvs: 5
+  n_cols: 0
+Quantizing
+  qp = 16
+Time on processing: 0 sec.
+Saving file: ./tmp/plane_quantize_qp16.ply

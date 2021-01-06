@@ -1,0 +1,17 @@
+Input map: ./test/plane.png
+Loading file: ./test/plane.obj
+Time on loading: 0 sec.
+Input model: ./test/plane.obj
+  n_vertices: 5
+  n_uvs: 5
+  n_cols: 0
+Sampling in GRID mode
+  Grid Size = 10
+  Bilinear = 1
+  PerVertexColor = 0
+minbox = -5,-5,0
+maxbox = 5,5,0
+0/41/42/43/4
+Generated 116 points
+Time on processing: 0 sec.
+Saving file: ./tmp/plane_sample_grid_10_bilinear_2_2.ply

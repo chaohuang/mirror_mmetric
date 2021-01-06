@@ -1,0 +1,27 @@
+Convert mesh to point cloud
+Usage:
+  mm sample [OPTION...]
+
+  -i, --inputModel arg   path to input model (obj or ply file)
+  -m, --inputMap arg     path to input texture map (png, jpeg)
+  -o, --outputModel arg  path to output model (obj or ply file)
+      --mode arg         the sampling mode in [face,grid,map]
+      --hideProgress     hide progress display in console for use by robot
+  -h, --help             Print usage
+
+ Face mode options:
+      --float           if set the processings and outputs will be float32,
+                        int32 otherwise (default: true)
+      --resolution arg  integer value in [1,maxuint], nb samples per edge of
+                        maximal size (default: 1024)
+      --thickness arg   floating point value, distance to border of the face
+                        (default: 0.0)
+
+ Grid and Face modes options:
+      --bilinear  if set, texture filtering will be bilinear, nearest
+                  otherwise (default: true)
+
+ Grid mode options:
+      --gridSize arg  integer value in [1,maxint], side size of the grid
+                      (default: 1024)
+

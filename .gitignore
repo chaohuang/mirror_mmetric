@@ -1,0 +1,8 @@
+main
+x64
+.vs
+*.vcxproj.user
+tmp
+mm
+features_extracted.csv
+

@@ -1,0 +1,11 @@
+Quantize model (mesh or point cloud) positions
+Usage:
+  mm quantize [OPTION...]
+
+  -i, --inputModel arg   path to input model (obj or ply file)
+  -o, --outputModel arg  path to output model (obj or ply file)
+      --float            if set the processings and outputs will be float32,
+                         int32 otherwise (default: true)
+  -h, --help             Print usage
+      --qp arg           Geometry quantization bitdepth (default: 16)
+

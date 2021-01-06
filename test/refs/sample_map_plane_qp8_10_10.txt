@@ -1,0 +1,12 @@
+Input map: ./test/plane_10_10.png
+Loading file: ./test/plane_qp8.obj
+Time on loading: 0 sec.
+Input model: ./test/plane_qp8.obj
+  n_vertices: 5
+  n_uvs: 5
+  n_cols: 0
+Sampling in MAP mode
+0/41/42/43/4
+Generated 110 points
+Time on processing: 0 sec.
+Saving file: ./tmp/plane_qp8_sample_map_10_10.ply

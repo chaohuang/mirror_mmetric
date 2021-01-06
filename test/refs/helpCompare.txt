@@ -1,0 +1,33 @@
+Compare model A vs model B
+Usage:
+  mm.exe compare [OPTION...]
+
+      --inputModelA arg   path to input model A (obj or ply file)
+      --inputModelB arg   path to input model B (obj or ply file)
+      --inputMapA arg     path to input texture map A (png, jpeg)
+      --inputMapB arg     path to input texture map B (png, jpeg)
+      --outputModelA arg  path to output model A (obj or ply file)
+      --outputModelB arg  path to output model B (obj or ply file)
+      --mode arg          the comparison mode in [equ,pcc,pcqm] (default:
+                          equ)
+  -h, --help              Print usage
+
+ equ mode options:
+      --epsilon arg  floating point value, error threshold in equality
+                     comparison. if not set use memcmp. (default: 0.0)
+
+ pcc mode options:
+      --resolution arg  Amplitude of the geometric signal. Will be
+                        automatically set to diagonal of the models bounding box if
+                        value = 0 (default: 0.0)
+
+ pcqm mode options:
+      --radiusCurvature arg     Set a radius for the construction of the
+                                neighborhood. As the bounding box is already
+                                computed with this program, use proposed value.
+                                (default: 0.004)
+      --thresholdKnnSearch arg  Set the number of points used for the quadric
+                                surface construction (default: 20)
+      --radiusFactor arg        Set a radius factor for the statistic
+                                computation. (default: 2.0)
+
