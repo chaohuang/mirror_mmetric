@@ -2,9 +2,10 @@ Skipping map read, will parse use vertex color if any
 Loading file: ./data/sphere_qp8.obj
 Time on loading: 0.002 sec.
 Input model: ./data/sphere_qp8.obj
-  n_vertices: 482
-  n_uvs: 0
-  n_cols: 0
+  Vertices: 482
+  UVs: 0
+  Colors: 0
+  Normals: 0
 Sampling in FACE mode
   Resolution = 10
   Thickness = 0

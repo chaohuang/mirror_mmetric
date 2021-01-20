@@ -1,0 +1,14 @@
+Input map: ./data/plane_10_10.png
+Loading file: ./data/plane.obj
+Time on loading: 0 sec.
+Input model: ./data/plane.obj
+  n_vertices: 5
+  n_uvs: 5
+  n_cols: 0
+Sampling in SDIV mode
+  Area threshold = 1
+  Bilinear = 0
+  hideProgress = 1
+Generated 216 points
+Time on processing: 0 sec.
+Saving file: ./tmp/sample_sdiv_plane_1_nearest_10_10.ply

@@ -15,7 +15,7 @@
 
 #include <iostream>
 #include <fstream>
-#include <unordered_map>
+#include <set>
 #include <time.h>
 #include <math.h>
 // mathematics
@@ -52,6 +52,8 @@ int Sample::main(std::string app, std::string cmd, int argc, char* argv[])
 	int gridSize = 1024;
 	// Face and Grid options
 	bool bilinear = false;
+	// Face subdiv options
+	bool areaThreshold = 1.0F;
 
 	// command line parameters
 	try
@@ -64,7 +66,7 @@ int Sample::main(std::string app, std::string cmd, int argc, char* argv[])
 				cxxopts::value<std::string>())
 			("o,outputModel", "path to output model (obj or ply file)",
 				cxxopts::value<std::string>())
-			("mode", "the sampling mode in [face,grid,map]",
+			("mode", "the sampling mode in [face,grid,map,sdiv]",
 				cxxopts::value<std::string>())
 			("hideProgress", "hide progress display in console for use by robot",
 				cxxopts::value<bool>()->default_value("false"))
@@ -78,11 +80,15 @@ int Sample::main(std::string app, std::string cmd, int argc, char* argv[])
 			("thickness", "floating point value, distance to border of the face",
 				cxxopts::value<float>()->default_value("0.0"))
 			;
+		options.add_options("Sdiv mode")
+			("areaThreshold", "area limit to stop subdivision",
+				cxxopts::value<float>()->default_value("1.0"))
+			;
 		options.add_options("Grid mode")
 			("gridSize", "integer value in [1,maxint], side size of the grid",
 				cxxopts::value<int>()->default_value("1024"))
 			;
-		options.add_options("Grid and Face modes")
+		options.add_options("Grid, Face and sdiv modes")
 			("bilinear", "if set, texture filtering will be bilinear, nearest otherwise",
 				cxxopts::value<bool>()->default_value("true"))
 			;
@@ -125,6 +131,8 @@ int Sample::main(std::string app, std::string cmd, int argc, char* argv[])
 			resolution = result["resolution"].as<size_t>();
 		if (result.count("thickness"))
 			thickness = result["thickness"].as<float>();
+		if (result.count("areaThreshold"))
+			areaThreshold = result["areaThreshold"].as<float>();
 		if (result.count("gridSize"))
 			gridSize = result["gridSize"].as<int>();
 		if (result.count("bilinear"))
@@ -183,6 +191,13 @@ int Sample::main(std::string app, std::string cmd, int argc, char* argv[])
 		std::cout << "  hideProgress = " << hideProgress << std::endl;
 		Sample::meshToPcMap(inputModel, outputModel, textureMap, !hideProgress);
 	}
+	else if (mode == "sdiv") {
+		std::cout << "Sampling in SDIV mode" << std::endl;
+		std::cout << "  Area threshold = " << areaThreshold << std::endl;
+		std::cout << "  Bilinear = " << bilinear << std::endl;
+		std::cout << "  hideProgress = " << hideProgress << std::endl;
+		Sample::meshToPcDiv(inputModel, outputModel, textureMap, areaThreshold, bilinear, !hideProgress);
+	}
 	clock_t t2 = clock();
 	std::cout << "Time on processing: " << ((float)(t2 - t1)) / CLOCKS_PER_SEC << " sec." << std::endl;
 
@@ -211,8 +226,6 @@ void Sample::meshToPcFace(
 	float step = boxMaxSize / resolution;
 	std::cout << "step = " << step << std::endl;
 
-	output.vertices.clear();
-	output.colors.clear();
 	size_t skipped = 0; // number of degenerate triangles
 
 	for (size_t t = 0; t < input.triangles.size() / 3; t++) {
@@ -562,4 +575,226 @@ void Sample::meshToPcMap(
 	if (skipped != 0)
 		std::cout << "Skipped " << skipped << " triangles" << std::endl;
 	std::cout << "Generated " << output.vertices.size() / 3 << " points" << std::endl;
+}
+
+// 
+class Vertex {
+
+public:
+	glm::vec3 pos;
+	glm::vec2 uv;
+	glm::vec3 col;
+	glm::vec3 nrm;
+	bool hasColor;
+	bool hasUVCoord;
+	bool hasNormal;
+	
+	Vertex():
+		pos(0.0,0.0,0.0),
+		uv(0.0,0.0),
+		col(0.0,0.0,0.0),
+		nrm(0.0,0.0,0.0),
+		hasColor(false),
+		hasUVCoord(false),
+		hasNormal(false)
+	{}
+};
+
+struct Compare
+{
+	bool operator()(const Vertex& a, const Vertex& b) const {
+		if (a.pos.x == b.pos.x) {
+			if (a.pos.y == b.pos.y) {
+				if (a.pos.z == b.pos.z) {
+					if (a.col.x == b.col.x) {
+						if (a.col.y == b.col.y) {
+							return a.col.z < b.col.z;
+						}
+						return a.col.y < b.col.y;
+					}
+					return a.col.x < b.col.x;
+				}
+				return a.pos.z < b.pos.z;
+			}
+			return a.pos.y < b.pos.y;
+		}
+		return a.pos.x < b.pos.x;
+	}
+};
+
+void pushVertex(
+	const Vertex& v,
+	const Image& tex_map,
+	const bool bilinear,
+	std::set<Vertex, Compare>& vset,
+	Model& output)
+{
+	// push only if not exist in vset
+	if (vset.find(v) != vset.end()) {
+		return;
+	}
+	vset.insert(v);
+
+	for (glm::vec3::length_type c = 0; c < 3; c++) {
+		output.vertices.push_back(v.pos[c]);
+	}
+
+	if (v.hasNormal)
+		for (glm::vec3::length_type c = 0; c < 3; c++)
+			output.normals.push_back(v.col[c]);
+
+	if (v.hasUVCoord) {
+		for (glm::vec3::length_type c = 0; c < 2; c++)
+			output.uvcoords.push_back(v.uv[c]);
+
+		if (tex_map.data != NULL) {
+			glm::vec3 rgb = { 0.0F,0.0F,0.0F };
+			// fetch the color from the map
+			if (bilinear)
+				texture2D_bilinear(tex_map, v.uv, rgb);
+			else
+				texture2D(tex_map, v.uv, rgb);
+			for (glm::vec3::length_type c = 0; c < 3; c++)
+				output.colors.push_back(rgb[c]);
+		}
+	}
+	else if (v.hasColor){ 
+		for (glm::vec3::length_type c = 0; c < 3; c++)
+			output.colors.push_back(v.col[c]);
+	}
+}
+
+// utility func fo meshtoPvDiv
+void subdivideTriangle(
+	const Vertex& v1,
+	const Vertex& v2,
+	const Vertex& v3,
+	const Image& tex_map,
+	const float thres,
+	const bool bilinear,
+	std::set<Vertex, Compare>& vset,
+	Model& output
+) {
+	
+	// recursion stop criterion on area
+	bool areaReached = triangleArea(v1.pos, v2.pos, v3.pos) < thres;
+	
+	// recursion stop criterion on texels adjacency
+	if (tex_map.data != NULL) {
+		const glm::ivec2 mapSize = { tex_map.width, tex_map.height };
+		glm::ivec2 mapCoord1, mapCoord2, mapCoord3;
+		mapCoordClamped(v1.uv, mapSize, mapCoord1);
+		mapCoordClamped(v2.uv, mapSize, mapCoord2);
+		mapCoordClamped(v3.uv, mapSize, mapCoord3);
+		if (std::abs(mapCoord1.x - mapCoord2.x) <= 1 &&
+			std::abs(mapCoord1.x - mapCoord3.x) <= 1 &&
+			std::abs(mapCoord2.x - mapCoord3.x) <= 1 &&
+			std::abs(mapCoord1.y - mapCoord2.y) <= 1 &&
+			std::abs(mapCoord1.y - mapCoord3.y) <= 1 &&
+			std::abs(mapCoord2.y - mapCoord3.y) <= 1 &&
+			areaReached )
+		{
+			return;
+		}
+	}
+	else if (areaReached) {
+		return;
+	}
+
+	//
+	glm::vec3 normal;
+	triangleNormal(v1.pos, v2.pos, v3.pos, normal);
+	
+	// the new vertices
+	Vertex e1, e2, e3;
+	// we sue v1 as reference in term of components to push
+	e1.hasColor = e2.hasColor = e3.hasColor = v1.hasColor;
+	e1.hasNormal = e2.hasNormal = e3.hasNormal = v1.hasNormal;
+	e1.hasUVCoord = e2.hasUVCoord = e3.hasUVCoord = v1.hasUVCoord;
+	
+	// edge centers 
+	// (we do not interpolate normals but use face normal)
+	e1.pos = v1.pos * 0.5F + v2.pos * 0.5F;
+	e1.col = v1.col * 0.5F + v2.col * 0.5F;
+	e1.uv = v1.uv * 0.5F + v2.uv * 0.5F;
+	e1.nrm = normal;
+
+	e2.pos = v2.pos * 0.5F + v3.pos * 0.5F;
+	e2.col = v2.col * 0.5F + v3.col * 0.5F;
+	e2.uv  = v2.uv * 0.5F + v3.uv * 0.5F;
+	e2.nrm = normal;
+
+	e3.pos = v3.pos * 0.5F + v1.pos * 0.5F;
+	e3.col = v3.col * 0.5F + v1.col * 0.5F;
+	e3.uv = v3.uv * 0.5F + v1.uv * 0.5F;
+	e3.nrm = normal;
+
+	// push the new vertices
+	pushVertex(e1, tex_map, bilinear, vset, output);
+	pushVertex(e2, tex_map, bilinear, vset, output);
+	pushVertex(e3, tex_map, bilinear, vset, output);
+
+	// go deeper in the subdivision
+	subdivideTriangle(e1, e2, e3, tex_map, thres, bilinear, vset, output);
+	subdivideTriangle(v1, e1, e3, tex_map, thres, bilinear, vset, output);
+	subdivideTriangle(e1, v2, e2, tex_map, thres, bilinear, vset, output);
+	subdivideTriangle(e2, v3, e3, tex_map, thres, bilinear, vset, output);
+}
+
+// perform a reverse sampling of the texture map to generate mesh samples
+// the color of the point is then using the texel color => no filtering
+void Sample::meshToPcDiv(
+	const Model& input, Model& output,
+	const Image& tex_map, float areaThreshold, bool bilinear, bool logProgress)
+{
+	// number of degenerate triangles
+	size_t skipped = 0; 
+	
+	// to prevent storing duplicate points
+	std::set<Vertex, Compare> vset;
+
+	// For each triangle
+	for (size_t triIdx = 0; triIdx < input.triangles.size() / 3; ++triIdx) {
+
+		if (logProgress)
+			std::cout << '\r' << triIdx << "/" << input.triangles.size() / 3 << std::flush;
+		
+		Vertex v1, v2, v3;
+
+		// fetch the triangle vertices
+		input.fetchTriangleVertices(triIdx, v1.pos, v2.pos, v3.pos);
+		// check if triangle is not degenerate
+		if (triangleArea(v1.pos, v2.pos, v3.pos) < DBL_EPSILON) {
+			++skipped;
+			continue;
+		}
+		// fetch the triangle UVs if needed
+		if (input.uvcoords.size() != 0) {
+			input.fetchTriangleUVs(triIdx, v1.uv, v2.uv, v3.uv);
+			v1.hasUVCoord = v2.hasUVCoord = v3.hasUVCoord = true;
+		}
+		// fetch the triangle colors if needed
+		if (input.colors.size() != 0) {
+			input.fetchTriangleColors(triIdx, v1.col, v2.col, v3.col);
+			v1.hasColor = v2.hasColor = v3.hasColor = true;
+		}
+		// compute face normal
+		glm::vec3 normal;
+		triangleNormal(v1.pos, v2.pos, v3.pos, normal);
+
+		// push the vertices
+		pushVertex(v1, tex_map, bilinear, vset, output);
+		pushVertex(v2, tex_map, bilinear, vset, output);
+		pushVertex(v3, tex_map, bilinear, vset, output);
+
+		// subdivide recursively
+		subdivideTriangle(v1, v2, v3, tex_map, areaThreshold, bilinear, vset, output );
+
+	}
+	if (logProgress)
+		std::cout << std::endl;
+	if (skipped != 0)
+		std::cout << "Skipped " << skipped << " triangles" << std::endl;
+	std::cout << "Generated " << output.vertices.size() / 3 << " points" << std::endl;
+
 }

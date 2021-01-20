@@ -38,6 +38,10 @@ struct Sample {
 	// revert sampling, guided by texture map
 	static void meshToPcMap(const Model& input, Model& output, const Image& tex_map, bool logProgress);
 
+	// triangle dubdivision based
+	static void meshToPcDiv(const Model& input, Model& output, const Image& tex_map, 
+		float areaThreshold, bool bilinear, bool logProgress);
+
 };
 
 #endif

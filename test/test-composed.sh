@@ -13,7 +13,7 @@ $CMD compare --mode pcc \
 	--inputModelA ${TMP}/${OUT1}.ply \
 	--inputModelB ${TMP}/${OUT2}.ply \
 	> ${TMP}/${OUT}.txt 2>&1
-fileHasString ${TMP}/${OUT}.txt "mseF,PSNR (p2plane): 59.9237" 1
+fileHasString ${TMP}/${OUT}.txt "mseF,PSNR (p2plane): 59.786" 1
 
 # inf because PCQM needs color, shall use another metric
 OUT=composed_sample_face_compare_sphere_pcqm
@@ -47,6 +47,6 @@ $CMD compare --mode pcqm \
 	--inputModelA ${TMP}/${OUT1}.ply \
 	--inputModelB ${TMP}/${OUT2}.ply \
 	> ${TMP}/${OUT}.txt 2>&1
-fileHasString ${TMP}/${OUT}.txt "PCQM value is : 0.00400173" 1
+fileHasString ${TMP}/${OUT}.txt "PCQM-PSNR=46.9943" 1
 
 fi

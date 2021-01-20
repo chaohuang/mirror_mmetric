@@ -9,6 +9,7 @@ tests=(
 "test-help"
 "test-quantize"
 "test-sample-face"
+"test-sample-sdiv"
 "test-sample-grid"
 "test-sample-map"
 "test-compare-eq" 

@@ -51,8 +51,16 @@ int Compare::main(std::string app, std::string cmd, int argc, char* argv[])
 	float epsilon = 0;
 	// Pcc options
 	pcc_quality::commandPar params;
+	params.singlePass = false;
+	params.hausdorff = false;
+	params.bColor = true;
+	params.bLidar = false; // allways false, no option
+	params.resolution = 0.0; // auto
+	params.neighborsProc = 1;
+	params.dropDuplicates = 2;
+	params.bAverageNormals = false;
 	// PCQM options
-	double radiusCurvature = 0.004;
+	double radiusCurvature = 0.001;
 	int thresholdKnnSearch = 20;
 	double radiusFactor = 2.0;
 
@@ -82,12 +90,24 @@ int Compare::main(std::string app, std::string cmd, int argc, char* argv[])
 				cxxopts::value<float>()->default_value("0.0"))
 			;
 		options.add_options("pcc mode")
+			("singlePass", "Force running a single pass, where the loop is over the original point cloud",
+				cxxopts::value<bool>()->default_value("false"))
+			("hausdorff", "Send the Haursdorff metric as well",
+				cxxopts::value<bool>()->default_value("false"))
+			("color", "Check color distortion as well",
+				cxxopts::value<bool>()->default_value("true"))
 			("resolution", "Amplitude of the geometric signal. Will be automatically set to diagonal of the models bounding box if value = 0",
 				cxxopts::value<float>()->default_value("0.0"))
+			("neighborsProc", "0(undefined), 1(average), 2(weighted average) 3(min), 4(max) neighbors with same geometric distance",
+				cxxopts::value<int>()->default_value("1"))
+			("dropDuplicates", "0(detect), 1(drop), 2(average) subsequent points with same coordinates",
+				cxxopts::value<int>()->default_value("2"))
+			("bAverageNormals", "false(use provided normals), true(average normal based on neighbors with same geometric distance)",
+				cxxopts::value<bool>()->default_value("false"))
 			;
 		options.add_options("pcqm mode")
 			("radiusCurvature", "Set a radius for the construction of the neighborhood. As the bounding box is already computed with this program, use proposed value.",
-				cxxopts::value<double>()->default_value("0.004"))
+				cxxopts::value<double>()->default_value("0.001"))
 			("thresholdKnnSearch", "Set the number of points used for the quadric surface construction",
 				cxxopts::value<int>()->default_value("20"))
 			("radiusFactor", "Set a radius factor for the statistic computation.",
@@ -135,16 +155,26 @@ int Compare::main(std::string app, std::string cmd, int argc, char* argv[])
 		//
 		if (result.count("epsilon"))
 			epsilon = result["epsilon"].as<float>();
-		//
+		// PCC
+		if (result.count("singlePass"))
+			params.singlePass = result["singlePass"].as<bool>();
+		if (result.count("hausdorff"))
+			params.hausdorff = result["hausdorff"].as<bool>();
+		if (result.count("color"))
+			params.bColor = result["color"].as<bool>();
 		if (result.count("resolution"))
 			params.resolution = result["resolution"].as<float>();
-		//
+		if (result.count("dropDuplicates"))
+			params.dropDuplicates = result["dropDuplicates"].as<int>();
+		if (result.count("neighborsProc"))
+			params.neighborsProc = result["neighborsProc"].as<int>();
+		if (result.count("averageNormals"))
+			params.bAverageNormals = result["averageNormals"].as<bool>();
+		// PCSM
 		if (result.count("radiusCurvature"))
 			radiusCurvature = result["radiusCurvature"].as<double>();
-		//
 		if (result.count("thresholdKnnSearch"))
 			thresholdKnnSearch = result["thresholdKnnSearch"].as<int>();
-		//
 		if (result.count("radiusFactor"))
 			radiusFactor = result["radiusFactor"].as<double>();
 	}
@@ -210,7 +240,13 @@ int Compare::main(std::string app, std::string cmd, int argc, char* argv[])
 	}
 	else if (mode == "pcc") {
 		std::cout << "Compare models using MPEG PCC distortion metric" << std::endl;
-		// std::cout << "  Epsilon = " << epsilon << std::endl;
+		std::cout << "  singlePass = " << params.singlePass << std::endl;
+		std::cout << "  hausdorff = " << params.hausdorff << std::endl;
+		std::cout << "  color = " << params.bColor << std::endl;
+		std::cout << "  resolution = " << params.resolution << std::endl;
+		std::cout << "  neighborsProc = " << params.neighborsProc << std::endl;
+		std::cout << "  dropDuplicates = " << params.dropDuplicates << std::endl;
+		std::cout << "  AverageNormals = " << params.bAverageNormals << std::endl;
 		res = Compare::pcc(
 			inputModelA, inputModelB,
 			textureMapA, textureMapB, params,
@@ -345,8 +381,6 @@ int Compare::equ(
 void sampleIfNeeded(
 	const Model& input,
 	const Image& map,
-	const glm::vec3 minBox,
-	const glm::vec3 maxBox,
 	Model& output)
 {
 	if (input.triangles.size() != 0) {
@@ -366,10 +400,98 @@ void sampleIfNeeded(
 	}
 }
 
+// code  from PCC_error (prevents pcc_error library modification.
+int removeDuplicatePoints(PccPointCloud& pc, int dropDuplicates, int neighborsProc) {
+	// sort the point cloud
+	std::sort(pc.begin(), pc.end());
+
+	// Find runs of identical point positions
+	for (auto it_seq = pc.begin(); it_seq != pc.end(); ) {
+		it_seq = std::adjacent_find(it_seq, pc.end());
+		if (it_seq == pc.end())
+			break;
+
+		// accumulators for averaging attribute values
+		long cattr[3]{}; // sum colors.
+		long lattr{}; // sum lidar.
+
+		// iterate over the duplicate points, accumulating values
+		int count = 0;
+		auto it = it_seq;
+		for (; *it == *it_seq; ++it) {
+			count++;
+			size_t idx = it.idx;
+			if (pc.bRgb) {
+				cattr[0] += pc.rgb.c[idx][0];
+				cattr[1] += pc.rgb.c[idx][1];
+				cattr[2] += pc.rgb.c[idx][2];
+			}
+
+			if (pc.bLidar)
+				lattr += pc.lidar.reflectance[idx];
+		}
+
+		size_t first_idx = it_seq.idx;
+		it_seq = it;
+
+		// averaging case only
+		if (dropDuplicates != 2)
+			continue;
+
+		if (pc.bRgb) {
+			pc.rgb.c[first_idx][0] = (unsigned char)(cattr[0] / count);
+			pc.rgb.c[first_idx][1] = (unsigned char)(cattr[1] / count);
+			pc.rgb.c[first_idx][2] = (unsigned char)(cattr[2] / count);
+		}
+
+		if (neighborsProc == 2)
+			pc.xyz.nbdup[first_idx] = count;
+
+		if (pc.bLidar)
+			pc.lidar.reflectance[first_idx] = (unsigned short)(lattr / count);
+	}
+
+	int duplicatesFound = 0;
+	if (dropDuplicates != 0) {
+		auto last = std::unique(pc.begin(), pc.end());
+		duplicatesFound = (int)std::distance(last, pc.end());
+
+		pc.size -= duplicatesFound;
+		pc.xyz.p.resize(pc.size);
+		pc.xyz.nbdup.resize(pc.size);
+		if (pc.bNormal)
+			pc.normal.n.resize(pc.size);
+		if (pc.bRgb)
+			pc.rgb.c.resize(pc.size);
+		if (pc.bLidar)
+			pc.lidar.reflectance.resize(pc.size);
+	}
+
+	if (duplicatesFound > 0)
+	{
+		switch (dropDuplicates)
+		{
+		case 0:
+			printf("WARNING: %d points with same coordinates found\n",
+				duplicatesFound);
+			break;
+		case 1:
+			printf("WARNING: %d points with same coordinates found and dropped\n",
+				duplicatesFound);
+			break;
+		case 2:
+			printf("WARNING: %d points with same coordinates found and averaged\n",
+				duplicatesFound);
+		}
+	}
+
+	return 0;
+}
+
 // utility func used by compare::pcc
 // no sanity check, we assume the model is clean 
 // and generated by sampling that allways generate content with color and normals
-void convertModel(const Model& inputModel, PccPointCloud& outputModel) {
+void convertModel(const Model& inputModel, pcc_quality::commandPar& params, PccPointCloud& outputModel ) {
 	for (size_t i = 0; i < inputModel.vertices.size() / 3; ++i) {
 		// push the positions
 		outputModel.xyz.p.push_back(std::array<float, 3>({
@@ -385,14 +507,26 @@ void convertModel(const Model& inputModel, PccPointCloud& outputModel) {
 		// push the colors if any
 		if (inputModel.colors.size() > i * 3 + 2)
 			outputModel.rgb.c.push_back(std::array<unsigned char, 3>({
-				(unsigned char)inputModel.colors[i * 3],
-				(unsigned char)inputModel.colors[i * 3 + 1],
-				(unsigned char)inputModel.colors[i * 3 + 2] }));
+				(unsigned char)(std::roundf(inputModel.colors[i * 3])),
+				(unsigned char)(std::roundf(inputModel.colors[i * 3 + 1])),
+				(unsigned char)(std::roundf(inputModel.colors[i * 3 + 2])) }));
 	}
-	outputModel.size = (long)inputModel.vertices.size() / 3;
+	outputModel.size = (long)outputModel.xyz.p.size();
 	outputModel.bXyz = outputModel.size >= 1;
-	outputModel.bRgb = true;
-	outputModel.bNormal = true;
+	if ( inputModel.colors.size() == inputModel.vertices.size() )
+		outputModel.bRgb = true;
+	else
+		outputModel.bRgb = false;
+	if (inputModel.normals.size() == inputModel.vertices.size())
+		outputModel.bNormal = true;
+	else 
+		outputModel.bNormal = false;
+	outputModel.bLidar = false;
+
+	outputModel.xyz.nbdup.resize(outputModel.xyz.p.size());
+	std::fill(outputModel.xyz.nbdup.begin(), outputModel.xyz.nbdup.end(), 1);
+	removeDuplicatePoints(outputModel, params.dropDuplicates, params.neighborsProc);
+
 }
 
 int Compare::pcc(
@@ -402,45 +536,34 @@ int Compare::pcc(
 	Model& outputA, Model& outputB
 ) {
 
-	glm::vec3 minBox, maxBox;
-	computeBBox(modelA.vertices, minBox, maxBox);
-	computeBBox(modelB.vertices, minBox, maxBox, false); // add to previous box
-
-	// use both models bounding box diagonal length as signal dynamic
-	if (params.resolution == 0) {
-		params.resolution = glm::length(maxBox - minBox);
-	}
-
 	// 1 - sample the models if needed
-	sampleIfNeeded(modelA, mapA, minBox, maxBox, outputA);
-	sampleIfNeeded(modelB, mapB, minBox, maxBox, outputB);
+	sampleIfNeeded(modelA, mapA, outputA);
+	sampleIfNeeded(modelB, mapB, outputB);
 
 	// 2 - transcode to PCC internal format
 	pcc_processing::PccPointCloud inCloud1;
 	pcc_processing::PccPointCloud inCloud2;
-	pcc_processing::PccPointCloud inNormal1;
-	pcc_processing::PccPointCloud* pNormal1 = &inCloud1;
 
-	convertModel(outputA, inCloud1);
-	convertModel(outputB, inCloud2);
+	convertModel(outputA, params, inCloud1);
+	convertModel(outputB, params, inCloud2);
 
+	// we use outputA as reference for signal dynamic if needed
+	if (params.resolution == 0) {
+		glm::vec3 minBox, maxBox;
+		computeBBox(outputA.vertices, minBox, maxBox);
+		params.resolution = glm::length(maxBox - minBox);
+	}
+	//
 	params.file1 = "dummy1.ply"; // could be any name !="", just force some pcc inner tests to pass
 	params.file2 = "dummy2.ply"; // could be any name !="", just force some pcc inner tests to pass
-	if (outputA.normals.size() != 0 && outputB.normals.size() != 0) {
-		// compute plane metric  since we have normals
-		params.c2c_only = false;
-	}
-	else {
-		params.c2c_only = true;
-	}
-	if (outputA.colors.size() != 0 && outputB.colors.size() != 0) {
-		// compute color metric
-		params.bColor = true;
-	}
+	// compute plane metric if we have valid normal arrays
+	params.c2c_only = !(outputA.normals.size() == outputA.vertices.size() && outputB.normals.size() == outputB.vertices.size());
+	// compute color metric if valid color arrays
+	params.bColor = params.bColor && (outputA.colors.size() == outputA.vertices.size() && outputB.colors.size() == outputB.vertices.size());
 
 	// 3 - compute the metric
 	pcc_quality::qMetric qm;
-	computeQualityMetric(inCloud1, *pNormal1, inCloud2, params, qm);
+	computeQualityMetric(inCloud1, inCloud1, inCloud2, params, qm);
 
 	// 
 	return 0;
@@ -487,11 +610,8 @@ int Compare::pcqm(
 ) {
 
 	// 1 - sample the models if needed
-	glm::vec3 minBox, maxBox;
-	computeBBox(modelA.vertices, minBox, maxBox);
-	computeBBox(modelB.vertices, minBox, maxBox, false); // add to previous box
-	sampleIfNeeded(modelA, mapA, minBox, maxBox, outputA);
-	sampleIfNeeded(modelB, mapB, minBox, maxBox, outputB);
+	sampleIfNeeded(modelA, mapA, outputA);
+	sampleIfNeeded(modelB, mapB, outputB);
 
 	// 2 - transcode to PCQM internal format
 	PointSet inCloud1;
@@ -504,9 +624,9 @@ int Compare::pcqm(
 	double pcqm = compute_pcqm(inCloud1, inCloud2, "reffile", "regfile", radiusCurvature, thresholdKnnSearch, radiusFactor);
 
 	// compute PSNR
-	pcqm = std::min(pcqm, radiusCurvature); // clamp in case of overflow (models too far from each other)
-	double maxEnergy = std::numeric_limits<unsigned short>::max();
-	double pcqmScaled = (pcqm / radiusCurvature) * maxEnergy;
+	double maxPcqm = 1.0;
+	const double maxEnergy = std::numeric_limits<unsigned short>::max();
+	double pcqmScaled = (pcqm / maxPcqm) * maxEnergy;
 	double pcqmMse = pcqmScaled * pcqmScaled;
 	double pcqmPsnr = 10.0 * log10(maxEnergy * maxEnergy / pcqmMse);
 

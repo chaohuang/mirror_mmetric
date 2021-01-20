@@ -1,17 +1,20 @@
 Skipping map read, will parse use vertex color if any
-Loading file: ./test/cpv_plane.obj
+Loading file: ./data/cpv_plane.obj
 Time on loading: 0.001 sec.
-Input model: ./test/cpv_plane.obj
-  n_vertices: 5
-  n_uvs: 0
-  n_cols: 7
+Input model: ./data/cpv_plane.obj
+  Vertices: 5
+  UVs: 0
+  Colors: 5
+  Normals: 0
 Sampling in GRID mode
   Grid Size = 10
   Bilinear = 0
-  PerVertexColor = 1
+  hideProgress = 1
 minbox = -5,-5,0
 maxbox = 5,5,0
-0/41/42/43/4
+Transform bounding box to square box
+minbox = -5,-5,-5
+maxbox = 5,5,5
 Generated 116 points
 Time on processing: 0 sec.
 Saving file: ./tmp/sample_grid_cpv_plane_10.ply

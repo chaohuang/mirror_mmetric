@@ -8,6 +8,9 @@ cmpOsLog helpMain
 $CMD sample     > ${TMP}/helpSample.txt	 2>&1
 cmpOsLog helpSample
 
+$CMD render     > ${TMP}/helpRender.txt	 2>&1
+cmpOsLog helpRender
+
 $CMD compare   > ${TMP}/helpCompare.txt 2>&1
 cmpOsLog helpCompare
 

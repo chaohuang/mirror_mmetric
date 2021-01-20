@@ -17,15 +17,26 @@ Usage:
                      comparison. if not set use memcmp. (default: 0.0)
 
  pcc mode options:
-      --resolution arg  Amplitude of the geometric signal. Will be
-                        automatically set to diagonal of the models bounding box if
-                        value = 0 (default: 0.0)
+      --singlePass          Force running a single pass, where the loop is
+                            over the original point cloud
+      --hausdorff           Send the Haursdorff metric as well
+      --color               Check color distortion as well (default: true)
+      --resolution arg      Amplitude of the geometric signal. Will be
+                            automatically set to diagonal of the models bounding box
+                            if value = 0 (default: 0.0)
+      --neighborsProc arg   0(undefined), 1(average), 2(weighted average)
+                            3(min), 4(max) neighbors with same geometric distance
+                            (default: 1)
+      --dropDuplicates arg  0(detect), 1(drop), 2(average) subsequent points
+                            with same coordinates (default: 2)
+      --bAverageNormals     false(use provided normals), true(average normal
+                            based on neighbors with same geometric distance)
 
  pcqm mode options:
       --radiusCurvature arg     Set a radius for the construction of the
                                 neighborhood. As the bounding box is already
                                 computed with this program, use proposed value.
-                                (default: 0.004)
+                                (default: 0.001)
       --thresholdKnnSearch arg  Set the number of points used for the quadric
                                 surface construction (default: 20)
       --radiusFactor arg        Set a radius factor for the statistic

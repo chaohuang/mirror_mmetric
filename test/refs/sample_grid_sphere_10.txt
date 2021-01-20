@@ -1,0 +1,20 @@
+Input map: ./data/plane.png
+Loading file: ./data/sphere.obj
+Time on loading: 0.002 sec.
+Input model: ./data/sphere.obj
+  Vertices: 482
+  UVs: 0
+  Colors: 0
+  Normals: 0
+Sampling in GRID mode
+  Grid Size = 10
+  Bilinear = 0
+  hideProgress = 1
+minbox = -1,-1,-1
+maxbox = 1,1,1
+Transform bounding box to square box
+minbox = -1,-1,-1
+maxbox = 1,1,1
+Generated 370 points
+Time on processing: 0.001 sec.
+Saving file: ./tmp/sample_grid_sphere_10.ply

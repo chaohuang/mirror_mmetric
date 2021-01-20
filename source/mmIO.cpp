@@ -72,9 +72,10 @@ bool IO::loadModel(std::string filename, Model& output) {
 	if (success) {
 		// print stats
 		std::cout << "Input model: " << filename << std::endl;
-		std::cout << "  n_vertices: " << output.vertices.size() / 3 << std::endl;
-		std::cout << "  n_uvs: "      << output.uvcoords.size() / 2 << std::endl;
-		std::cout << "  n_cols: "     << output.colors.size() / 2 << std::endl;
+		std::cout << "  Vertices: " << output.vertices.size() / 3 << std::endl;
+		std::cout << "  UVs: "      << output.uvcoords.size() / 2 << std::endl;
+		std::cout << "  Colors: "     << output.colors.size() / 3 << std::endl;
+		std::cout << "  Normals: " << output.normals.size() / 3 << std::endl;
 	}
 
 	return success;
@@ -149,9 +150,9 @@ bool IO::loadObj(std::string filename, Model& output) {
 				in >> temp_pos;
 				output.vertices.push_back(temp_pos);
 			}
-			// parse the color if any
+			// parse the color if any (re map 0.0-1.0 to 0-255 internal color format)
 			while (in >> temp_col) {
-				output.colors.push_back(temp_col * 255);
+				output.colors.push_back(std::roundf(temp_col * 255));
 			}
 		}
 		else if (temp_flag.compare(std::string("vn")) == 0) {
@@ -193,13 +194,24 @@ bool IO::saveObj(std::string filename, const Model& input) {
 
 	std::ofstream fout;
 	fout.open(filename.c_str(), std::ios::out); // TODO check error
+	// this is mandatory to print floats with full precision
+	fout.precision(std::numeric_limits< float >::max_digits10);
 
 	fout << input.header << std::endl;
 	for (int i = 0; i < input.vertices.size() / 3; i++) {
 		fout << "v " <<
 			input.vertices[i * 3 + 0] << " " <<
 			input.vertices[i * 3 + 1] << " " <<
-			input.vertices[i * 3 + 2] << std::endl;
+			input.vertices[i * 3 + 2] ;
+		if (input.colors.size() == input.vertices.size()) {
+			fout << " " <<
+				input.colors[i * 3 + 0] / 255 << " " <<
+				input.colors[i * 3 + 1] / 255 << " " <<
+				input.colors[i * 3 + 2] / 255 << std::endl;
+		}
+		else {
+			fout << std::endl;
+		}
 	}
 	for (int i = 0; i < input.normals.size() / 3; i++) {
 		fout << "vn " <<
@@ -276,6 +288,11 @@ bool IO::loadPly(std::string filename, Model& output)
 		output.vertices.resize(_vertices->count * 3);
 		std::memcpy(output.vertices.data(), _vertices->buffer.get(), numVerticesBytes);
 	}
+	if (_texcoords) {
+		const size_t numTexcoordsBytes = _texcoords->buffer.size_bytes();
+		output.uvcoords.resize(_texcoords->count * 2);
+		std::memcpy(output.uvcoords.data(), _texcoords->buffer.get(), numTexcoordsBytes);
+	}
 	if (_normals) {
 		const size_t numNormalsBytes = _normals->buffer.size_bytes();
 		output.normals.resize(_normals->count * 3);
@@ -309,7 +326,9 @@ bool IO::loadPly(std::string filename, Model& output)
 bool IO::savePly(std::string filename, const Model& input)
 {
 	std::ofstream fout;
-	fout.open(filename.c_str(), std::ios::out);
+	fout.open(filename.c_str(), std::ios::out); // tod check for error
+	// this is mandatory to print floats with full precision
+	fout.precision(std::numeric_limits< float >::max_digits10);
 
 	fout << "ply" << std::endl;
 	fout << "format ascii 1.0" << std::endl;
@@ -356,19 +375,20 @@ bool IO::savePly(std::string filename, const Model& input)
 				input.normals[i * 3 + 2] << " ";
 		}
 		if (input.colors.size() == input.vertices.size()) {
+			// do not cast as char otherwise characters are printed instead if int8 values
 			fout <<
-				(int)(std::roundf(input.colors[i * 3 + 0])) << " " <<
-				(int)(std::roundf(input.colors[i * 3 + 1])) << " " <<
-				(int)(std::roundf(input.colors[i * 3 + 2]));
+				(unsigned short)(std::roundf(input.colors[i * 3 + 0])) << " " <<
+				(unsigned short)(std::roundf(input.colors[i * 3 + 1])) << " " <<
+				(unsigned short)(std::roundf(input.colors[i * 3 + 2]));
 		}
 		fout << std::endl;
 	}
 	// topology
 	for (int i = 0; i < input.triangles.size() / 3; i++) {
 		fout << "3 "
-			<< (int)input.triangles[i * 3 + 0] << " "
-			<< (int)input.triangles[i * 3 + 1] << " "
-			<< (int)input.triangles[i * 3 + 2] << std::endl;
+			<< input.triangles[i * 3 + 0] << " "
+			<< input.triangles[i * 3 + 1] << " "
+			<< input.triangles[i * 3 + 2] << std::endl;
 	}
 
 	fout.close();

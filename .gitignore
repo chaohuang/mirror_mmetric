@@ -2,7 +2,9 @@ main
 x64
 .vs
 *.vcxproj.user
+bin
+deps
+build
 tmp
 mm
 features_extracted.csv
-

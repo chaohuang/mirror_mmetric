@@ -17,21 +17,27 @@
 
 #include "mmImage.h"
 
+// converts the uv coordinates from uv space ti omage space, doing CLAMP and y flip 
+void mapCoordClamped(const glm::vec2& uv, const glm::ivec2& mapSize, glm::ivec2& mapCoord) {
+	
+	// clamp
+	mapCoord.x = (int)(uv[0] * (mapSize.x - 1) + 0.5F); // add 0.5 and cast to int to do round
+	mapCoord.x = std::min(std::max(mapCoord.x, 0), mapSize.x - 1);
+
+	// flip the image vertically and clamp
+	mapCoord.y = (int)(uv[1] * (mapSize.y - 1) + 0.5F); // add 0.5 and cast to int to do round
+	mapCoord.y = mapSize.y - 1 - std::min(std::max(mapCoord.y, 0), mapSize.y - 1);
+}
+
 // texture lookup with clamp
 void texture2D(const Image& tex_map, const glm::vec2& uv, glm::vec3& rgb)
 {
-	int textureSize[] = { tex_map.width, tex_map.height };
-
-	// clamp
-	int x = (int)round(uv[0] * textureSize[0] - 1);
-	x = std::min(std::max(x, 0), textureSize[0] - 1);
-
-	// flip the image vertically and clamp
-	int y = (int)round(uv[1] * textureSize[1] - 1);
-	y = textureSize[1] - 1 - std::min(std::max(y, 0), textureSize[1] - 1);
+	const glm::ivec2 mapSize = { tex_map.width, tex_map.height };
+	glm::ivec2 mapCoord = {0,0};
+	mapCoordClamped(uv, mapSize, mapCoord);
 
 	for (int i = 0; i < 3; i++)
-		rgb[i] = (float)(tex_map.data[(y * textureSize[0] + x) * tex_map.nbc + i]);
+		rgb[i] = (float)(tex_map.data[(mapCoord.y * mapSize.x + mapCoord.x) * tex_map.nbc + i]);
 }
 
 // this code translated from https ://community.khronos.org/t/manual-bilinear-filter/58504
@@ -42,7 +48,7 @@ void texture2D(const Image& tex_map, const glm::vec2& uv, glm::vec3& rgb)
 // mix (x,y,a) = x * (1 - a) + y * a
 void texture2D_bilinear(const Image& tex_map, const glm::vec2& uv, glm::vec3& rgb)
 {
-	int textureSize[] = { tex_map.width, tex_map.height };
+	const int textureSize[] = { tex_map.width, tex_map.height };
 	glm::vec2 texelSize = { 1.0F / textureSize[0], 1.0F / textureSize[1] };
 
 	// vec2 f = fract( uv * textureSize );

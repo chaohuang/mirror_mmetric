@@ -29,6 +29,9 @@ public:
 
 };
 
+// converts the uv coordinates from uv space ti omage space, doing CLAMP and y flip 
+void mapCoordClamped(const glm::vec2& uv, const glm::ivec2& mapSize, glm::ivec2& mapCoord);
+
 // texture lookup with clamp
 void texture2D(const Image& tex_map, const glm::vec2& uv, glm::vec3& rgb);
 

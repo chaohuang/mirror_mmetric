@@ -69,8 +69,10 @@ inline void computeBBox(const std::vector<float>& vertices, glm::vec3& minPos, g
 
 // transform the box into a cube bbox fitting original
 inline void toCubicalBBox(glm::vec3& minPos, glm::vec3& maxPos) {
-	minPos.x = minPos.y = minPos.z = std::min(std::min(minPos.x, minPos.y), minPos.z);
-	maxPos.x = maxPos.y = maxPos.z = std::max(std::max(maxPos.x, maxPos.y), minPos.z);
+	float low  = std::min(std::min(minPos.x, minPos.y), minPos.z);
+	float high = std::max(std::max(maxPos.x, maxPos.y), maxPos.z);
+	minPos.x = minPos.y = minPos.z = low;
+	maxPos.x = maxPos.y = maxPos.z = high;
 }
 
 // Compute barycentric coordinates (u, v, w)~res(x,y,z) for

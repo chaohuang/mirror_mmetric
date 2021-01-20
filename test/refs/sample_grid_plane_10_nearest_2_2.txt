@@ -1,0 +1,20 @@
+Input map: ./data/plane.png
+Loading file: ./data/plane.obj
+Time on loading: 0 sec.
+Input model: ./data/plane.obj
+  Vertices: 5
+  UVs: 5
+  Colors: 0
+  Normals: 0
+Sampling in GRID mode
+  Grid Size = 10
+  Bilinear = 0
+  hideProgress = 1
+minbox = -5,-5,0
+maxbox = 5,5,0
+Transform bounding box to square box
+minbox = -5,-5,-5
+maxbox = 5,5,5
+Generated 116 points
+Time on processing: 0 sec.
+Saving file: ./tmp/sample_grid_plane_10_nearest_2_2.ply

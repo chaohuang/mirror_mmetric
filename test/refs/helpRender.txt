@@ -1,0 +1,13 @@
+Error: unknown command render
+3D model processing commands v0.1.1
+Usage:
+  mm.exe command [OPTION...]
+
+Command help:
+  mm.exe command --help
+
+Command:
+  sample     Convert mesh to point cloud
+  compare    Compare model A vs model B
+  quantize   Quantize model (mesh or point cloud) positions
+

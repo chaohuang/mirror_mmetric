@@ -1,0 +1,14 @@
+Skipping map read, will parse use vertex color if any
+Loading file: ./data/sphere.obj
+Time on loading: 0.003 sec.
+Input model: ./data/sphere.obj
+  n_vertices: 482
+  n_uvs: 0
+  n_cols: 0
+Sampling in SDIV mode
+  Area threshold = 1
+  Bilinear = 0
+  hideProgress = 1
+Generated 482 points
+Time on processing: 0 sec.
+Saving file: ./tmp/sample_sdiv_sphere_qp8_1.ply

@@ -21,7 +21,7 @@
 #include "mmCompare.h"
 
 // software version
-#define MM_VERSION 0.1
+#define MM_VERSION "0.1.1"
 
 // the name of the application binary
 // i.e argv[0] minus the eventual path
@@ -41,8 +41,6 @@ int main(int argc, char* argv[])
 		else if (command == "compare")
 			return Compare::main(APP_NAME, command, argc - 1, &argv[1]);
 		else if (command == "quantize")
-			return Quantize::main(APP_NAME, command, argc - 1, &argv[1]);
-		else if (command == "float2int")
 			return Quantize::main(APP_NAME, command, argc - 1, &argv[1]);
 		//
 		std::cerr << "Error: unknown command " << argv[1] << std::endl;
