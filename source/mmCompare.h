@@ -16,18 +16,26 @@
 #define _MM_COMPARE_H_
 
 // internal headers
+#include "mmCommand.h"
 #include "mmModel.h"
 // MPEG PCC metric
 #include "pcc/pcc_distortion.hpp"
 
-struct Compare {
+class Compare : Command {
+	
+public:
 
-	// Descriptions of the commands
-	static const char* brief;
+	// Descriptions of the command
+	virtual const char* name(void) {
+		return "compare";
+	};
+	virtual const char* brief(void) {
+		return "Compare model A vs model B"; 
+	};
 
 	// the command main program
-	static int main(std::string app, std::string cmd, int argc, char* argv[]);
-	
+	virtual int main(std::string app, int argc, char* argv[]);
+
 	// compare two meshes for equality (using mem comp if epsilon = 0)
 	// if epsilon = 0, return 0 on success and 1 on difference
 	// if epsilon > 0, return 0 on success and nb diff on difference if sizes are equal, 1 otherwise

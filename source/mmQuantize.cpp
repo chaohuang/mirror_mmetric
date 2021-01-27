@@ -32,9 +32,11 @@
 #include "mmQuantize.h"
 #include "mmGeometry.h"
 
-const char* Quantize::brief = "Quantize model (mesh or point cloud) positions";
+// register the command
+static bool init = Command::addCommand((Command*) new Quantize());
 
-int Quantize::main(std::string app, std::string cmd, int argc, char* argv[])
+//
+int Quantize::main(std::string app, int argc, char* argv[])
 {
 	// the command options
 	std::string inputModelFilename;
@@ -45,14 +47,12 @@ int Quantize::main(std::string app, std::string cmd, int argc, char* argv[])
 	// command line parameters
 	try
 	{
-		cxxopts::Options options(app + " " + cmd, brief);
+		cxxopts::Options options(app + " " + name(), brief());
 		options.add_options()
 			("i,inputModel", "path to input model (obj or ply file)",
 				cxxopts::value<std::string>())
 			("o,outputModel", "path to output model (obj or ply file)",
 				cxxopts::value<std::string>())
-			("float", "if set the processings and outputs will be float32, int32 otherwise",
-				cxxopts::value<bool>()->default_value("true"))
 			("h,help", "Print usage")
 			("qp", "Geometry quantization bitdepth",
 				cxxopts::value<uint32_t>()->default_value("16"))
@@ -93,24 +93,24 @@ int Quantize::main(std::string app, std::string cmd, int argc, char* argv[])
 	}
 
 	// the input
-	Model inputModel;
-	if (!IO::loadModel(inputModelFilename, inputModel)){
+	Model *inputModel;
+	if ((inputModel = IO::loadModel(inputModelFilename)) == NULL){
 		return 1;
 	}
-	if (inputModel.vertices.size() == 0 ) {
+	if (inputModel->vertices.size() == 0 ) {
 		std::cout << "Error: invalid input model from " << inputModelFilename << std::endl;
 		return 1;
 	}
 
 	// the output
-	Model outputModel;
+	Model *outputModel = new Model();
 
 	// Perform the processings
 	clock_t t1 = clock();
 
 	std::cout << "Quantizing" << std::endl;
 	std::cout << "  qp = " << qp << std::endl;
-	Quantize::quantizePosition(inputModel, outputModel, qp);
+	Quantize::quantizePosition(*inputModel, *outputModel, qp);
 
 	clock_t t2 = clock();
 	std::cout << "Time on processing: " << ((float)(t2 - t1)) / CLOCKS_PER_SEC << " sec." << std::endl;
@@ -118,8 +118,10 @@ int Quantize::main(std::string app, std::string cmd, int argc, char* argv[])
 	// save the result
 	if (IO::saveModel(outputModelFilename, outputModel))
 		return 0;
-	else
+	else {
+		delete outputModel;
 		return 1;
+	}
 
 }
 

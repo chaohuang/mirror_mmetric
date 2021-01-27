@@ -11,7 +11,7 @@ $CMD sample -i ${DATA}/plane.obj -m ${DATA}/plane.png -o ${TMP}/${OUT}.ply --mod
 cmp ${TMP}/${OUT}.ply ${REFS}/${OUT}.ply
 
 OUT=sample_sdiv_plane_1_nearest_10_10
-$CMD sample -i ${DATA}/plane.obj -m ${DATA}/plane_10_10.png -o ${TMP}/${OUT}.ply --mode sdiv --hideProgress > ${TMP}/${OUT}.txt 2>&1
+$CMD sample -i ${DATA}/plane.obj -m ${DATA}/plane_10_10.png -o ${TMP}/${OUT}.ply --mode sdiv --mapThreshold --hideProgress > ${TMP}/${OUT}.txt 2>&1
 cmp ${TMP}/${OUT}.ply ${REFS}/${OUT}.ply
 
 # color per vertex

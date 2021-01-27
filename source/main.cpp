@@ -16,12 +16,10 @@
 #include <iostream>
 
 // internal headers
-#include "mmSample.h"
-#include "mmQuantize.h"
-#include "mmCompare.h"
+#include "mmCommand.h"
 
 // software version
-#define MM_VERSION "0.1.1"
+#define MM_VERSION "0.1.2"
 
 // the name of the application binary
 // i.e argv[0] minus the eventual path
@@ -35,15 +33,32 @@
 int main(int argc, char* argv[])
 {
 	if (argc > 1) {
-		std::string command(argv[1]);
-		if (command == "sample")
-			return Sample::main(APP_NAME, command, argc - 1, &argv[1]);
-		else if (command == "compare")
-			return Compare::main(APP_NAME, command, argc - 1, &argv[1]);
-		else if (command == "quantize")
-			return Quantize::main(APP_NAME, command, argc - 1, &argv[1]);
-		//
-		std::cerr << "Error: unknown command " << argv[1] << std::endl;
+
+		int startIdx = 1;
+		int endIdx;
+
+		do {
+			// search for end of command (END or end of argv)
+			endIdx = startIdx;
+			std::string arg = argv[endIdx];
+			while (endIdx != argc - 1 && arg != "END") {
+				endIdx++;
+				arg = argv[endIdx];
+			}
+			int subArgc = endIdx - startIdx + ((endIdx == argc - 1) ? 1 : 0);
+
+			// execute the command
+			int res = Command::execute(APP_NAME, std::string(argv[startIdx]), subArgc, &argv[startIdx]);
+			if (res != 0) 
+				return res;
+						
+			// start of next command
+			startIdx = endIdx + 1;
+
+		} while (startIdx < argc);
+
+		// all commands were executed
+		return 0;
 	}
 
 	// print help
@@ -55,9 +70,7 @@ int main(int argc, char* argv[])
 	std::cout << "  " << APP_NAME << " command --help" << std::endl;
 	std::cout << std::endl;
 	std::cout << "Command:" << std::endl;
-	std::cout << "  sample     " << Sample::brief << std::endl;
-	std::cout << "  compare    " << Compare::brief << std::endl;
-	std::cout << "  quantize   " << Quantize::brief << std::endl;
+	Command::logCommands();
 	std::cout << std::endl;
 
 }

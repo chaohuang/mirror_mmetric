@@ -12,33 +12,40 @@
 // Author: jean-eudes.marvie@interdigital.com
 // *****************************************************************
 
-#ifndef _MM_QUANTIZE_H_
-#define _MM_QUANTIZE_H_
+#ifndef _MM_COMMAND_H_
+#define _MM_COMMAND_H_
 
-// internal headers
-#include "mmCommand.h"
-#include "mmModel.h"
+#include <string>
+#include <map>
+#include <iostream>
 
-class Quantize : Command {
+class Command {
 
 public:
 
-	Quantize() {};
+	// must be overloaded to return the command name
+	virtual const char* name(void) = 0;
 
-	// Descriptions of the command
-	virtual const char* name(void) {
-		return "quantize";
-	};
-	virtual const char* brief(void) {
-		return "Quantize model (mesh or point cloud) positions";
-	};
+	// must be overloaded to return the command brief description
+	virtual const char* brief( void ) = 0;
 
-	// the command main program
-	virtual int main(std::string app, int argc, char* argv[]);
+	// must be overloaded to execute the command
+	virtual int main(std::string app, int argc, char* argv[])=0;
+
+	// invoke to register a new command 
+	static bool addCommand(Command* cmd);
+
+	// invoke to execute a command
+	static int execute(std::string app, std::string cmd, int argc, char* argv[]);
+
+	// print the list of commands
+	static void logCommands(void);
+
+private:
+
+	// command name -> command
+	static std::map<std::string, Command*> _commands;
 	
-	// TODO document
-	static void quantizePosition(const Model& input, Model& output, uint32_t bitdepth);
-
 };
 
 #endif

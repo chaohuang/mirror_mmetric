@@ -16,16 +16,26 @@
 #define _MM_SAMPLE_H_
 
 // internal headers
+#include "mmCommand.h"
 #include "mmModel.h"
 #include "mmImage.h"
 
-struct Sample {
-	
-	// Descriptions of the commands
-	static const char* brief;
+class Sample : Command {
+
+public:
+
+	Sample() {};
+
+	// Descriptions of the command
+	virtual const char* name(void) {
+		return "sample";
+	};
+	virtual const char* brief(void) {
+		return "Convert mesh to point cloud";
+	};
 
 	// the command main program
-	static int main(std::string app, std::string cmd, int argc, char* argv[]);
+	virtual int main(std::string app, int argc, char* argv[]);
 
 	// sample the mesh on a face basis
 	static void meshToPcFace(const Model& input, Model& output,	const Image& tex_map, 
@@ -40,7 +50,7 @@ struct Sample {
 
 	// triangle dubdivision based
 	static void meshToPcDiv(const Model& input, Model& output, const Image& tex_map, 
-		float areaThreshold, bool bilinear, bool logProgress);
+		float areaThreshold, bool mapThreshold, bool bilinear, bool logProgress);
 
 };
 

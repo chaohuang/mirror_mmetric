@@ -27,4 +27,6 @@ Usage:
 
  Sdiv mode options:
       --areaThreshold arg  area limit to stop subdivision (default: 1.0)
+      --mapThreshold       if set will refine until face vertices texels are
+                           distanced of 1 and areaThreshold reached
 

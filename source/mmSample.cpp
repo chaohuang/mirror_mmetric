@@ -32,10 +32,11 @@
 #include "mmModel.h"
 #include "mmImage.h"
 
-const char* Sample::brief = "Convert mesh to point cloud";
+// register the command
+static bool init = Command::addCommand((Command*) new Sample());
 
 // analyse command line and run processings
-int Sample::main(std::string app, std::string cmd, int argc, char* argv[])
+int Sample::main(std::string app, int argc, char* argv[])
 {
 	// the command options
 	std::string inputModelFilename;
@@ -53,12 +54,13 @@ int Sample::main(std::string app, std::string cmd, int argc, char* argv[])
 	// Face and Grid options
 	bool bilinear = false;
 	// Face subdiv options
-	bool areaThreshold = 1.0F;
+	float areaThreshold = 1.0F;
+	bool mapThreshold = false;
 
 	// command line parameters
 	try
 	{
-		cxxopts::Options options(app + " sample", Sample::brief);
+		cxxopts::Options options(app + " " + name(), brief());
 		options.add_options()
 			("i,inputModel", "path to input model (obj or ply file)",
 				cxxopts::value<std::string>())
@@ -83,6 +85,8 @@ int Sample::main(std::string app, std::string cmd, int argc, char* argv[])
 		options.add_options("Sdiv mode")
 			("areaThreshold", "area limit to stop subdivision",
 				cxxopts::value<float>()->default_value("1.0"))
+			("mapThreshold", "if set will refine until face vertices texels are distanced of 1 and areaThreshold reached",
+				cxxopts::value<bool>()->default_value("false"))
 			;
 		options.add_options("Grid mode")
 			("gridSize", "integer value in [1,maxint], side size of the grid",
@@ -133,6 +137,8 @@ int Sample::main(std::string app, std::string cmd, int argc, char* argv[])
 			thickness = result["thickness"].as<float>();
 		if (result.count("areaThreshold"))
 			areaThreshold = result["areaThreshold"].as<float>();
+		if (result.count("mapThreshold"))
+			mapThreshold = result["mapThreshold"].as<bool>();
 		if (result.count("gridSize"))
 			gridSize = result["gridSize"].as<int>();
 		if (result.count("bilinear"))
@@ -145,27 +151,28 @@ int Sample::main(std::string app, std::string cmd, int argc, char* argv[])
 	}
 
 	// Reading map if needed
-	Image textureMap;
+	Image* textureMap;
 	if (inputTextureFilename != "") {
-		IO::loadImage(inputTextureFilename, textureMap);
+		textureMap = IO::loadImage(inputTextureFilename);
 	}
 	else {
 		std::cout << "Skipping map read, will parse use vertex color if any" << std::endl;
+		textureMap = new Image();
 	}
 
 	// the input
-	Model inputModel;
-	if (!IO::loadModel(inputModelFilename, inputModel)) {
+	Model* inputModel;
+	if ((inputModel = IO::loadModel(inputModelFilename)) == NULL) {
 		return 1;
 	} 
-	if (inputModel.vertices.size() == 0 ||
-		inputModel.triangles.size() == 0) {
+	if (inputModel->vertices.size() == 0 ||
+		inputModel->triangles.size() == 0) {
 		std::cout << "Error: invalid input model from " << inputModelFilename << std::endl;
 		return 1;
 	}
 
 	// the output
-	Model outputModel;
+	Model* outputModel = new Model();
 
 	// Perform the processings
 	clock_t t1 = clock();
@@ -175,28 +182,29 @@ int Sample::main(std::string app, std::string cmd, int argc, char* argv[])
 		std::cout << "  Thickness = " << thickness << std::endl;
 		std::cout << "  Bilinear = " << bilinear << std::endl;
 		std::cout << "  hideProgress = " << hideProgress << std::endl;
-		Sample::meshToPcFace(inputModel, outputModel,
-			textureMap, resolution, thickness, bilinear, !hideProgress);
+		Sample::meshToPcFace(*inputModel, *outputModel,
+			*textureMap, resolution, thickness, bilinear, !hideProgress);
 	}
 	else if (mode == "grid") {
 		std::cout << "Sampling in GRID mode" << std::endl;
 		std::cout << "  Grid Size = " << gridSize << std::endl;
 		std::cout << "  Bilinear = " << bilinear << std::endl;
 		std::cout << "  hideProgress = " << hideProgress << std::endl;
-		Sample::meshToPcGrid(inputModel, outputModel,
-			textureMap, gridSize, bilinear, !hideProgress);
+		Sample::meshToPcGrid(*inputModel, *outputModel,
+			*textureMap, gridSize, bilinear, !hideProgress);
 	}
 	else if (mode == "map") {
 		std::cout << "Sampling in MAP mode" << std::endl;
 		std::cout << "  hideProgress = " << hideProgress << std::endl;
-		Sample::meshToPcMap(inputModel, outputModel, textureMap, !hideProgress);
+		Sample::meshToPcMap(*inputModel, *outputModel, *textureMap, !hideProgress);
 	}
 	else if (mode == "sdiv") {
 		std::cout << "Sampling in SDIV mode" << std::endl;
 		std::cout << "  Area threshold = " << areaThreshold << std::endl;
+		std::cout << "  Map threshold = " << mapThreshold << std::endl;
 		std::cout << "  Bilinear = " << bilinear << std::endl;
 		std::cout << "  hideProgress = " << hideProgress << std::endl;
-		Sample::meshToPcDiv(inputModel, outputModel, textureMap, areaThreshold, bilinear, !hideProgress);
+		Sample::meshToPcDiv(*inputModel, *outputModel, *textureMap, areaThreshold, mapThreshold, bilinear, !hideProgress);
 	}
 	clock_t t2 = clock();
 	std::cout << "Time on processing: " << ((float)(t2 - t1)) / CLOCKS_PER_SEC << " sec." << std::endl;
@@ -671,7 +679,8 @@ void subdivideTriangle(
 	const Vertex& v3,
 	const Image& tex_map,
 	const float thres,
-	const bool bilinear,
+	const bool mapThreshold,
+	const bool bilinear,	
 	std::set<Vertex, Compare>& vset,
 	Model& output
 ) {
@@ -680,7 +689,7 @@ void subdivideTriangle(
 	bool areaReached = triangleArea(v1.pos, v2.pos, v3.pos) < thres;
 	
 	// recursion stop criterion on texels adjacency
-	if (tex_map.data != NULL) {
+	if (mapThreshold && tex_map.data != NULL) {
 		const glm::ivec2 mapSize = { tex_map.width, tex_map.height };
 		glm::ivec2 mapCoord1, mapCoord2, mapCoord3;
 		mapCoordClamped(v1.uv, mapSize, mapCoord1);
@@ -735,17 +744,17 @@ void subdivideTriangle(
 	pushVertex(e3, tex_map, bilinear, vset, output);
 
 	// go deeper in the subdivision
-	subdivideTriangle(e1, e2, e3, tex_map, thres, bilinear, vset, output);
-	subdivideTriangle(v1, e1, e3, tex_map, thres, bilinear, vset, output);
-	subdivideTriangle(e1, v2, e2, tex_map, thres, bilinear, vset, output);
-	subdivideTriangle(e2, v3, e3, tex_map, thres, bilinear, vset, output);
+	subdivideTriangle(e1, e2, e3, tex_map, thres, mapThreshold, bilinear, vset, output);
+	subdivideTriangle(v1, e1, e3, tex_map, thres, mapThreshold, bilinear, vset, output);
+	subdivideTriangle(e1, v2, e2, tex_map, thres, mapThreshold, bilinear, vset, output);
+	subdivideTriangle(e2, v3, e3, tex_map, thres, mapThreshold, bilinear, vset, output);
 }
 
 // perform a reverse sampling of the texture map to generate mesh samples
 // the color of the point is then using the texel color => no filtering
 void Sample::meshToPcDiv(
 	const Model& input, Model& output,
-	const Image& tex_map, float areaThreshold, bool bilinear, bool logProgress)
+	const Image& tex_map, float areaThreshold, bool mapThreshold, bool bilinear, bool logProgress)
 {
 	// number of degenerate triangles
 	size_t skipped = 0; 
@@ -788,7 +797,7 @@ void Sample::meshToPcDiv(
 		pushVertex(v3, tex_map, bilinear, vset, output);
 
 		// subdivide recursively
-		subdivideTriangle(v1, v2, v3, tex_map, areaThreshold, bilinear, vset, output );
+		subdivideTriangle(v1, v2, v3, tex_map, areaThreshold, mapThreshold, bilinear, vset, output );
 
 	}
 	if (logProgress)

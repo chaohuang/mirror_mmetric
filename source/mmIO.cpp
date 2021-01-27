@@ -31,7 +31,14 @@
 
 #include "mmIO.h"
 
-bool IO::loadModel(std::string filename, Model& output) {
+// create the stores
+std::map<std::string, Model*> IO::_models;
+std::map<std::string, Image*> IO::_images;
+
+///////////////////////////
+// Private methods
+
+bool IO::_loadModel(std::string filename, Model& output) {
 
 	bool success = true;
 
@@ -49,7 +56,7 @@ bool IO::loadModel(std::string filename, Model& output) {
 	if (ext == "ply") {
 		std::cout << "Loading file: " << filename << std::endl;
 		auto t1 = clock();
-		success = IO::loadPly(filename, output); // TODO handle read error
+		success = IO::_loadPly(filename, output); // TODO handle read error
 		if (success) {
 			auto t2 = clock();
 			std::cout << "Time on loading: " << ((float)(t2 - t1)) / CLOCKS_PER_SEC << " sec." << std::endl;
@@ -58,7 +65,7 @@ bool IO::loadModel(std::string filename, Model& output) {
 	else if (ext == "obj") {
 		std::cout << "Loading file: " << filename << std::endl;
 		auto t1 = clock();
-		success = IO::loadObj(filename, output); // TODO handle read error
+		success = IO::_loadObj(filename, output); // TODO handle read error
 		if (success) {
 			auto t2 = clock();
 			std::cout << "Time on loading: " << ((float)(t2 - t1)) / CLOCKS_PER_SEC << " sec." << std::endl;
@@ -82,7 +89,7 @@ bool IO::loadModel(std::string filename, Model& output) {
 
 }
 
-bool IO::saveModel(std::string filename, const Model& input) {
+bool IO::_saveModel(std::string filename, const Model& input) {
 
 	// sanity check
 	if (filename.size() < 5) {
@@ -98,7 +105,7 @@ bool IO::saveModel(std::string filename, const Model& input) {
 	if (out_ext == "ply") {
 		std::cout << "Saving file: " << filename << std::endl;
 		auto t1 = clock();
-		auto err = IO::savePly(filename, input);
+		auto err = IO::_savePly(filename, input);
 		if (!err) {
 			auto t2 = clock();
 			std::cout << "Time on saving: " << ((float)(t2 - t1)) / CLOCKS_PER_SEC << " sec." << std::endl;
@@ -108,7 +115,7 @@ bool IO::saveModel(std::string filename, const Model& input) {
 	else if (out_ext == "obj") {
 		std::cout << "Saving file: " << filename << std::endl;
 		auto t1 = clock();
-		auto err = IO::saveObj(filename, input);
+		auto err = IO::_saveObj(filename, input);
 		if (!err) {
 			auto t2 = clock();
 			std::cout << "Time on saving: " << ((float)(t2 - t1)) / CLOCKS_PER_SEC << " sec." << std::endl;
@@ -124,7 +131,7 @@ bool IO::saveModel(std::string filename, const Model& input) {
 	return true;
 }
 
-bool IO::loadObj(std::string filename, Model& output) {
+bool IO::_loadObj(std::string filename, Model& output) {
 
 	std::ifstream fin;
 	fin.open(filename.c_str(), std::ios::in);
@@ -190,7 +197,7 @@ bool IO::loadObj(std::string filename, Model& output) {
 	return true;
 }
 
-bool IO::saveObj(std::string filename, const Model& input) {
+bool IO::_saveObj(std::string filename, const Model& input) {
 
 	std::ofstream fout;
 	fout.open(filename.c_str(), std::ios::out); // TODO check error
@@ -237,7 +244,7 @@ bool IO::saveObj(std::string filename, const Model& input) {
 }
 
 
-bool IO::loadPly(std::string filename, Model& output)
+bool IO::_loadPly(std::string filename, Model& output)
 {
 	std::unique_ptr<std::istream> file_stream;
 	file_stream.reset(new std::ifstream(filename.c_str(), std::ios::binary));
@@ -323,7 +330,7 @@ bool IO::loadPly(std::string filename, Model& output)
 
 }
 
-bool IO::savePly(std::string filename, const Model& input)
+bool IO::_savePly(std::string filename, const Model& input)
 {
 	std::ofstream fout;
 	fout.open(filename.c_str(), std::ios::out); // tod check for error
@@ -396,7 +403,7 @@ bool IO::savePly(std::string filename, const Model& input)
 	return true;
 }
 
-bool IO::loadImage(std::string filename, Image& output) {
+bool IO::_loadImage(std::string filename, Image& output) {
 
 	// Reading map if needed
 	if (filename != "") {
