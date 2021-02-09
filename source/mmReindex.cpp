@@ -33,18 +33,18 @@
 #include "mmIO.h"
 #include "mmModel.h"
 #include "mmImage.h"
-#include "mmQuantize.h"
+#include "mmReindex.h"
 #include "mmGeometry.h"
 
-const char* Quantize::name="quantize";
-const char* Quantize::brief="Quantize model (mesh or point cloud) positions";
+const char* Reindex::name="reindex";
+const char* Reindex::brief="Reindex mesh and optionaly sort vertices and face indices";
 
 // register the command
-Command* Quantize::create() { return new Quantize(); }
-static bool init = Command::addCreator(Quantize::name, Quantize::brief, Quantize::create);
+Command* Reindex::create() { return new Reindex(); }
+static bool init = Command::addCreator(Reindex::name, Reindex::brief, Reindex::create);
 
 //
-bool Quantize::initialize(Context* ctx, std::string app, int argc, char* argv[])
+bool Reindex::initialize(Context* ctx, std::string app, int argc, char* argv[])
 {
 	// command line parameters
 	try
@@ -56,8 +56,8 @@ bool Quantize::initialize(Context* ctx, std::string app, int argc, char* argv[])
 			("o,outputModel", "path to output model (obj or ply file)",
 				cxxopts::value<std::string>())
 			("h,help", "Print usage")
-			("qp", "Geometry quantization bitdepth",
-				cxxopts::value<uint32_t>()->default_value("16"))
+			("sort", "Sort method in none, vertices, oriented, unoriented.",
+				cxxopts::value<std::string>()->default_value("none"))
 				;
 		
 		auto result = options.parse(argc, argv);
@@ -85,8 +85,8 @@ bool Quantize::initialize(Context* ctx, std::string app, int argc, char* argv[])
 			return false;
 		}
 		//
-		if (result.count("qp"))
-			qp = result["qp"].as<uint32_t>();
+		if (result.count("sort"))
+			sort = result["sort"].as<std::string>();
 	}
 	catch (const cxxopts::OptionException& e)
 	{
@@ -97,7 +97,7 @@ bool Quantize::initialize(Context* ctx, std::string app, int argc, char* argv[])
 	return true;
 }
 
-bool Quantize::process(uint32_t frame) {
+bool Reindex::process(uint32_t frame) {
 
 	// the input
 	Model* inputModel;
@@ -111,13 +111,23 @@ bool Quantize::process(uint32_t frame) {
 
 	// the output
 	Model* outputModel = new Model();
+	outputModel->header = inputModel->header; // preserve material
+	outputModel->comments = inputModel->comments;
 
 	// Perform the processings
 	clock_t t1 = clock();
 
-	std::cout << "Quantizing" << std::endl;
-	std::cout << "  qp = " << qp << std::endl;
-	Quantize::quantizePosition(*inputModel, *outputModel, qp);
+	std::cout << "Reindex" << std::endl;
+	std::cout << "  sort = " << sort << std::endl;
+	if ( sort == "none"){
+		reindex(*inputModel, *outputModel);
+	} 
+	else if (sort == "vertex" || sort == "oriented" || sort == "unoriented") {
+		reorder(*inputModel, sort, *outputModel);
+	}
+	else {
+		std::cout << "Error: invalid sorting method " << sort << std::endl;
+	}
 
 	clock_t t2 = clock();
 	std::cout << "Time on processing: " << ((float)(t2 - t1)) / CLOCKS_PER_SEC << " sec." << std::endl;
@@ -133,23 +143,3 @@ bool Quantize::process(uint32_t frame) {
 	return true;
 }
 
-// todo 1: cleanup degenerated faces and duplicates vertices after quantization
-// todo 2: add quantization parameteres and action for UVs (with correction), colors, etc...
-void Quantize::quantizePosition(const Model& input, Model& output, uint32_t bitdepth) {
-
-	// ugly brute force since vertices will be replicated, but easily captures all input fields
-	output = input;
-
-	// let's go
-	glm::vec3 minBox, maxBox;
-	computeBBox(input.vertices, minBox, maxBox);
-	
-	glm::vec3 diag = maxBox - minBox;
-	float range = std::max(std::max(diag.x, diag.y), diag.z);
-
-	for (size_t i = 0; i < input.vertices.size() / 3; i++) {
-		for (glm::vec3::length_type c = 0; c < 3; ++c) {
-			output.vertices[i * 3 + c] = (float)(uint32_t)(((input.vertices[i * 3 + c] - minBox[c]) / range) * (1 << bitdepth) + 0.5);
-		}
-	}
-}

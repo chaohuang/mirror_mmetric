@@ -39,7 +39,7 @@ mm.exe compare --mode pcc --inputModelA inputA.obj --inputMapA mapA.png  --input
 
 ## Commands combination
 
-Use specific grid sampling method, then compare using pcc_error and pcqm metrics in a single call.
+Following example uses specific grid sampling method, then compare using pcc_error and pcqm metrics in a single call.
 
 ```
 mm.exe \
@@ -55,17 +55,46 @@ Same as previous but dumping intermediate sampling results into files. Compare s
 mm.exe \
 	sample --mode grid -i inputA.obj -m mapA.png -o pcA.ply END \
 	sample --mode grid -i inputB.obj -m mapB.png -o pcB.ply END \
-	compare --mode pcc  --inputModelA pcA.ply --inputModelB pcB.ply ENd \
-	compare --mode pcqm --inputModelA pcA.ply --inputModelB pcB.ply ENd \
+	compare --mode pcc  --inputModelA pcA.ply --inputModelB pcB.ply END \
+	compare --mode pcqm --inputModelA pcA.ply --inputModelB pcB.ply END \
 ```
 
 Several commands can be cascaded using this mechanism, for instance doing quantization then sampling then compare. 
 Note however that memory won't be released between sub command calls so cascading many commands may be very consuming in terms of memory.
 
+## Sequence processing
+
+Following sample demonstrates how to execute commands on a numerated sequence of objects ranging from 00150 to 00165 included. 
+The "%3d" part of the file names will be replaced by the frame number ranging from firstFrame to lastFrame, coded on 3 digits.
+
+```
+mm.exe \
+	sequence --firstFrame 150 --lastFrame 165
+	sample --mode grid -i inputA_00%3d.obj -m mapA_00%3d.png -o ID:pcA END \
+	sample --mode grid -i inputB_00%3d.obj -m mapB_00%3d.png -o ID:pcB END \
+	compare --mode pcc  --inputModelA ID:pcA --inputModelB ID:pcB END \
+	compare --mode pcqm --inputModelA ID:pcA --inputModelB ID:pcB
+```
+
+The replacement mechanism can also be used on final or intermediate output file names as shown in the two following examples.
+
+```
+mm.exe \
+	sequence --firstFrame 150 --lastFrame 165
+	sample --mode grid -i input_00%3d.obj -m map_00%3d.png -o output_00%3d_pcloud.obj
+```
+
+```
+mm.exe \
+	sequence --firstFrame 150 --lastFrame 165
+	quantize --qp 12  -i input_00%3d.obj -o quantized_%3d.obj
+	sample --mode grid -i quantized_%3d.obj -m map_00%3d.png -o pcloud_00%3d.obj
+```
+
 # Command references
 
 ```
-3D model processing commands v0.1.2
+3D model processing commands v0.1.3
 Usage:
   mm.exe command [OPTION...]
 
@@ -75,7 +104,9 @@ Command help:
 Command:
   compare	Compare model A vs model B
   quantize	Quantize model (mesh or point cloud) positions
+  reindex	Reindex mesh and optionaly sort vertices and face indices
   sample	Convert mesh to point cloud
+  sequence	Sequence global parameters
 
 ```
 
@@ -134,8 +165,14 @@ Usage:
   -h, --help              Print usage
 
  equ mode options:
-      --epsilon arg  floating point value, error threshold in equality
-                     comparison. if not set use memcmp. (default: 0.0)
+      --epsilon arg  Used for point cloud comparison only. Distance threshold
+                     in world units for "equality" comparison. If 0.0 use
+                     strict equality (no distace computation). (default: 0.0)
+      --earlyReturn  Return as soon as a difference is found (faster).
+                     Otherwise provide more complete report (slower). (default:
+                     true)
+      --unoriented   If set, comparison will not consider faces orientation
+                     for comparisons.
 
  pcc mode options:
       --singlePass          Force running a single pass, where the loop is
@@ -165,6 +202,20 @@ Usage:
 
 ```
 
+## Reindex
+
+```
+Reindex mesh and optionaly sort vertices and face indices
+Usage:
+  mm.exe reindex [OPTION...]
+
+  -i, --inputModel arg   path to input model (obj or ply file)
+  -o, --outputModel arg  path to output model (obj or ply file)
+  -h, --help             Print usage
+      --sort arg         Sort method in none, vertices, oriented, unoriented.
+                         (default: none)
+
+```
 ## Quantize
 
 ```
@@ -178,51 +229,17 @@ Usage:
       --qp arg           Geometry quantization bitdepth (default: 16)
 
 ```
+## Sequence
 
+```
+Sequence global parameters
+Usage:
+  mm.exe sequence [OPTION...]
 
-# Change log
+      --firstFrame arg  Sets the first frame of the sequence, included.
+                        (default: 0)
+      --lastFrame arg   Sets the last frame of the sequence, included. Must
+                        be >= to firstFrame. (default: 0)
+  -h, --help            Print usage
 
-## Version 0.1.2
-
-- add and use model store for all commands
-- add multiple command system
-- add doc folder and readme base file
-- add root test script
-- add change log
-- add sample sdiv map threshold option
-- fix pcqm bug: if no input color use white
-- fix in compare pcqm color not properly set
-
-## Version 0.1.1
-
-- add cmake
-- and build.sh script
-- add clean.sh script
-
-Compare pcc
-- add default options,
-- add duplicate points handling
-- fix pcc point cloud init,
-- fix printers to preserve highest precision
-- fix several issues in compare pcc
-- update references
-
-Compare pcqm
-- compare pcqm set default RadiusCurvature to 0.01 to reduce process time
-
-Sampling
-- add subdivision sampling (sdiv)
-- sdiv use vertex texels adjacancy criterion
-- add mapCoord function
-
-Other fixes
-- texture sampling fix texture shift
-- ply loader fix loading uvcoordinates
-- ply/obj writers use full float dynamic
-
-## Version 0.1.0
-
-- add sampling map, face, grid,
-- add compare eq, pcc, pcqm
-- add quantize
-
+```

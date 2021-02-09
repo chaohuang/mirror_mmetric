@@ -16,18 +16,18 @@
 // Author: jean-eudes.marvie@interdigital.com
 // *****************************************************************
 
-#ifndef _MM_QUANTIZE_H_
-#define _MM_QUANTIZE_H_
+#ifndef _MM_REINDEX_H_
+#define _MM_REINDEX_H_
 
 // internal headers
 #include "mmCommand.h"
 #include "mmModel.h"
 
-class Quantize : Command {
+class Reindex : Command {
 
 public:
 	
-	Quantize() {};
+	Reindex() {};
 
 	// Description of the command
 	static const char* name;
@@ -45,11 +45,7 @@ private:
 	// Command parameters
 	std::string inputModelFilename;
 	std::string outputModelFilename;
-	// Quantization parameters
-	uint32_t qp = 16; // geometry
-
-	// TODO document
-	static void quantizePosition(const Model& input, Model& output, uint32_t bitdepth);
+	std::string sort; 
 
 };
 

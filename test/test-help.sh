@@ -11,6 +11,9 @@ cmpOsLog helpSample
 $CMD compare   > ${TMP}/helpCompare.txt 2>&1
 cmpOsLog helpCompare
 
+$CMD reindex   > ${TMP}/helpReindex.txt 2>&1
+cmpOsLog helpReindex
+
 $CMD quantize   > ${TMP}/helpQuantize.txt 2>&1
 cmpOsLog helpQuantize
 

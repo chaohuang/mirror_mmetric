@@ -1,6 +1,26 @@
 
 # Change log
 
+## Version 0.1.3
+
+Update license to Apache 2.0
+
+- Change compare pcqm and pcc default sampling to sdiv
+- add reindex command, tests and doc
+- add eq comparison method for meshes with topology reordering
+- add plane reorder and shift test
+- add documentation
+- add model builder and generic compare
+- add statistics std dev and variance computation for pcqm and pcc
+- add support for RGBA input textures
+- add filename templates, model cache cleanup
+- add sequence command
+- add multi frame system
+- pcqm use similar maxEnergy as for pcc.
+- fix sample sdiv remove duplicates
+- fix normal not generated in subdiv sdiv mode
+- fix subdiv default areaThreshold type
+
 ## Version 0.1.2
 
 - add and use model store for all commands

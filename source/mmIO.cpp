@@ -1,17 +1,26 @@
 // ************* COPYRIGHT AND CONFIDENTIALITY INFORMATION *********
-// Copyright © 20XX InterDigital All Rights Reserved
-// This program contains proprietary information which is a trade secret/business
-// secret of InterDigital R&D france is protected, even if unpublished, under 
-// applicable Copyright laws (including French droit d’auteur) and/or may be 
-// subject to one or more patent(s).
-// Recipient is to retain this program in confidence and is not permitted to use 
-// or make copies thereof other than as permitted in a written agreement with 
-// InterDigital unless otherwise expressly allowed by applicable laws or by 
-// InterDigital under express agreement.
+// Copyright 2021 - InterDigital
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+// http ://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissionsand
+// limitations under the License.
 //
 // Author: jean-eudes.marvie@interdigital.com
 // Author: loadObj/saveObj methods based on original code from Owlii
 // *****************************************************************
+
+// remove warning when using sprintf on MSVC
+#ifdef _MSC_VER
+#define _CRT_SECURE_NO_WARNINGS
+#endif
 
 #include <iostream>
 #include <fstream>
@@ -31,9 +40,132 @@
 
 #include "mmIO.h"
 
+//
+Context* IO::_context = NULL;
 // create the stores
 std::map<std::string, Model*> IO::_models;
 std::map<std::string, Image*> IO::_images;
+
+//
+void  IO::setContext(Context* context) {
+	_context = context;
+}
+
+//
+std::string  IO::resolveName(const uint32_t frame, const std::string& input) {
+	std::string output;
+	if (input.find("%") != std::string::npos) {
+		char buffer[4092];
+		auto n = sprintf(buffer, input.c_str(), frame);
+		output = buffer;
+		std::cout << output << std::endl;
+	}
+	else {
+		output = input;
+	}
+	return output;
+}
+
+//
+Model* IO::loadModel(std::string templateName) {
+	std::string name = resolveName(_context->getFrame(), templateName);
+	std::map<std::string, Model*>::iterator it = IO::_models.find(name);
+	if (it == IO::_models.end()) {
+		if (name.substr(0, 3) == "ID:") {
+			std::cout << "Error: model with id " << name << "not defined" << std::endl;
+			return NULL;
+		}
+		else { // we try to load the model
+			Model* model = new Model();
+			if (!IO::_loadModel(name, *model)) {
+				delete model;
+				return NULL;
+			}
+			else {
+				IO::_models[name] = model;
+				return model;
+			}
+		}
+	}
+	return it->second;
+};
+
+//
+bool IO::saveModel(std::string templateName, Model* model) {
+	std::string name = resolveName(_context->getFrame(), templateName);
+	std::map<std::string, Model*>::iterator it = IO::_models.find(name);
+	if (it != IO::_models.end()) {
+		std::cout << "Warning: model with id " << name << "already defined, overwriting" << std::endl;
+		delete it->second;
+		it->second = model;
+	}
+	else {
+		IO::_models[name] = model;
+	}
+	// save to file if not an id
+	if (name.substr(0, 3) != "ID:") {
+		return IO::_saveModel(name, *model);
+	}
+	return true;
+}
+
+//
+Image* IO::loadImage(std::string templateName) {
+	std::string name = resolveName(_context->getFrame(), templateName);
+	std::map<std::string, Image*>::iterator it = IO::_images.find(name);
+	if (it == IO::_images.end()) {
+		if (name.substr(0, 3) == "ID:") {
+			std::cout << "Error: image with id " << name << "not defined" << std::endl;
+			return NULL;
+		}
+		else { // we try to load the model
+			Image* image = new Image();
+			if (!IO::_loadImage(name, *image)) {
+				delete image;
+				return NULL;
+			}
+			else {
+				IO::_images[name] = image;
+				return image;
+			}
+		}
+	}
+	return it->second;
+};
+
+/*
+bool  IO::saveImage(std::string name, Image* image) {
+	std::map<std::string, Image*>::iterator it = IO::_images.find(name);
+	if (it == IO::_images.end()) {
+		std::cout << "Warning: image with id " << name << "already defined, overwriting" << std::endl;
+		delete it->second;
+		it->second = image;
+	}
+	else {
+		IO::_images[name] = image;
+	}
+	// save to file if not an id
+	if (name.substr(0, 3) != "ID:") {
+		IO::_saveImage(name, *image);
+	}
+}*/
+
+// 
+void IO::purge(void) {
+	// free all the texture maps
+	std::map<std::string, Image*>::iterator imageIt = IO::_images.begin();
+	for (; imageIt != _images.end(); ++imageIt) {
+		delete imageIt->second;
+	}
+	_images.clear();
+
+	// free all the models
+	std::map<std::string, Model*>::iterator modelIt = IO::_models.begin();
+	for (; modelIt != _models.end(); ++modelIt) {
+		delete modelIt->second;
+	}
+	_models.clear();
+}
 
 ///////////////////////////
 // Private methods
@@ -408,9 +540,9 @@ bool IO::_loadImage(std::string filename, Image& output) {
 	// Reading map if needed
 	if (filename != "") {
 		std::cout << "Input map: " << filename << std::endl;
-		output.data = stbi_load(filename.c_str(), &output.width, &output.height, &output.nbc, 3);
-		if (output.nbc != 3) {
-			std::cout << "Error: texture map shall be 3 channels per component, got " << output.nbc << std::endl;
+		output.data = stbi_load(filename.c_str(), &output.width, &output.height, &output.nbc, 0);
+		if ( output.data == NULL ){
+			std::cout << "Error: opening file " << filename << std::endl;
 			return false;
 		}
 	}

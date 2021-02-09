@@ -1,13 +1,17 @@
 // ************* COPYRIGHT AND CONFIDENTIALITY INFORMATION *********
-// Copyright © 20XX InterDigital All Rights Reserved
-// This program contains proprietary information which is a trade secret/business
-// secret of InterDigital R&D france is protected, even if unpublished, under 
-// applicable Copyright laws (including French droit d’auteur) and/or may be 
-// subject to one or more patent(s).
-// Recipient is to retain this program in confidence and is not permitted to use 
-// or make copies thereof other than as permitted in a written agreement with 
-// InterDigital unless otherwise expressly allowed by applicable laws or by 
-// InterDigital under express agreement.
+// Copyright 2021 - InterDigital
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+// http ://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissionsand
+// limitations under the License.
 //
 // Author: jean-eudes.marvie@interdigital.com
 // *****************************************************************
@@ -15,31 +19,33 @@
 #include "mmCommand.h"
 
 // create the command store
-std::map<std::string, Command*> Command::_commands;
+std::map<std::string, std::pair<Command::Creator, std::string>> Command::_cmdCreators;
 
-
-bool Command::addCommand(Command* cmd) {
-	if (Command::_commands.find(cmd->name()) != Command::_commands.end()) {
-		std::cout << "Error: cannot register new commmand " << cmd->name() << " already exists" << std::endl;
+//
+bool Command::addCreator(const std::string& cmdName, const std::string& cmdBrief, Command::Creator cmdCreator) {
+	if (Command::_cmdCreators.find(cmdName) != Command::_cmdCreators.end()) {
+		std::cout << "Error: cannot register new commmand " << cmdName << " already exists" << std::endl;
 		return false;
 	}
-	_commands[cmd->name()] = cmd;
+	_cmdCreators[cmdName] = make_pair(cmdCreator, cmdBrief);
 	return true;
 }
 
-int Command::execute(std::string app, std::string cmd, int argc, char* argv[]) {
-	std::map<std::string, Command*>::iterator it = Command::_commands.find(cmd);
-	if (it == Command::_commands.end()) {
+//
+Command* Command::create(const std::string& app, const std::string& cmd) {
+	std::map<std::string, std::pair<Command::Creator, std::string>>::iterator it = Command::_cmdCreators.find(cmd);
+	if (it == Command::_cmdCreators.end()) {
 		std::cout << "Error: unknown command " << cmd << std::endl;
-		return 1;
+		return NULL;
 	}
 	//
-	return it->second->main(app, argc, argv);
+	return it->second.first();
 }
 
+//
 void Command::logCommands(void) {
-	std::map<std::string, Command*>::iterator it;
-	for (it = Command::_commands.begin(); it != _commands.end(); ++it) {
-		std::cout << "  " << it->second->name() << "\t" << it->second->brief() << std::endl;
+	std::map<std::string, std::pair<Command::Creator, std::string>>::iterator it;
+	for (it = Command::_cmdCreators.begin(); it != _cmdCreators.end(); ++it) {
+		std::cout << "  " << it->first << "\t" << it->second.second << std::endl;
 	}
 }

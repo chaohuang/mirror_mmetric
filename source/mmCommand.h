@@ -1,13 +1,17 @@
 // ************* COPYRIGHT AND CONFIDENTIALITY INFORMATION *********
-// Copyright © 20XX InterDigital All Rights Reserved
-// This program contains proprietary information which is a trade secret/business
-// secret of InterDigital R&D france is protected, even if unpublished, under 
-// applicable Copyright laws (including French droit d’auteur) and/or may be 
-// subject to one or more patent(s).
-// Recipient is to retain this program in confidence and is not permitted to use 
-// or make copies thereof other than as permitted in a written agreement with 
-// InterDigital unless otherwise expressly allowed by applicable laws or by 
-// InterDigital under express agreement.
+// Copyright 2021 - InterDigital
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+// http ://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissionsand
+// limitations under the License.
 //
 // Author: jean-eudes.marvie@interdigital.com
 // *****************************************************************
@@ -19,32 +23,39 @@
 #include <map>
 #include <iostream>
 
+#include "mmContext.h"
+
 class Command {
 
-public:
+public: // Command API, to be specialized by command implementation
 
-	// must be overloaded to return the command name
-	virtual const char* name(void) = 0;
+	// must be overloaded to parse arguments and init the command
+	virtual bool initialize(Context*, std::string app, int argc, char* argv[])=0;
 
-	// must be overloaded to return the command brief description
-	virtual const char* brief( void ) = 0;
+	// must be overloaded to execute command for given frame
+	virtual bool process(uint32_t frame) = 0;
 
-	// must be overloaded to execute the command
-	virtual int main(std::string app, int argc, char* argv[])=0;
+	// must be overloaded to collect temporal results after all frames processing
+	virtual bool finalize( void ) = 0;
+
+public: // Command managment API
+
+	// command creator function type
+	typedef Command* (*Creator)(void);
 
 	// invoke to register a new command 
-	static bool addCommand(Command* cmd);
+	static bool addCreator(const std::string& cmdName, const std::string& cmdBrief, Creator cmdCreator);
 
-	// invoke to execute a command
-	static int execute(std::string app, std::string cmd, int argc, char* argv[]);
-
-	// print the list of commands
+	// print the list of registered commands
 	static void logCommands(void);
+
+	// invoke to create a new command
+	static Command* create(const std::string& app, const std::string& cmd);
 
 private:
 
-	// command name -> command
-	static std::map<std::string, Command*> _commands;
+	// command name -> (command creator, brief description)
+	static std::map<std::string, std::pair<Command::Creator, std::string>> _cmdCreators;
 	
 };
 

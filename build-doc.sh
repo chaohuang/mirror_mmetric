@@ -42,15 +42,21 @@ echo "\`\`\`" >> README.md
 ${CMD} compare >> README.md
 echo "\`\`\`" >> README.md
 echo "" >> README.md
+echo "## Reindex" >> README.md
+echo "" >> README.md
+echo "\`\`\`" >> README.md
+${CMD} reindex >> README.md
+echo "\`\`\`" >> README.md
 echo "## Quantize" >> README.md
 echo "" >> README.md
 echo "\`\`\`" >> README.md
 ${CMD} quantize >> README.md
 echo "\`\`\`" >> README.md
+echo "## Sequence" >> README.md
 echo "" >> README.md
-cat  ./CHANGES.md >> README.md
-echo "" >> README.md
-
+echo "\`\`\`" >> README.md
+${CMD} sequence >> README.md
+echo "\`\`\`" >> README.md
 # homogeneize line endings
 dos2unix README.md
 #EOF

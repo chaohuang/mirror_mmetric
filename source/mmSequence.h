@@ -16,40 +16,29 @@
 // Author: jean-eudes.marvie@interdigital.com
 // *****************************************************************
 
-#ifndef _MM_QUANTIZE_H_
-#define _MM_QUANTIZE_H_
+#ifndef _MM_SEQUENCE_H_
+#define _MM_SEQUENCE_H_
 
 // internal headers
 #include "mmCommand.h"
-#include "mmModel.h"
 
-class Quantize : Command {
-
-public:
+class Sequence : Command {
 	
-	Quantize() {};
+public:
 
-	// Description of the command
+	Sequence() {}
+
+	// Descriptions of the command
 	static const char* name;
 	static const char* brief;
+
 	// command creator
 	static Command* create();
 
 	// the command main program
 	virtual bool initialize(Context* ctx, std::string app, int argc, char* argv[]);
-	virtual bool process(uint32_t frame);
-	virtual bool finalize() { return true; };
-	
-private:
-	
-	// Command parameters
-	std::string inputModelFilename;
-	std::string outputModelFilename;
-	// Quantization parameters
-	uint32_t qp = 16; // geometry
-
-	// TODO document
-	static void quantizePosition(const Model& input, Model& output, uint32_t bitdepth);
+	virtual bool process(uint32_t frame) { return true; }
+	virtual bool finalize() { return true; }
 
 };
 

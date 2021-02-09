@@ -1,13 +1,17 @@
 // ************* COPYRIGHT AND CONFIDENTIALITY INFORMATION *********
-// Copyright © 20XX InterDigital All Rights Reserved
-// This program contains proprietary information which is a trade secret/business
-// secret of InterDigital R&D france is protected, even if unpublished, under 
-// applicable Copyright laws (including French droit d’auteur) and/or may be 
-// subject to one or more patent(s).
-// Recipient is to retain this program in confidence and is not permitted to use 
-// or make copies thereof other than as permitted in a written agreement with 
-// InterDigital unless otherwise expressly allowed by applicable laws or by 
-// InterDigital under express agreement.
+// Copyright 2021 - InterDigital
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+// http ://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissionsand
+// limitations under the License.
 //
 // Author: jean-eudes.marvie@interdigital.com
 // *****************************************************************
@@ -27,9 +31,16 @@ public:
 
 	Image(void):width(0),height(0),nbc(0),data(NULL){}
 
+	// no sanity check for performance reasons
+	inline void fetchRGB(const unsigned int i, const unsigned int j,  glm::vec3& rgb) const {
+		rgb.r = data[(j * width + i) * nbc + 0];
+		rgb.g = data[(j * width + i) * nbc + 1];
+		rgb.b = data[(j * width + i) * nbc + 2];
+	}
+
 };
 
-// converts the uv coordinates from uv space ti omage space, doing CLAMP and y flip 
+// converts the uv coordinates from uv space to image space, doing CLAMP and y flip 
 void mapCoordClamped(const glm::vec2& uv, const glm::ivec2& mapSize, glm::ivec2& mapCoord);
 
 // texture lookup with clamp

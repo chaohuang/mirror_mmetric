@@ -1,0 +1,10 @@
+Sequence global parameters
+Usage:
+  mm.exe sequence [OPTION...]
+
+      --firstFrame arg  Sets the first frame of the sequence, included.
+                        (default: 0)
+      --lastFrame arg   Sets the last frame of the sequence, included. Must
+                        be >= to firstFrame. (default: 0)
+  -h, --help            Print usage
+

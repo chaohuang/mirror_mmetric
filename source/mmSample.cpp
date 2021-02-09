@@ -1,13 +1,17 @@
 ﻿// ************* COPYRIGHT AND CONFIDENTIALITY INFORMATION *********
-// Copyright © 20XX InterDigital All Rights Reserved
-// This program contains proprietary information which is a trade secret/business
-// secret of InterDigital R&D france is protected, even if unpublished, under 
-// applicable Copyright laws (including French droit d’auteur) and/or may be 
-// subject to one or more patent(s).
-// Recipient is to retain this program in confidence and is not permitted to use 
-// or make copies thereof other than as permitted in a written agreement with 
-// InterDigital unless otherwise expressly allowed by applicable laws or by 
-// InterDigital under express agreement.
+// Copyright 2021 - InterDigital
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+// http ://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissionsand
+// limitations under the License.
 //
 // Author: jean-eudes.marvie@interdigital.com
 // Author: meshToPcFace method based on original face sampling code from Owlii
@@ -32,35 +36,21 @@
 #include "mmModel.h"
 #include "mmImage.h"
 
+// Descriptions of the command
+const char* Sample::name = "sample";
+const char* Sample::brief = "Convert mesh to point cloud";
+
 // register the command
-static bool init = Command::addCommand((Command*) new Sample());
+Command* Sample::create() { return new Sample(); }
+static bool init = Command::addCreator(Sample::name, Sample::brief, Sample::create);
 
-// analyse command line and run processings
-int Sample::main(std::string app, int argc, char* argv[])
+// 
+bool Sample::initialize(Context* ctx, std::string app, int argc, char* argv[])
 {
-	// the command options
-	std::string inputModelFilename;
-	std::string inputTextureFilename;
-	std::string outputModelFilename;
-	bool hideProgress = false;
-	// the type of processing
-	// in "face", "grid", "map"
-	std::string mode = "face";
-	// Face options
-	size_t resolution = 1024;
-	float thickness = 0.0;
-	// Grid options
-	int gridSize = 1024;
-	// Face and Grid options
-	bool bilinear = false;
-	// Face subdiv options
-	float areaThreshold = 1.0F;
-	bool mapThreshold = false;
-
 	// command line parameters
 	try
 	{
-		cxxopts::Options options(app + " " + name(), brief());
+		cxxopts::Options options(app + " " + name, brief);
 		options.add_options()
 			("i,inputModel", "path to input model (obj or ply file)",
 				cxxopts::value<std::string>())
@@ -103,7 +93,7 @@ int Sample::main(std::string app, int argc, char* argv[])
 		if (result.count("help") || result.arguments().size() == 0)
 		{
 			std::cout << options.help() << std::endl;
-			return 0;
+			return false;
 		}
 		//	
 		if (result.count("inputModel"))
@@ -111,7 +101,7 @@ int Sample::main(std::string app, int argc, char* argv[])
 		else {
 			std::cerr << "Error: missing inputModel parameter" << std::endl;
 			std::cout << options.help() << std::endl;
-			return 1;
+			return false;
 		}
 		//
 		if (result.count("inputMap"))
@@ -122,7 +112,7 @@ int Sample::main(std::string app, int argc, char* argv[])
 		else {
 			std::cerr << "Error: missing outputModel parameter" << std::endl;
 			std::cout << options.help() << std::endl;
-			return 1;
+			return false;
 		}
 		//
 		if (result.count("mode"))
@@ -147,8 +137,13 @@ int Sample::main(std::string app, int argc, char* argv[])
 	catch (const cxxopts::OptionException& e)
 	{
 		std::cout << "error parsing options: " << e.what() << std::endl;
-		return 1;
+		return false;
 	}
+
+	return true;
+}
+
+bool Sample::process(uint32_t frame) {
 
 	// Reading map if needed
 	Image* textureMap;
@@ -163,12 +158,12 @@ int Sample::main(std::string app, int argc, char* argv[])
 	// the input
 	Model* inputModel;
 	if ((inputModel = IO::loadModel(inputModelFilename)) == NULL) {
-		return 1;
-	} 
+		return false;
+	}
 	if (inputModel->vertices.size() == 0 ||
 		inputModel->triangles.size() == 0) {
 		std::cout << "Error: invalid input model from " << inputModelFilename << std::endl;
-		return 1;
+		return false;
 	}
 
 	// the output
@@ -211,9 +206,9 @@ int Sample::main(std::string app, int argc, char* argv[])
 
 	// save the result
 	if (IO::saveModel(outputModelFilename, outputModel))
-		return 0;
+		return true;
 	else
-		return 1;
+		return false;
 
 }
 
@@ -347,7 +342,7 @@ void Sample::meshToPcGrid(
 	computeBBox(input.vertices, minPos, maxPos);
 	std::cout << "minbox = " << minPos[0] << "," << minPos[1] << "," << minPos[2] << std::endl;
 	std::cout << "maxbox = " << maxPos[0] << "," << maxPos[1] << "," << maxPos[2] << std::endl;
-	
+
 	std::cout << "Transform bounding box to square box" << std::endl;
 	// hence sampling will be unform in the three dimensions
 	toCubicalBBox(minPos, maxPos);
@@ -585,94 +580,7 @@ void Sample::meshToPcMap(
 	std::cout << "Generated " << output.vertices.size() / 3 << " points" << std::endl;
 }
 
-// 
-class Vertex {
-
-public:
-	glm::vec3 pos;
-	glm::vec2 uv;
-	glm::vec3 col;
-	glm::vec3 nrm;
-	bool hasColor;
-	bool hasUVCoord;
-	bool hasNormal;
-	
-	Vertex():
-		pos(0.0,0.0,0.0),
-		uv(0.0,0.0),
-		col(0.0,0.0,0.0),
-		nrm(0.0,0.0,0.0),
-		hasColor(false),
-		hasUVCoord(false),
-		hasNormal(false)
-	{}
-};
-
-struct Compare
-{
-	bool operator()(const Vertex& a, const Vertex& b) const {
-		if (a.pos.x == b.pos.x) {
-			if (a.pos.y == b.pos.y) {
-				if (a.pos.z == b.pos.z) {
-					if (a.col.x == b.col.x) {
-						if (a.col.y == b.col.y) {
-							return a.col.z < b.col.z;
-						}
-						return a.col.y < b.col.y;
-					}
-					return a.col.x < b.col.x;
-				}
-				return a.pos.z < b.pos.z;
-			}
-			return a.pos.y < b.pos.y;
-		}
-		return a.pos.x < b.pos.x;
-	}
-};
-
-void pushVertex(
-	const Vertex& v,
-	const Image& tex_map,
-	const bool bilinear,
-	std::set<Vertex, Compare>& vset,
-	Model& output)
-{
-	// push only if not exist in vset
-	if (vset.find(v) != vset.end()) {
-		return;
-	}
-	vset.insert(v);
-
-	for (glm::vec3::length_type c = 0; c < 3; c++) {
-		output.vertices.push_back(v.pos[c]);
-	}
-
-	if (v.hasNormal)
-		for (glm::vec3::length_type c = 0; c < 3; c++)
-			output.normals.push_back(v.col[c]);
-
-	if (v.hasUVCoord) {
-		for (glm::vec3::length_type c = 0; c < 2; c++)
-			output.uvcoords.push_back(v.uv[c]);
-
-		if (tex_map.data != NULL) {
-			glm::vec3 rgb = { 0.0F,0.0F,0.0F };
-			// fetch the color from the map
-			if (bilinear)
-				texture2D_bilinear(tex_map, v.uv, rgb);
-			else
-				texture2D(tex_map, v.uv, rgb);
-			for (glm::vec3::length_type c = 0; c < 3; c++)
-				output.colors.push_back(rgb[c]);
-		}
-	}
-	else if (v.hasColor){ 
-		for (glm::vec3::length_type c = 0; c < 3; c++)
-			output.colors.push_back(v.col[c]);
-	}
-}
-
-// utility func fo meshtoPvDiv
+// recursive body of meshtoPvDiv
 void subdivideTriangle(
 	const Vertex& v1,
 	const Vertex& v2,
@@ -680,14 +588,13 @@ void subdivideTriangle(
 	const Image& tex_map,
 	const float thres,
 	const bool mapThreshold,
-	const bool bilinear,	
-	std::set<Vertex, Compare>& vset,
-	Model& output
+	const bool bilinear,
+	ModelBuilder& output
 ) {
-	
+
 	// recursion stop criterion on area
 	bool areaReached = triangleArea(v1.pos, v2.pos, v3.pos) < thres;
-	
+
 	// recursion stop criterion on texels adjacency
 	if (mapThreshold && tex_map.data != NULL) {
 		const glm::ivec2 mapSize = { tex_map.width, tex_map.height };
@@ -701,7 +608,7 @@ void subdivideTriangle(
 			std::abs(mapCoord1.y - mapCoord2.y) <= 1 &&
 			std::abs(mapCoord1.y - mapCoord3.y) <= 1 &&
 			std::abs(mapCoord2.y - mapCoord3.y) <= 1 &&
-			areaReached )
+			areaReached)
 		{
 			return;
 		}
@@ -713,16 +620,17 @@ void subdivideTriangle(
 	//
 	glm::vec3 normal;
 	triangleNormal(v1.pos, v2.pos, v3.pos, normal);
-	
+
 	// the new vertices
 	Vertex e1, e2, e3;
 	// we sue v1 as reference in term of components to push
 	e1.hasColor = e2.hasColor = e3.hasColor = v1.hasColor;
-	e1.hasNormal = e2.hasNormal = e3.hasNormal = v1.hasNormal;
 	e1.hasUVCoord = e2.hasUVCoord = e3.hasUVCoord = v1.hasUVCoord;
-	
+	// forces normals, we use generated per face ones - might be better as an option
+	e1.hasNormal = e2.hasNormal = e3.hasNormal = true;
+
 	// edge centers 
-	// (we do not interpolate normals but use face normal)
+	// (we do not interpolate normals but use face normal) - might be better as an option
 	e1.pos = v1.pos * 0.5F + v2.pos * 0.5F;
 	e1.col = v1.col * 0.5F + v2.col * 0.5F;
 	e1.uv = v1.uv * 0.5F + v2.uv * 0.5F;
@@ -730,7 +638,7 @@ void subdivideTriangle(
 
 	e2.pos = v2.pos * 0.5F + v3.pos * 0.5F;
 	e2.col = v2.col * 0.5F + v3.col * 0.5F;
-	e2.uv  = v2.uv * 0.5F + v3.uv * 0.5F;
+	e2.uv = v2.uv * 0.5F + v3.uv * 0.5F;
 	e2.nrm = normal;
 
 	e3.pos = v3.pos * 0.5F + v1.pos * 0.5F;
@@ -739,15 +647,15 @@ void subdivideTriangle(
 	e3.nrm = normal;
 
 	// push the new vertices
-	pushVertex(e1, tex_map, bilinear, vset, output);
-	pushVertex(e2, tex_map, bilinear, vset, output);
-	pushVertex(e3, tex_map, bilinear, vset, output);
+	output.pushVertex(e1, tex_map, bilinear);
+	output.pushVertex(e2, tex_map, bilinear);
+	output.pushVertex(e3, tex_map, bilinear);
 
 	// go deeper in the subdivision
-	subdivideTriangle(e1, e2, e3, tex_map, thres, mapThreshold, bilinear, vset, output);
-	subdivideTriangle(v1, e1, e3, tex_map, thres, mapThreshold, bilinear, vset, output);
-	subdivideTriangle(e1, v2, e2, tex_map, thres, mapThreshold, bilinear, vset, output);
-	subdivideTriangle(e2, v3, e3, tex_map, thres, mapThreshold, bilinear, vset, output);
+	subdivideTriangle(e1, e2, e3, tex_map, thres, mapThreshold, bilinear, output);
+	subdivideTriangle(v1, e1, e3, tex_map, thres, mapThreshold, bilinear, output);
+	subdivideTriangle(e1, v2, e2, tex_map, thres, mapThreshold, bilinear, output);
+	subdivideTriangle(e2, v3, e3, tex_map, thres, mapThreshold, bilinear, output);
 }
 
 // perform a reverse sampling of the texture map to generate mesh samples
@@ -757,17 +665,17 @@ void Sample::meshToPcDiv(
 	const Image& tex_map, float areaThreshold, bool mapThreshold, bool bilinear, bool logProgress)
 {
 	// number of degenerate triangles
-	size_t skipped = 0; 
-	
-	// to prevent storing duplicate points
-	std::set<Vertex, Compare> vset;
+	size_t skipped = 0;
 
+	// to prevent storing duplicate points, we use a ModelBuilder
+	ModelBuilder builder(output);
+	
 	// For each triangle
 	for (size_t triIdx = 0; triIdx < input.triangles.size() / 3; ++triIdx) {
 
 		if (logProgress)
 			std::cout << '\r' << triIdx << "/" << input.triangles.size() / 3 << std::flush;
-		
+
 		Vertex v1, v2, v3;
 
 		// fetch the triangle vertices
@@ -787,17 +695,19 @@ void Sample::meshToPcDiv(
 			input.fetchTriangleColors(triIdx, v1.col, v2.col, v3.col);
 			v1.hasColor = v2.hasColor = v3.hasColor = true;
 		}
-		// compute face normal
+		// compute face normal (forces) - might be better as an option
 		glm::vec3 normal;
 		triangleNormal(v1.pos, v2.pos, v3.pos, normal);
+		v1.nrm = v2.nrm = v3.nrm = normal;
+		v1.hasNormal = v2.hasNormal = v3.hasNormal = true;
 
 		// push the vertices
-		pushVertex(v1, tex_map, bilinear, vset, output);
-		pushVertex(v2, tex_map, bilinear, vset, output);
-		pushVertex(v3, tex_map, bilinear, vset, output);
+		builder.pushVertex(v1, tex_map, bilinear);
+		builder.pushVertex(v2, tex_map, bilinear);
+		builder.pushVertex(v3, tex_map, bilinear);
 
 		// subdivide recursively
-		subdivideTriangle(v1, v2, v3, tex_map, areaThreshold, mapThreshold, bilinear, vset, output );
+		subdivideTriangle(v1, v2, v3, tex_map, areaThreshold, mapThreshold, bilinear, builder);
 
 	}
 	if (logProgress)

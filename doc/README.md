@@ -37,7 +37,7 @@ mm.exe compare --mode pcc --inputModelA inputA.obj --inputMapA mapA.png  --input
 
 ## Commands combination
 
-Use specific grid sampling method, then compare using pcc_error and pcqm metrics in a single call.
+Following example uses specific grid sampling method, then compare using pcc_error and pcqm metrics in a single call.
 
 ```
 mm.exe \
@@ -53,9 +53,38 @@ Same as previous but dumping intermediate sampling results into files. Compare s
 mm.exe \
 	sample --mode grid -i inputA.obj -m mapA.png -o pcA.ply END \
 	sample --mode grid -i inputB.obj -m mapB.png -o pcB.ply END \
-	compare --mode pcc  --inputModelA pcA.ply --inputModelB pcB.ply ENd \
-	compare --mode pcqm --inputModelA pcA.ply --inputModelB pcB.ply ENd \
+	compare --mode pcc  --inputModelA pcA.ply --inputModelB pcB.ply END \
+	compare --mode pcqm --inputModelA pcA.ply --inputModelB pcB.ply END \
 ```
 
 Several commands can be cascaded using this mechanism, for instance doing quantization then sampling then compare. 
 Note however that memory won't be released between sub command calls so cascading many commands may be very consuming in terms of memory.
+
+## Sequence processing
+
+Following sample demonstrates how to execute commands on a numerated sequence of objects ranging from 00150 to 00165 included. 
+The "%3d" part of the file names will be replaced by the frame number ranging from firstFrame to lastFrame, coded on 3 digits.
+
+```
+mm.exe \
+	sequence --firstFrame 150 --lastFrame 165
+	sample --mode grid -i inputA_00%3d.obj -m mapA_00%3d.png -o ID:pcA END \
+	sample --mode grid -i inputB_00%3d.obj -m mapB_00%3d.png -o ID:pcB END \
+	compare --mode pcc  --inputModelA ID:pcA --inputModelB ID:pcB END \
+	compare --mode pcqm --inputModelA ID:pcA --inputModelB ID:pcB
+```
+
+The replacement mechanism can also be used on final or intermediate output file names as shown in the two following examples.
+
+```
+mm.exe \
+	sequence --firstFrame 150 --lastFrame 165
+	sample --mode grid -i input_00%3d.obj -m map_00%3d.png -o output_00%3d_pcloud.obj
+```
+
+```
+mm.exe \
+	sequence --firstFrame 150 --lastFrame 165
+	quantize --qp 12  -i input_00%3d.obj -o quantized_%3d.obj
+	sample --mode grid -i quantized_%3d.obj -m map_00%3d.png -o pcloud_00%3d.obj
+```

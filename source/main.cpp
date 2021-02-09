@@ -1,25 +1,33 @@
 // ************* COPYRIGHT AND CONFIDENTIALITY INFORMATION *********
-// Copyright © 20XX InterDigital All Rights Reserved
-// This program contains proprietary information which is a trade secret/business
-// secret of InterDigital R&D france is protected, even if unpublished, under 
-// applicable Copyright laws (including French droit d’auteur) and/or may be 
-// subject to one or more patent(s).
-// Recipient is to retain this program in confidence and is not permitted to use 
-// or make copies thereof other than as permitted in a written agreement with 
-// InterDigital unless otherwise expressly allowed by applicable laws or by 
-// InterDigital under express agreement.
+// Copyright 2021 - InterDigital
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+// http ://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissionsand
+// limitations under the License.
 //
 // Author: jean-eudes.marvie@interdigital.com
 // *****************************************************************
 
 //
 #include <iostream>
+#include <vector>
+#include <time.h>
 
 // internal headers
+#include "mmIO.h"
+#include "mmContext.h"
 #include "mmCommand.h"
 
 // software version
-#define MM_VERSION "0.1.2"
+#define MM_VERSION "0.1.3"
 
 // the name of the application binary
 // i.e argv[0] minus the eventual path
@@ -34,6 +42,16 @@ int main(int argc, char* argv[])
 {
 	if (argc > 1) {
 
+		// global timer
+		clock_t t1 = clock();
+		
+		// context shared among commands
+		Context context;
+		IO::setContext(&context);
+		// set of commands to be executer in order
+		std::vector<Command*> commands;
+
+		// 1 - initialize the command list
 		int startIdx = 1;
 		int endIdx;
 
@@ -47,18 +65,56 @@ int main(int argc, char* argv[])
 			}
 			int subArgc = endIdx - startIdx + ((endIdx == argc - 1) ? 1 : 0);
 
-			// execute the command
-			int res = Command::execute(APP_NAME, std::string(argv[startIdx]), subArgc, &argv[startIdx]);
-			if (res != 0) 
-				return res;
-						
+			// create a new command
+			Command* newCmd = NULL;
+			if ((newCmd = Command::create(APP_NAME, std::string(argv[startIdx]))) == NULL) {
+				return 1;
+			}
+			commands.push_back(newCmd);
+
+			// initialize the command
+			if (!newCmd->initialize(&context, APP_NAME, subArgc, &argv[startIdx])) {
+				return 1;
+			}
+
 			// start of next command
 			startIdx = endIdx + 1;
 
 		} while (startIdx < argc);
 
+		// 2 - execute each command for each frame
+		int procErrors = 0;
+		for (uint32_t frame = context.getFirstFrame(); frame <= context.getLastFrame(); ++frame) {
+			std::cout << "Processing frame " << frame << std::endl;
+			context.setFrame(frame);
+			for (size_t cmdIndex = 0; cmdIndex < commands.size(); ++cmdIndex) {
+				if (!commands[cmdIndex]->process(frame)){
+					procErrors++;
+				}
+			}
+			// purge the models, clean IO for next frame
+			IO::purge();
+		}
+		if (procErrors != 0) {
+			std::cerr << "There was " << procErrors << " processing errors" << std::endl;
+		}
+
+		// 3 - collect results
+		int finErrors = 0;
+		for (size_t cmdIndex = 0; cmdIndex < commands.size(); ++cmdIndex) {
+			if (!commands[cmdIndex]->finalize()) {
+				finErrors++;
+			}
+		}
+		if (finErrors != 0) {
+			std::cerr << "There was " << finErrors << " finalization errors" << std::endl;
+		}
+		
+		clock_t t2 = clock();
+		std::cout << "Time on overall processing: " << ((float)(t2 - t1)) / CLOCKS_PER_SEC << " sec." << std::endl;
+
 		// all commands were executed
-		return 0;
+		return procErrors + finErrors;
 	}
 
 	// print help
@@ -73,4 +129,5 @@ int main(int argc, char* argv[])
 	Command::logCommands();
 	std::cout << std::endl;
 
+	return 0;
 }

@@ -1,13 +1,17 @@
 // ************* COPYRIGHT AND CONFIDENTIALITY INFORMATION *********
-// Copyright © 20XX InterDigital All Rights Reserved
-// This program contains proprietary information which is a trade secret/business
-// secret of InterDigital R&D france is protected, even if unpublished, under 
-// applicable Copyright laws (including French droit d’auteur) and/or may be 
-// subject to one or more patent(s).
-// Recipient is to retain this program in confidence and is not permitted to use 
-// or make copies thereof other than as permitted in a written agreement with 
-// InterDigital unless otherwise expressly allowed by applicable laws or by 
-// InterDigital under express agreement.
+// Copyright 2021 - InterDigital
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+// http ://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissionsand
+// limitations under the License.
 //
 // Author: jean-eudes.marvie@interdigital.com
 // *****************************************************************
@@ -22,20 +26,41 @@
 
 class Sample : Command {
 
+private:
+
+	// the command options
+	std::string inputModelFilename;
+	std::string inputTextureFilename;
+	std::string outputModelFilename;
+	bool hideProgress = false;
+	// the type of processing
+	// in "face", "grid", "map"
+	std::string mode = "face";
+	// Face options
+	size_t resolution = 1024;
+	float thickness = 0.0;
+	// Grid options
+	int gridSize = 1024;
+	// Face and Grid options
+	bool bilinear = false;
+	// Face subdiv options
+	float areaThreshold = 1.0F;
+	bool mapThreshold = false;
+
 public:
 
 	Sample() {};
 
-	// Descriptions of the command
-	virtual const char* name(void) {
-		return "sample";
-	};
-	virtual const char* brief(void) {
-		return "Convert mesh to point cloud";
-	};
+	// Description of the command
+	static const char* name;
+	static const char* brief;
+	// command creator
+	static Command* create();
 
 	// the command main program
-	virtual int main(std::string app, int argc, char* argv[]);
+	virtual bool initialize(Context* ctx, std::string app, int argc, char* argv[]);
+	virtual bool process(uint32_t frame);
+	virtual bool finalize() { return true; }
 
 	// sample the mesh on a face basis
 	static void meshToPcFace(const Model& input, Model& output,	const Image& tex_map, 

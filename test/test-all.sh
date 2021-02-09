@@ -8,6 +8,7 @@
 tests=(
 "test-help"
 "test-quantize"
+"test-reindex"
 "test-sample-face"
 "test-sample-sdiv"
 "test-sample-grid"

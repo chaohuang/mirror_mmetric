@@ -1,13 +1,17 @@
 // ************* COPYRIGHT AND CONFIDENTIALITY INFORMATION *********
-// Copyright © 20XX InterDigital All Rights Reserved
-// This program contains proprietary information which is a trade secret/business
-// secret of InterDigital R&D france is protected, even if unpublished, under 
-// applicable Copyright laws (including French droit d’auteur) and/or may be 
-// subject to one or more patent(s).
-// Recipient is to retain this program in confidence and is not permitted to use 
-// or make copies thereof other than as permitted in a written agreement with 
-// InterDigital unless otherwise expressly allowed by applicable laws or by 
-// InterDigital under express agreement.
+// Copyright 2021 - InterDigital
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+// http ://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissionsand
+// limitations under the License.
 //
 // Author: jean-eudes.marvie@interdigital.com
 // *****************************************************************
@@ -35,40 +39,24 @@
 #include "mmCompare.h"
 #include "mmSample.h"
 #include "mmGeometry.h"
+#include "mmStatistics.h"
+
+const char* Compare::name = "compare";
+const char* Compare::brief = "Compare model A vs model B";
 
 // register the command
-static bool init = Command::addCommand((Command*) new Compare());
+Command* Compare::create() { return new Compare(); }
+static bool init = Command::addCreator(Compare::name, Compare::brief, Compare::create);
 
 //
-int Compare::main(std::string app, int argc, char* argv[])
+bool Compare::initialize(Context* context, std::string app, int argc, char* argv[])
 {
-	// the command options
-	std::string inputModelAFilename, inputModelBFilename;
-	std::string inputTextureAFilename, inputTextureBFilename;
-	std::string outputModelAFilename, outputModelBFilename;
-	// the type of processing
-	std::string mode = "equ";
-	// Equ options
-	float epsilon = 0;
-	// Pcc options
-	pcc_quality::commandPar params;
-	params.singlePass = false;
-	params.hausdorff = false;
-	params.bColor = true;
-	params.bLidar = false; // allways false, no option
-	params.resolution = 0.0; // auto
-	params.neighborsProc = 1;
-	params.dropDuplicates = 2;
-	params.bAverageNormals = false;
-	// PCQM options
-	double radiusCurvature = 0.001;
-	int thresholdKnnSearch = 20;
-	double radiusFactor = 2.0;
+	_context = context;
 
 	// command line parameters
 	try
 	{
-		cxxopts::Options options(app + " " + name(), brief());
+		cxxopts::Options options(app + " " + name, brief);
 		options.add_options()
 			("inputModelA", "path to input model A (obj or ply file)",
 				cxxopts::value<std::string>())
@@ -87,8 +75,12 @@ int Compare::main(std::string app, int argc, char* argv[])
 			("h,help", "Print usage")
 			;
 		options.add_options("equ mode")
-			("epsilon", "floating point value, error threshold in equality comparison. if not set use memcmp.",
+			("epsilon", "Used for point cloud comparison only. Distance threshold in world units for \"equality\" comparison. If 0.0 use strict equality (no distace computation).",
 				cxxopts::value<float>()->default_value("0.0"))
+			("earlyReturn", "Return as soon as a difference is found (faster). Otherwise provide more complete report (slower).",
+				cxxopts::value<bool>()->default_value("true"))
+			("unoriented", "If set, comparison will not consider faces orientation for comparisons.",
+				cxxopts::value<bool>()->default_value("false"))
 			;
 		options.add_options("pcc mode")
 			("singlePass", "Force running a single pass, where the loop is over the original point cloud",
@@ -121,7 +113,7 @@ int Compare::main(std::string app, int argc, char* argv[])
 		if (result.count("help") || result.arguments().size() == 0)
 		{
 			std::cout << options.help() << std::endl;
-			return 0;
+			return false;
 		}
 		//	
 		if (result.count("inputModelA"))
@@ -129,7 +121,7 @@ int Compare::main(std::string app, int argc, char* argv[])
 		else {
 			std::cerr << "Error: missing inputModelA parameter" << std::endl;
 			std::cout << options.help() << std::endl;
-			return 2;
+			return false;
 		}
 		//	
 		if (result.count("inputModelB"))
@@ -137,7 +129,7 @@ int Compare::main(std::string app, int argc, char* argv[])
 		else {
 			std::cerr << "Error: missing inputModelB parameter" << std::endl;
 			std::cout << options.help() << std::endl;
-			return 2;
+			return false;
 		}
 		// Optional
 		if (result.count("inputMapA"))
@@ -153,9 +145,13 @@ int Compare::main(std::string app, int argc, char* argv[])
 		//
 		if (result.count("mode"))
 			mode = result["mode"].as<std::string>();
-		//
+		// eq
 		if (result.count("epsilon"))
 			epsilon = result["epsilon"].as<float>();
+		if (result.count("earlyReturn"))
+			earlyReturn = result["earlyReturn"].as<bool>();
+		if (result.count("unoriented"))
+			unoriented = result["unoriented"].as<bool>();
 		// PCC
 		if (result.count("singlePass"))
 			params.singlePass = result["singlePass"].as<bool>();
@@ -182,8 +178,13 @@ int Compare::main(std::string app, int argc, char* argv[])
 	catch (const cxxopts::OptionException& e)
 	{
 		std::cout << "error parsing options: " << e.what() << std::endl;
-		return 2;
+		return false;
 	}
+
+	return true;
+}
+
+bool Compare::process(uint32_t frame) {
 
 	// Reading map if needed
 	Image* textureMapA, * textureMapB;
@@ -200,7 +201,7 @@ int Compare::main(std::string app, int argc, char* argv[])
 		textureMapB = IO::loadImage(inputTextureBFilename);
 		if (perVertexColor) {
 			std::cout << "Error: inputs model colors are not homogeneous " << std::endl;
-			return 2;
+			return false;
 		}
 	}
 	else {
@@ -212,18 +213,18 @@ int Compare::main(std::string app, int argc, char* argv[])
 	// the input
 	Model* inputModelA, * inputModelB;
 	if ((inputModelA = IO::loadModel(inputModelAFilename)) == NULL) {
-		return 2;
+		return false;
 	}
 	if (inputModelA->vertices.size() == 0) {
 		std::cout << "Error: input model from " << inputModelAFilename << " has no vertices" << std::endl;
-		return 2;
+		return false;
 	}
 	if ((inputModelB = IO::loadModel(inputModelBFilename)) == NULL) {
-		return 2;
+		return false;
 	}
 	if (inputModelB->vertices.size() == 0) {
 		std::cout << "Error: input model from " << inputModelBFilename << " has no vertices" << std::endl;
-		return 2;
+		return false;
 	}
 
 	// the output models if any
@@ -239,7 +240,7 @@ int Compare::main(std::string app, int argc, char* argv[])
 		res = Compare::equ(
 			*inputModelA, *inputModelB,
 			*textureMapA, *textureMapB,
-			epsilon,
+			epsilon, earlyReturn, unoriented,
 			*outputModelA, *outputModelB);
 	}
 	else if (mode == "pcc") {
@@ -271,7 +272,7 @@ int Compare::main(std::string app, int argc, char* argv[])
 	}
 	else {
 		std::cerr << "Error: invalid --mode " << mode << std::endl;
-		return 2;
+		return false;
 	}
 	clock_t t2 = clock();
 	std::cout << "Time on processing: " << ((float)(t2 - t1)) / CLOCKS_PER_SEC << " sec." << std::endl;
@@ -279,106 +280,195 @@ int Compare::main(std::string app, int argc, char* argv[])
 	// save the result
 	if (outputModelAFilename != "") {
 		if (!IO::saveModel(outputModelAFilename, outputModelA))
-			return 2;
+			return false;
 	}
 	// save the result
 	if (outputModelBFilename != "") {
 		if (!IO::saveModel(outputModelBFilename, outputModelB))
-			return 2;
+			return false;
 	}
 	// success
 	std::cout << "return " << res << std::endl;
-	return res;
+	return true;
+}
+
+bool Compare::finalize() {
+
+	// Collect the statistics
+	if (mode == "equ") {
+		// nothing to do
+	}
+	else if (mode == "pcc") {
+		pccFinalize();
+	}
+	else if (mode == "pcqm") {
+		pcqmFinalize();
+	}
+	else {
+		std::cerr << "Error: invalid --mode " << mode << std::endl;
+		return false;
+	}
+
+	return true;
+}
+
+// A 1 2 3
+// B 1 2 3
+//    / /
+//   2 3 1 
+//    / /
+//   3 1 2 
+// twosided (we turn in other direction)
+// B 1 3 2
+//    / /
+//   3 2 1 
+//    / /
+//   2 1 3 
+
+bool areTrianglesEqual(bool unoriented,
+	Vertex& vA1, Vertex& vA2, Vertex& vA3,
+	Vertex& vB1, Vertex& vB2, Vertex& vB3) 
+{
+	return 
+		(vA1 == vB1 && vA2 == vB2 && vA3 == vB3) ||
+		(vA1 == vB2 && vA2 == vB3 && vA3 == vB1) ||
+		(vA1 == vB3 && vA2 == vB1 && vA3 == vB2) ||
+		(unoriented && (
+			(vA1 == vB1 && vA2 == vB3 && vA3 == vB2) ||
+			(vA1 == vB3 && vA2 == vB2 && vA3 == vB1) ||
+			(vA1 == vB2 && vA2 == vB1 && vA3 == vB3)
+		));
 }
 
 int Compare::equ(
 	const Model& inputA, const Model& inputB,
 	const Image& mapA, const Image& mapB,
-	float epsilon,
+	float epsilon, bool earlyReturn, bool unoriented,
 	Model& outputA, Model& outputB)
-{
-	//
-	struct Point {
-		float x;
-		float y;
-		float z;
-		Point(float a, float b, float c) { x = a; y = b; z = c; };
-		bool operator<(const Point& o) const {
-			if (x != o.x) {
-				return x < o.x;
+{	
+
+	if (inputA.triangles.size() != inputB.triangles.size()) {
+		std::cout << "meshes are not equal, number of triangles are different " << 
+			inputA.triangles.size() / 3 << " vs " << inputB.triangles.size() / 3 << std::endl;
+		return true;
+	}
+
+	// mesh mode
+	if (inputA.triangles.size() != 0) {
+
+		// prepare a store for face status 
+		// doundInB[true] if the nth face of B matches one face of A
+		std::vector<bool> foundInB(inputB.triangles.size() / 3, false);
+
+		bool hasColors = inputA.colors.size() != 0 && inputB.colors.size() != 0;
+		bool hasUvCoords = inputA.uvcoords.size() != 0 && inputB.uvcoords.size() != 0;
+		bool hasNormals = inputA.normals.size() != 0 && inputB.normals.size() != 0;
+		
+		size_t diffs = 0; // count the differences if no earlyReturn option
+
+		// iterate over triangles of modelA
+		for (size_t triIdx = 0; triIdx < inputA.triangles.size() / 3; triIdx++) {
+			Vertex v1, v2, v3;
+			fetchTriangle(inputA, triIdx, hasUvCoords, hasColors, hasNormals, v1, v2, v3);
+			// search over modelB riangles that are not already matched
+			bool found = false;
+			size_t triIdxB = 0;
+			while (!found && triIdxB != inputB.triangles.size() / 3) {
+				if (foundInB[triIdxB]) { ++triIdxB; continue; }
+				Vertex vB1, vB2, vB3;
+				fetchTriangle(inputB, triIdxB, hasUvCoords, hasColors, hasNormals, vB1, vB2, vB3);
+				if (areTrianglesEqual(unoriented, v1, v2, v3, vB1, vB2, vB3)) {
+					found = true;
+					foundInB[triIdxB] = true;
+				}
+				++triIdxB;
 			}
-			if (y != o.y) {
-				return y < o.y;
+			if (!found) {
+				if (earlyReturn) {
+					std::cout << "meshes are not equal, early return." << std::endl;
+					std::cout << "triangle number " << triIdx  << " from A has no equivalent in B" << std::endl;
+					return true;
+				}
+				++diffs;
 			}
-			return z < o.z;
 		}
 
-	};
-
-	// allocate room for the results
-	outputA.vertices.resize(inputA.vertices.size());
-	outputB.vertices.resize(inputB.vertices.size());
-
-	// prepare outputA
-	std::vector<Point> positions;
-
-	for (int i = 0; i < inputA.vertices.size() / 3; i++) {
-		Point point(inputA.vertices[i * 3 + 0], inputA.vertices[i * 3 + 1], inputA.vertices[i * 3 + 2]);
-		positions.push_back(point);
-	}
-	std::sort(positions.begin(), positions.end());
-
-	for (int i = 0; i < positions.size(); i++) {
-		outputA.vertices[i * 3 + 0] = positions[i].x;
-		outputA.vertices[i * 3 + 1] = positions[i].y;
-		outputA.vertices[i * 3 + 2] = positions[i].z;
-	}
-
-	// prepare outputB
-	positions.clear();
-	for (int i = 0; i < inputB.vertices.size() / 3; i++) {
-		Point point(inputB.vertices[i * 3 + 0], inputB.vertices[i * 3 + 1], inputB.vertices[i * 3 + 2]);
-		positions.push_back(point);
-	}
-	std::sort(positions.begin(), positions.end());
-
-	for (int i = 0; i < positions.size(); i++) {
-		outputB.vertices[i * 3 + 0] = positions[i].x;
-		outputB.vertices[i * 3 + 1] = positions[i].y;
-		outputB.vertices[i * 3 + 2] = positions[i].z;
-	}
-
-	// now compare the results
-	if (epsilon == 0) {
-		if (outputB.vertices == outputA.vertices) {
-			std::cout << "model vertices are equals" << std::endl;
-			return 0;
+		if (diffs == 0) {
+			std::cout << "meshes are equal" << std::endl;
 		}
 		else {
-			std::cout << "model vertices are not equals" << std::endl;
-			return 1;
+			std::cout << "meshes are not equal, " << diffs << " different triangles" << std::endl;
 		}
+		return true;
+
 	}
+	// Point cloud mode, sort vertices then compare
 	else {
-		if (outputA.vertices.size() != outputB.vertices.size()) {
-			std::cout << "model vertices are not equals" << std::endl;
-			return 1;
+		// allocate room for the results
+		outputA.vertices.resize(inputA.vertices.size());
+		outputB.vertices.resize(inputB.vertices.size());
+
+		// prepare outputA
+		std::vector<Vertex> positions;
+		Vertex vertex;
+		for (int i = 0; i < inputA.vertices.size() / 3; i++) {
+			vertex.pos = glm::vec3(inputA.vertices[i * 3 + 0], inputA.vertices[i * 3 + 1], inputA.vertices[i * 3 + 2]);
+			positions.push_back(vertex);
 		}
-		size_t count = 0;
-		for (size_t i = 0; i < outputA.vertices.size() / 3; i++) {
-			glm::vec3 A = glm::make_vec3(&outputA.vertices[i * 3]);
-			glm::vec3 B = glm::make_vec3(&outputB.vertices[i * 3]);
-			if (glm::length(A - B) >= epsilon) {
-				++count;
+		std::sort(positions.begin(), positions.end(), CompareVertex<true,false,false,false>() );
+
+		for (int i = 0; i < positions.size(); i++) {
+			outputA.vertices[i * 3 + 0] = positions[i].pos.x;
+			outputA.vertices[i * 3 + 1] = positions[i].pos.y;
+			outputA.vertices[i * 3 + 2] = positions[i].pos.z;
+		}
+
+		// prepare outputB
+		positions.clear();
+		for (int i = 0; i < inputB.vertices.size() / 3; i++) {
+			vertex.pos = glm::vec3(inputB.vertices[i * 3 + 0], inputB.vertices[i * 3 + 1], inputB.vertices[i * 3 + 2]);
+			positions.push_back(vertex);
+		}
+		std::sort(positions.begin(), positions.end(), CompareVertex<true, false, false, false>());
+
+		for (int i = 0; i < positions.size(); i++) {
+			outputB.vertices[i * 3 + 0] = positions[i].pos.x;
+			outputB.vertices[i * 3 + 1] = positions[i].pos.y;
+			outputB.vertices[i * 3 + 2] = positions[i].pos.z;
+		}
+
+		// now compare the results
+		if (epsilon == 0) {
+			if (outputB.vertices == outputA.vertices) {
+				std::cout << "model vertices are equals" << std::endl;
+				return true;
+			}
+			else {
+				std::cout << "model vertices are not equals" << std::endl;
+				return true;
 			}
 		}
-		if (count == 0) {
-			std::cout << "model vertices are equals" << std::endl;
-		}
 		else {
-			std::cout << "model vertices are not equals, found " << count << " differences" << std::endl;
+			if (outputA.vertices.size() != outputB.vertices.size()) {
+				std::cout << "model vertices are not equals" << std::endl;
+				return true;
+			}
+			size_t count = 0;
+			for (size_t i = 0; i < outputA.vertices.size() / 3; i++) {
+				glm::vec3 A = glm::make_vec3(&outputA.vertices[i * 3]);
+				glm::vec3 B = glm::make_vec3(&outputB.vertices[i * 3]);
+				if (glm::length(A - B) >= epsilon) {
+					++count;
+				}
+			}
+			if (count == 0) {
+				std::cout << "model vertices are equals" << std::endl;
+			}
+			else {
+				std::cout << "model vertices are not equals, found " << count << " differences" << std::endl;
+			}
+			return true;
 		}
-		return (int)count;
 	}
 }
 
@@ -388,19 +478,18 @@ void sampleIfNeeded(
 	Model& output)
 {
 	if (input.triangles.size() != 0) {
-		// map method is better but require a minimum texture map size
-		// otherwise we use sample face
-		if (map.width >= 1024 && map.height >= 1024) {
-			std::cout << "Sampling model with map method " << std::endl;
-			Sample::meshToPcMap(input, output, map, false);
-		}
-		else {
-			std::cout << "Sampling model with face method, resolution=" << 1024 << std::endl;
-			Sample::meshToPcFace(input, output, map, 1024, 0.0, false, false);
-		}
+
+		// first reorder the model to prevent small variations 
+		// when having two similar topologies but not same orders of enumeration
+		Model reordered;
+		reorder(input, std::string("oriented"), reordered);
+
+		// then use face subdivision without map citerion and area threshold of 2.0
+		Sample::meshToPcDiv(reordered, output, map, 2.0, false, true, false);
+
 	}
 	else {
-		output = input; //  ugly copy, shall better use modelB directly
+		output = input; //  pass through
 	}
 }
 
@@ -568,9 +657,53 @@ int Compare::pcc(
 	// 3 - compute the metric
 	pcc_quality::qMetric qm;
 	computeQualityMetric(inCloud1, inCloud1, inCloud2, params, qm);
+	
+	// store results to compute statistics in finalize step
+	pccResults.push_back(std::make_pair(_context->getFrame(), qm));
 
 	// 
 	return 0;
+}
+
+// collect multi-frame statistics
+void Compare::pccFinalize(void) {
+
+	if (pccResults.size() > 1) {
+
+		Statistics::Results stats;
+
+		Statistics::compute(pccResults.size(),
+			[&](size_t i) -> double { return pccResults[i].second.c2c_mse; },
+			stats);
+		
+		Statistics::printToLog(stats, "mseF, PSNR(p2point)", std::cout);
+
+		Statistics::compute(pccResults.size(),
+			[&](size_t i) -> double { return pccResults[i].second.c2p_mse; },
+			stats);
+
+		Statistics::printToLog(stats, "mseF, PSNR(p2plane)", std::cout);
+
+		Statistics::compute(pccResults.size(),
+			[&](size_t i) -> double { return pccResults[i].second.color_psnr[0]; },
+			stats);
+
+		Statistics::printToLog(stats, "c[0],PSNRF         ", std::cout);
+
+		Statistics::compute(pccResults.size(),
+			[&](size_t i) -> double { return pccResults[i].second.color_psnr[1]; },
+			stats);
+
+		Statistics::printToLog(stats, "c[1],PSNRF         ", std::cout);
+
+		Statistics::compute(pccResults.size(),
+			[&](size_t i) -> double { return pccResults[i].second.color_psnr[2]; },
+			stats);
+
+		Statistics::printToLog(stats, "c[2],PSNRF         ", std::cout);
+
+	}
+
 }
 
 // utility func used by compare::pcqm
@@ -636,14 +769,43 @@ int Compare::pcqm(
 	double pcqm = compute_pcqm(inCloud1, inCloud2, "reffile", "regfile", radiusCurvature, thresholdKnnSearch, radiusFactor);
 
 	// compute PSNR
+	// we use outputA as reference for PSNR signal dynamic
+	glm::vec3 minBox, maxBox;
+	computeBBox(outputA.vertices, minBox, maxBox);
+	const double maxEnergy = glm::length(maxBox - minBox);
 	double maxPcqm = 1.0;
-	const double maxEnergy = std::numeric_limits<unsigned short>::max();
 	double pcqmScaled = (pcqm / maxPcqm) * maxEnergy;
 	double pcqmMse = pcqmScaled * pcqmScaled;
 	double pcqmPsnr = 10.0 * log10(maxEnergy * maxEnergy / pcqmMse);
 
 	std::cout << "PCQM-PSNR=" << pcqmPsnr << std::endl;
 
+	// store results to compute statistics
+	pcqmResults.push_back(std::make_tuple(_context->getFrame(), pcqm, pcqmPsnr));
+
 	// 
 	return 0;
+}
+
+// 
+void Compare::pcqmFinalize(void) {
+
+	if (pcqmResults.size() > 1) {
+
+		Statistics::Results stats;
+
+		Statistics::compute(pcqmResults.size(), 
+			[&](size_t i) -> double { return std::get<1>(pcqmResults[i]); }, 
+			stats);
+
+		Statistics::printToLog(stats, "PCQM", std::cout);
+
+		Statistics::compute(pcqmResults.size(),
+			[&](size_t i) -> double { return std::get<2>(pcqmResults[i]); },
+			stats);
+
+		Statistics::printToLog(stats, "PCQM-PSNR", std::cout);
+		
+	}
+
 }

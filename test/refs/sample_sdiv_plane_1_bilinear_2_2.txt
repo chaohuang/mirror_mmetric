@@ -1,12 +1,14 @@
 Input map: ./data/plane.png
 Loading file: ./data/plane.obj
-Time on loading: 0.001 sec.
+Time on loading: 0.008 sec.
 Input model: ./data/plane.obj
-  n_vertices: 5
-  n_uvs: 5
-  n_cols: 0
+  Vertices: 5
+  UVs: 5
+  Colors: 0
+  Normals: 0
 Sampling in SDIV mode
   Area threshold = 1
+  Map threshold = 0
   Bilinear = 1
   hideProgress = 1
 Generated 145 points
