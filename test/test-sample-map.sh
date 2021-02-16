@@ -22,7 +22,7 @@ fileHasString ${TMP}/${OUT}.txt "Error" 1
 # test degenerate triangle
 OUT=sample_map_degenerate
 $CMD sample -i ${DATA}/degenerate.obj -m ${DATA}/plane_10_10.png -o ${TMP}/${OUT}.ply --mode map --hideProgress > ${TMP}/${OUT}.txt 2>&1
-fileHasString ${TMP}/${OUT}.txt "Skipped 1 triangles" 1
+fileHasString ${TMP}/${OUT}.txt "Skipped 1 degenerate triangles" 1
 
 # external dataset
 if [ "$1" == "ext" ]; 

@@ -19,18 +19,21 @@ fileHasString ${TMP}/${OUT}.txt "meshes are not equal" 1
 # external dataset
 if [ "$1" == "ext" ]; 
 then
-OUT=reindex_basketball
-$CMD \
-reindex --sort none       -i ${EXTDATA}/basketball_player_00000001.obj -o ${TMP}/reindex_basket_none.obj END \
-reindex --sort vertex     -i ${EXTDATA}/basketball_player_00000001.obj -o ${TMP}/reindex_basket_vertex.obj END \
-reindex --sort oriented   -i ${EXTDATA}/basketball_player_00000001.obj -o ${TMP}/reindex_basket_oriented.obj END \
-reindex --sort unoriented -i ${EXTDATA}/basketball_player_00000001.obj -o ${TMP}/reindex_basket_unoriented.obj END \
-compare --mode equ --inputModelA ${EXTDATA}/basketball_player_00000001.obj --inputModelB ${TMP}/reindex_basket_none.obj END \
-compare --mode equ --inputModelA ${EXTDATA}/basketball_player_00000001.obj --inputModelB ${TMP}/reindex_basket_vertex.obj END \
-compare --mode equ --inputModelA ${EXTDATA}/basketball_player_00000001.obj --inputModelB ${TMP}/reindex_basket_oriented.obj END \
-compare --mode equ --inputModelA ${EXTDATA}/basketball_player_00000001.obj --inputModelB ${TMP}/reindex_basket_unoriented.obj END \
-> ${TMP}/${OUT}.txt 2>&1
-fileHasString ${TMP}/${OUT}.txt "meshes are equal" 3
-fileHasString ${TMP}/${OUT}.txt "meshes are not equal" 1
 
+	for model in basketball_player_00000001 longdress_vox10_1051_poisson40k_uv_map longdress_vox10_1051_uv
+	do
+		OUT=reindex_${model}
+		$CMD \
+		reindex --sort none       -i ${EXTDATA}/${model}.obj -o ${TMP}/reindex_${model}_none.obj END \
+		reindex --sort vertex     -i ${EXTDATA}/${model}.obj -o ${TMP}/reindex_${model}_vertex.obj END \
+		reindex --sort oriented   -i ${EXTDATA}/${model}.obj -o ${TMP}/reindex_${model}_oriented.obj END \
+		reindex --sort unoriented -i ${EXTDATA}/${model}.obj -o ${TMP}/reindex_${model}_unoriented.obj END \
+		compare --mode equ --inputModelA ${EXTDATA}/${model}.obj --inputModelB ${TMP}/reindex_${model}_none.obj END \
+		compare --mode equ --inputModelA ${EXTDATA}/${model}.obj --inputModelB ${TMP}/reindex_${model}_vertex.obj END \
+		compare --mode equ --inputModelA ${EXTDATA}/${model}.obj --inputModelB ${TMP}/reindex_${model}_oriented.obj END \
+		compare --mode equ --inputModelA ${EXTDATA}/${model}.obj --inputModelB ${TMP}/reindex_${model}_unoriented.obj END \
+		> ${TMP}/${OUT}.txt 2>&1
+		fileHasString ${TMP}/${OUT}.txt "meshes are equal" 3
+		fileHasString ${TMP}/${OUT}.txt "meshes are not equal" 1
+	done
 fi

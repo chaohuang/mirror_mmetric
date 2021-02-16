@@ -62,7 +62,7 @@ public:
 		params.resolution = 0.0; // auto
 		params.neighborsProc = 1;
 		params.dropDuplicates = 2;
-		params.bAverageNormals = false;
+		params.bAverageNormals = true;
 	};
 
 	// Descriptions of the command

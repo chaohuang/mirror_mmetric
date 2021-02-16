@@ -96,7 +96,7 @@ bool Compare::initialize(Context* context, std::string app, int argc, char* argv
 			("dropDuplicates", "0(detect), 1(drop), 2(average) subsequent points with same coordinates",
 				cxxopts::value<int>()->default_value("2"))
 			("bAverageNormals", "false(use provided normals), true(average normal based on neighbors with same geometric distance)",
-				cxxopts::value<bool>()->default_value("false"))
+				cxxopts::value<bool>()->default_value("true"))
 			;
 		options.add_options("pcqm mode")
 			("radiusCurvature", "Set a radius for the construction of the neighborhood. As the bounding box is already computed with this program, use proposed value.",
@@ -715,7 +715,6 @@ void convertModel(const Model& inputModel, PointSet& outputModel) {
 	outputModel.xmax = outputModel.ymax = outputModel.zmax = std::numeric_limits<double>::min();
 	// note that RGBA is not supported - no error checking
 	const bool haveColors = inputModel.colors.size() == inputModel.vertices.size();
-	const bool haveNormals = inputModel.normals.size() == inputModel.vertices.size();
 	// copy data
 	for (size_t i = 0; i < inputModel.vertices.size() / 3; ++i) {
 		Point point;
@@ -723,12 +722,6 @@ void convertModel(const Model& inputModel, PointSet& outputModel) {
 		point.x = inputModel.vertices[i * 3];
 		point.y = inputModel.vertices[i * 3 + 1];
 		point.z = inputModel.vertices[i * 3 + 2];
-		// push the normals if any
-		if (haveNormals) {
-			point.nx = inputModel.normals[i * 3];
-			point.ny = inputModel.normals[i * 3 + 1];
-			point.nz = inputModel.normals[i * 3 + 2];
-		}
 		// push the colors if any
 		// PointSet ingests RGB8 stored on double.
 		if (haveColors) {
@@ -741,7 +734,13 @@ void convertModel(const Model& inputModel, PointSet& outputModel) {
 			point.r = point.g = point.b = (double)255;
 		}
 		// will add the point and update bbox
-		outputModel.addPoint(point);
+		outputModel.pts.push_back( point );
+		outputModel.xmax = outputModel.xmax > point.x ? outputModel.xmax : point.x;
+		outputModel.ymax = outputModel.ymax > point.y ? outputModel.ymax : point.y;
+		outputModel.zmax = outputModel.zmax > point.z ? outputModel.zmax : point.z;
+		outputModel.xmin = outputModel.xmin < point.x ? outputModel.xmin : point.x;
+		outputModel.ymin = outputModel.ymin < point.y ? outputModel.ymin : point.y;
+		outputModel.zmin = outputModel.zmin < point.z ? outputModel.zmin : point.z;
 	}
 }
 
@@ -766,7 +765,9 @@ int Compare::pcqm(
 	convertModel(outputB, inCloud2);
 
 	// 3 - compute the metric
-	double pcqm = compute_pcqm(inCloud1, inCloud2, "reffile", "regfile", radiusCurvature, thresholdKnnSearch, radiusFactor);
+	// ModelA is Reference model 
+	// switch ref anf deg as in original PCQM (order matters)
+	double pcqm = compute_pcqm(inCloud2, inCloud1, "reffile", "regfile", radiusCurvature, thresholdKnnSearch, radiusFactor);
 
 	// compute PSNR
 	// we use outputA as reference for PSNR signal dynamic

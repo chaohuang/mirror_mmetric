@@ -229,6 +229,9 @@ void Sample::meshToPcFace(
 	float step = boxMaxSize / resolution;
 	std::cout << "step = " << step << std::endl;
 
+	// to prevent storing duplicate points, we use a ModelBuilder
+	ModelBuilder builder(output);
+
 	size_t skipped = 0; // number of degenerate triangles
 
 	for (size_t t = 0; t < input.triangles.size() / 3; t++) {
@@ -236,37 +239,33 @@ void Sample::meshToPcFace(
 		if (logProgress)
 			std::cout << '\r' << t << "/" << input.triangles.size() / 3 << std::flush;
 
-		// fetch the triangle vertices
-		glm::vec3 v1, v2, v3;
-		input.fetchTriangleVertices(t, v1, v2, v3);
-		// fetch the triangle UVs if needed
-		glm::vec2 uv1, uv2, uv3;
-		if (input.uvcoords.size() != 0) {
-			input.fetchTriangleUVs(t, uv1, uv2, uv3);
-		}
-		// fetch the triangle colors if needed
-		glm::vec3 c1 = { 0.0F,0.0F,0.0F };
-		glm::vec3 c2 = c1; glm::vec3 c3 = c1;
-		if (input.colors.size() != 0) {
-			input.fetchTriangleColors(t, c1, c2, c3);
-		}
+		Vertex v1, v2, v3;
+
+		fetchTriangle(input, t,
+			input.uvcoords.size() != 0,
+			input.colors.size() != 0,
+			input.normals.size() != 0,
+			v1, v2, v3);
+		
 		// check if triangle is not degenerate
-		if (triangleArea(v1, v2, v3) < DBL_EPSILON) {
+		if (triangleArea(v1.pos, v2.pos, v3.pos) < DBL_EPSILON) {
 			++skipped;
 			continue;
 		}
+
+		// compute face normal
+		glm::vec3 normal;
+		triangleNormal(v1.pos, v2.pos, v3.pos, normal);
+
 		// computes face dimensions for sampling
-		glm::vec3 v12_norm = v2 - v1;
-		glm::vec3 v23_norm = v3 - v2;
+		glm::vec3 v12_norm = v2.pos - v1.pos;
+		glm::vec3 v23_norm = v3.pos - v2.pos;
 		float l12 = glm::length(v12_norm);
 		float l23 = glm::length(v23_norm);
 		for (int i = 0; i < 3; i++) {
 			v12_norm[i] = v12_norm[i] / l12;
 			v23_norm[i] = v23_norm[i] / l23;
 		}
-		// compute face normal
-		glm::vec3 normal;
-		triangleNormal(v1, v2, v3, normal);
 
 		// do the sampling
 		for (float step12 = 0.f; step12 <= l12; step12 += step) {
@@ -280,47 +279,34 @@ void Sample::meshToPcFace(
 
 				for (float step_normal = -step_normal_bdry; step_normal <= step_normal_bdry; step_normal += step) {
 
-					float point[3] = { 0.f, 0.f, 0.f };
-					for (int i = 0; i < 3; i++) {
-						point[i] = v1[i] + step12 * v12_norm[i] + step23 * v23_norm[i] + step_normal * normal[i];
-					}
+					Vertex v; 
+					v.pos = v1.pos + step12 * v12_norm + step23 * v23_norm + step_normal * normal;
+					v.nrm = normal; v.hasNormal = true;
 
-					// push the position and normal
-					for (glm::vec3::length_type c = 0; c < 3; c++) {
-						output.vertices.push_back(point[c]);
-						output.normals.push_back(normal[c]);
-					}
-
-					// compute the color
-					glm::vec3 rgb = { 0.0F,0.0F,0.0F };
-					bool push = false;
-
+					// compute the color if any
 					if (input.uvcoords.size() != 0 && tex_map.data != NULL) { // use the texture map
-						push = true;
 						// compute UV
 						const glm::vec2 uv{
-							(uv1[0] + step12 / l12 * (uv2[0] - uv1[0]) + step23 / l23 * (uv3[0] - uv2[0])),
-							(uv1[1] + step12 / l12 * (uv2[1] - uv1[1]) + step23 / l23 * (uv3[1] - uv2[1]))
+							(v1.uv[0] + step12 / l12 * (v2.uv[0] - v1.uv[0]) + step23 / l23 * (v3.uv[0] - v2.uv[0])),
+							(v1.uv[1] + step12 / l12 * (v2.uv[1] - v1.uv[1]) + step23 / l23 * (v3.uv[1] - v2.uv[1]))
 						};
 
 						// fetch the color from the map
 						if (bilinear)
-							texture2D_bilinear(tex_map, uv, rgb);
+							texture2D_bilinear(tex_map, uv, v.col);
 						else
-							texture2D(tex_map, uv, rgb);
+							texture2D(tex_map, uv, v.col);
+						v.hasColor=true;
 					}
 					else if (input.colors.size() != 0) { // use color per vertex
-						push = true;
-						rgb[0] = c1[0] + step12 / l12 * (c2[0] - c1[0]) + step23 / l23 * (c3[0] - c2[0]);
-						rgb[1] = c1[1] + step12 / l12 * (c2[1] - c1[1]) + step23 / l23 * (c3[1] - c2[1]);
-						rgb[2] = c1[2] + step12 / l12 * (c2[2] - c1[2]) + step23 / l23 * (c3[2] - c2[2]);
+						v.col[0] = v1.col[0] + step12 / l12 * (v2.col[0] - v1.col[0]) + step23 / l23 * (v3.col[0] - v2.col[0]);
+						v.col[1] = v1.col[1] + step12 / l12 * (v2.col[1] - v1.col[1]) + step23 / l23 * (v3.col[1] - v2.col[1]);
+						v.col[2] = v1.col[2] + step12 / l12 * (v2.col[2] - v1.col[2]) + step23 / l23 * (v3.col[2] - v2.col[2]);
+						v.hasColor=true;
 					}
 
-					// add color to the table of points if needed
-					if (push) {
-						for (glm::vec3::length_type i = 0; i < 3; i++)
-							output.colors.push_back(rgb[i]);
-					}
+					// add the vertex 
+					builder.pushVertex(v);
 				}
 			}
 		}
@@ -328,7 +314,9 @@ void Sample::meshToPcFace(
 	if (logProgress)
 		std::cout << std::endl;
 	if (skipped != 0)
-		std::cout << "Skipped " << skipped << " triangles" << std::endl;
+		std::cout << "Skipped " << skipped << " degenerate triangles" << std::endl;
+	if (builder.foundCount != 0)
+		std::cout << "Skipped " << builder.foundCount << " duplicate vertices" << std::endl;
 	std::cout << "Generated " << output.vertices.size() / 3 << " points" << std::endl;
 }
 
@@ -352,6 +340,9 @@ void Sample::meshToPcGrid(
 	// we will now sample between min and max over the three dimensions, using resolution
 	// by throwing rays from the three orthogonal faces of the box XY, XZ, YZ
 
+	// to prevent storing duplicate points, we use a ModelBuilder
+	ModelBuilder builder(output);
+
 	size_t skipped = 0; // number of degenerate triangles
 
 	// for each triangle
@@ -360,31 +351,27 @@ void Sample::meshToPcGrid(
 		if (logProgress)
 			std::cout << '\r' << triIdx << "/" << input.triangles.size() / 3 << std::flush;
 
-		// fetch the triangle vertices
-		glm::vec3 v1, v2, v3;
-		input.fetchTriangleVertices(triIdx, v1, v2, v3);
-		// fetch the triangle UVs if needed
-		glm::vec2 uv1, uv2, uv3;
-		if (input.uvcoords.size() != 0) {
-			input.fetchTriangleUVs(triIdx, uv1, uv2, uv3);
-		}
-		// fetch the triangle colors if needed
-		glm::vec3 c1 = { 0.0F,0.0F,0.0F };
-		glm::vec3 c2 = c1; glm::vec3 c3 = c1;
-		if (input.colors.size() != 0) {
-			input.fetchTriangleColors(triIdx, c1, c2, c3);
-		}
+		Vertex v1, v2, v3;
+
+		fetchTriangle(input, triIdx,
+			input.uvcoords.size() != 0,
+			input.colors.size() != 0,
+			input.normals.size() != 0,
+			v1, v2, v3);
+
 		// check if triangle is not degenerate
-		if (triangleArea(v1, v2, v3) < DBL_EPSILON) {
+		if (triangleArea(v1.pos, v2.pos, v3.pos) < DBL_EPSILON) {
 			++skipped;
 			continue;
 		}
+
 		// compute face normal
 		glm::vec3 normal;
-		triangleNormal(v1, v2, v3, normal);
+		triangleNormal(v1.pos, v2.pos, v3.pos, normal);
+
 		// extract the triangle bbox
 		glm::vec3 triMinPos, triMaxPos;
-		triangleBBox(v1, v2, v3, triMinPos, triMaxPos);
+		triangleBBox(v1.pos, v2.pos, v3.pos, triMinPos, triMaxPos);
 
 		// now find the Discrete range from global box to triangle box
 		glm::vec3 stepSize = (maxPos - minPos) * (1.0F / (float)(resolution - 1));
@@ -434,45 +421,37 @@ void Sample::meshToPcGrid(
 					glm::vec3 res;
 
 					// let' throw the ray toward the triangle
-					if (evalRayTriangle(rayOrigin, rayDirection, v1, v2, v3, res)) {
+					if (evalRayTriangle(rayOrigin, rayDirection, v1.pos, v2.pos, v3.pos, res)) {
 
 						// we convert the result into a point with color
-
-						// push the position and normal
-						glm::vec3 point = rayOrigin + rayDirection * res[0];
-						for (glm::vec3::length_type c = 0; c < 3; c++) {
-							output.vertices.push_back(point[c]);
-							output.normals.push_back(normal[c]);
-						}
-
-						// compute the color
-						glm::vec3 rgb = { 0.0F,0.0F,0.0F };
-						bool push = false;
-
+						Vertex v;
+						v.pos = rayOrigin + rayDirection * res[0];
+						v.nrm = normal; v.hasNormal = true;
+						
+						// compute the color fi any
 						// use the texture map
 						if (input.uvcoords.size() != 0 && tex_map.data != NULL) {
-							push = true;
+
 							// use barycentric coordinates to extract point UV
-							glm::vec2 uv = uv1 * (1.0f - res.y - res.z) + uv2 * res.y + uv3 * res.z;
+							glm::vec2 uv = v1.uv * (1.0f - res.y - res.z) + v2.uv * res.y + v3.uv * res.z;
 
 							// fetch the color from the map
 							if (bilinear)
-								texture2D_bilinear(tex_map, uv, rgb);
+								texture2D_bilinear(tex_map, uv, v.col);
 							else
-								texture2D(tex_map, uv, rgb);
+								texture2D(tex_map, uv, v.col);
+
+							v.hasColor = true;
 						}
 						// use color per vertex
 						else if (input.colors.size() != 0) {
-							push = true;
 							// compute pixel color using barycentric coordinates
-							rgb = c1 * (1.0f - res.y - res.z) + c2 * res.y + c3 * res.z;
+							v.col = v1.col * (1.0f - res.y - res.z) + v2.col * res.y + v3.col * res.z;
+							v.hasColor = true;
 						}
 
-						// add color to the table of points
-						if (push) {
-							for (int i = 0; i < 3; i++)
-								output.colors.push_back(rgb[i]);
-						}
+						// add the vertex 
+						builder.pushVertex(v);
 					}
 				}
 			}
@@ -481,7 +460,9 @@ void Sample::meshToPcGrid(
 	if (logProgress)
 		std::cout << std::endl;
 	if (skipped != 0)
-		std::cout << "Skipped " << skipped << " triangles" << std::endl;
+		std::cout << "Skipped " << skipped << " degenerate triangles" << std::endl;
+	if ( builder.foundCount != 0 )
+		std::cout << "Skipped " << builder.foundCount << " duplicate vertices" << std::endl;
 	std::cout << "Generated " << output.vertices.size() / 3 << " points" << std::endl;
 
 }
@@ -492,7 +473,7 @@ void Sample::meshToPcMap(
 	const Model& input, Model& output,
 	const Image& tex_map, bool logProgress) {
 
-	if (input.trianglesuv.size() == 0 || input.uvcoords.size() == 0) {
+	if (input.uvcoords.size() == 0) {
 		std::cerr << "Error: cannot back sample model, no UV coordinates" << std::endl;
 		return;
 	}
@@ -500,6 +481,9 @@ void Sample::meshToPcMap(
 		std::cerr << "Error: cannot back sample model, no valid texture map" << std::endl;
 		return;
 	}
+
+	// to prevent storing duplicate points, we use a ModelBuilder
+	ModelBuilder builder(output);
 
 	size_t skipped = 0; // number of degenerate triangles
 
@@ -509,66 +493,60 @@ void Sample::meshToPcMap(
 		if (logProgress)
 			std::cout << '\r' << triIdx << "/" << input.triangles.size() / 3 << std::flush;
 
-		// fetch the triangle vertices
-		glm::vec3 v1, v2, v3;
-		input.fetchTriangleVertices(triIdx, v1, v2, v3);
-		// compute face normal
-		glm::vec3 normal;
-		triangleNormal(v1, v2, v3, normal);
-		// fetch the triangle UVs if needed
-		glm::vec2 uv1, uv2, uv3;
-		input.fetchTriangleUVs(triIdx, uv1, uv2, uv3);
+		Vertex v1, v2, v3;
+
+		fetchTriangle(input, triIdx,
+			input.uvcoords.size() != 0,
+			input.colors.size() != 0,
+			input.normals.size() != 0,
+			v1, v2, v3);
+
 		// check if triangle is not degenerate
-		if (triangleArea(v1, v2, v3) < DBL_EPSILON) {
+		if (triangleArea(v1.pos, v2.pos, v3.pos) < DBL_EPSILON) {
 			++skipped;
 			continue;
 		}
 
+		// compute face normal
+		glm::vec3 normal;
+		triangleNormal(v1.pos, v2.pos, v3.pos, normal);
+
 		// compute the UVs bounding box
 		glm::vec2 uvMin = { FLT_MAX, FLT_MAX };
 		glm::vec2 uvMax = { -FLT_MAX, -FLT_MAX };
-		uvMin = glm::min(uv1, uvMin);
-		uvMin = glm::min(uv2, uvMin);
-		uvMin = glm::min(uv3, uvMin);
-		uvMax = glm::max(uv1, uvMax);
-		uvMax = glm::max(uv2, uvMax);
-		uvMax = glm::max(uv3, uvMax);
+		uvMin = glm::min(v3.uv, glm::min(v2.uv, glm::min(v1.uv, uvMin)));
+		uvMax = glm::max(v3.uv, glm::max(v2.uv, glm::max(v1.uv, uvMax)));
 
 		// find the integer coordinates covered in the map
 		glm::i32vec2 intUvMin = { (tex_map.width - 1) * uvMin.x, (tex_map.height - 1) * uvMin.y };
 		glm::i32vec2 intUvMax = { (tex_map.width - 1) * uvMax.x, (tex_map.height - 1) * uvMax.y };
-		;
+		
 		// loop over the box in image space
 		// if a pixel center is in the triangle then backproject
 		// and create a new point with the pixel color
 		for (size_t i = intUvMin[0]; i <= intUvMax[0]; ++i) {
 			for (size_t j = intUvMin[1]; j <= intUvMax[1]; ++j) {
-
+				
+				// the new vertex
+				Vertex v; 
+				// force to face normal
+				v.hasNormal = true; v.nrm = normal;
 				// get the UV for the center of the pixel
-				glm::vec2 pixelUV = { (0.5F + i) / tex_map.width, (0.5F + j) / tex_map.height };
+				v.hasUVCoord = true; v.uv = { (0.5F + i) / tex_map.width, (0.5F + j) / tex_map.height };
+
 				// test if this pixelUV is in the triangle UVs
 				glm::vec3 bary; // the barycentrics if success
-				if (getBarycentric(pixelUV, uv1, uv2, uv3, bary)) {
+				if (getBarycentric(v.uv, v1.uv, v2.uv, v3.uv, bary)) {
+						
 					// revert pixelUV to find point in 3D
-					glm::vec3 point;
-					triangleInterpolation(v1, v2, v3, bary.x, bary.y, point);
-					// push the position and normal
-					for (glm::vec3::length_type c = 0; c < 3; c++) {
-						output.vertices.push_back(point[c]);
-						output.normals.push_back(normal[c]);
-					}
+					triangleInterpolation(v1.pos, v2.pos, v3.pos, bary.x, bary.y, v.pos);
+
 					// fetch the color
-					glm::vec3 rgb = { 0.0F,0.0F,0.0F };
-					if (true) { // set false for debug, color chanel will contain the UVs
-						texture2D(tex_map, pixelUV, rgb);
-					}
-					else {
-						rgb[0] = std::round(pixelUV.x * 255);
-						rgb[2] = std::round(pixelUV.y * 255);
-					}
-					// add color to the table of points
-					for (int i = 0; i < 3; i++)
-						output.colors.push_back(rgb[i]);
+					texture2D(tex_map, v.uv, v.col); 
+					v.hasColor = true;
+
+					// add to results
+					builder.pushVertex(v);
 				}
 			}
 		}
@@ -576,7 +554,9 @@ void Sample::meshToPcMap(
 	if (logProgress)
 		std::cout << std::endl;
 	if (skipped != 0)
-		std::cout << "Skipped " << skipped << " triangles" << std::endl;
+		std::cout << "Skipped " << skipped << " degenerate triangles" << std::endl;
+	if (builder.foundCount != 0)
+		std::cout << "Skipped " << builder.foundCount << " duplicate vertices" << std::endl;
 	std::cout << "Generated " << output.vertices.size() / 3 << " points" << std::endl;
 }
 
@@ -633,17 +613,17 @@ void subdivideTriangle(
 	// (we do not interpolate normals but use face normal) - might be better as an option
 	e1.pos = v1.pos * 0.5F + v2.pos * 0.5F;
 	e1.col = v1.col * 0.5F + v2.col * 0.5F;
-	e1.uv = v1.uv * 0.5F + v2.uv * 0.5F;
+	e1.uv  = v1.uv * 0.5F + v2.uv * 0.5F;
 	e1.nrm = normal;
 
 	e2.pos = v2.pos * 0.5F + v3.pos * 0.5F;
 	e2.col = v2.col * 0.5F + v3.col * 0.5F;
-	e2.uv = v2.uv * 0.5F + v3.uv * 0.5F;
+	e2.uv  = v2.uv * 0.5F + v3.uv * 0.5F;
 	e2.nrm = normal;
 
 	e3.pos = v3.pos * 0.5F + v1.pos * 0.5F;
 	e3.col = v3.col * 0.5F + v1.col * 0.5F;
-	e3.uv = v3.uv * 0.5F + v1.uv * 0.5F;
+	e3.uv  = v3.uv * 0.5F + v1.uv * 0.5F;
 	e3.nrm = normal;
 
 	// push the new vertices
@@ -678,23 +658,18 @@ void Sample::meshToPcDiv(
 
 		Vertex v1, v2, v3;
 
-		// fetch the triangle vertices
-		input.fetchTriangleVertices(triIdx, v1.pos, v2.pos, v3.pos);
+		fetchTriangle(input, triIdx, 
+			input.uvcoords.size() != 0,
+			input.colors.size() != 0,
+			input.normals.size() != 0,
+			v1, v2, v3 );
+		
 		// check if triangle is not degenerate
 		if (triangleArea(v1.pos, v2.pos, v3.pos) < DBL_EPSILON) {
 			++skipped;
 			continue;
 		}
-		// fetch the triangle UVs if needed
-		if (input.uvcoords.size() != 0) {
-			input.fetchTriangleUVs(triIdx, v1.uv, v2.uv, v3.uv);
-			v1.hasUVCoord = v2.hasUVCoord = v3.hasUVCoord = true;
-		}
-		// fetch the triangle colors if needed
-		if (input.colors.size() != 0) {
-			input.fetchTriangleColors(triIdx, v1.col, v2.col, v3.col);
-			v1.hasColor = v2.hasColor = v3.hasColor = true;
-		}
+
 		// compute face normal (forces) - might be better as an option
 		glm::vec3 normal;
 		triangleNormal(v1.pos, v2.pos, v3.pos, normal);
@@ -713,7 +688,9 @@ void Sample::meshToPcDiv(
 	if (logProgress)
 		std::cout << std::endl;
 	if (skipped != 0)
-		std::cout << "Skipped " << skipped << " triangles" << std::endl;
+		std::cout << "Skipped " << skipped << " degenerate triangles" << std::endl;
+	if (builder.foundCount != 0)
+		std::cout << "Skipped " << builder.foundCount << " duplicate vertices" << std::endl;
 	std::cout << "Generated " << output.vertices.size() / 3 << " points" << std::endl;
 
 }

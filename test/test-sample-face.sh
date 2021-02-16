@@ -31,7 +31,7 @@ $CMD sample -i ${DATA}/sphere.obj -o ${TMP}/${OUT}.ply --mode face --hideProgres
 # test degenerate triangle
 OUT=sample_face_degenerate
 $CMD sample -i ${DATA}/degenerate.obj -o ${TMP}/${OUT}.ply --mode face --hideProgress --resolution 10 > ${TMP}/${OUT}.txt 2>&1
-fileHasString ${TMP}/${OUT}.txt "Skipped 1 triangles" 1
+fileHasString ${TMP}/${OUT}.txt "Skipped 1 degenerate triangles" 1
 
 # external dataset
 if [ "$1" == "ext" ]; 

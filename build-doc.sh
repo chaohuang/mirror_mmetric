@@ -52,6 +52,11 @@ echo "" >> README.md
 echo "\`\`\`" >> README.md
 ${CMD} quantize >> README.md
 echo "\`\`\`" >> README.md
+echo "## Degrade" >> README.md
+echo "" >> README.md
+echo "\`\`\`" >> README.md
+${CMD} degrade >> README.md
+echo "\`\`\`" >> README.md
 echo "## Sequence" >> README.md
 echo "" >> README.md
 echo "\`\`\`" >> README.md

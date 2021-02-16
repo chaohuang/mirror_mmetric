@@ -1,12 +1,16 @@
-Input map: ./test/plane.png
-Loading file: ./test/plane.obj
+Processing frame 0
+Input map: ./data/plane.png
+Loading file: ./data/plane.obj
 Time on loading: 0 sec.
-Input model: ./test/plane.obj
-  n_vertices: 5
-  n_uvs: 5
-  n_cols: 0
+Input model: ./data/plane.obj
+  Vertices: 5
+  UVs: 5
+  Colors: 0
+  Normals: 0
 Sampling in MAP mode
-0/41/42/43/4
-Generated 8 points
+  hideProgress = 1
+Skipped 4 duplicate vertices
+Generated 4 points
 Time on processing: 0 sec.
-Saving file: ./tmp/plane_sample_map_2_2.ply
+Saving file: ./tmp/sample_map_plane_2_2.ply
+Time on overall processing: 0.004 sec.

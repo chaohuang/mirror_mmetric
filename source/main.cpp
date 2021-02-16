@@ -27,7 +27,7 @@
 #include "mmCommand.h"
 
 // software version
-#define MM_VERSION "0.1.3"
+#define MM_VERSION "0.1.4"
 
 // the name of the application binary
 // i.e argv[0] minus the eventual path

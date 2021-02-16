@@ -1,6 +1,16 @@
 
 # Change log
 
+## Version 0.1.4
+
+- add remove duplicates for all sample modes (for exact vertex equality only)
+- add degrade command for metric experiments, remove one face every n faces
+- fix compare pcc, set bAverageNormals to true by default
+- fix compare pcqm, invert ref and deg as in original source code 
+- fix compare pcqm, bbox computation in model convert
+- fix reindex, issues with model normal API not complete
+- fix 3rdparty pcc, change distance threshold from 1e-8 to 1e-20, leads to self compare = Inf
+
 ## Version 0.1.3
 
 Update license to Apache 2.0

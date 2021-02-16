@@ -1,3 +1,4 @@
+Processing frame 0
 Input map: ./data/plane_10_10.png
 Loading file: ./data/plane.obj
 Time on loading: 0 sec.
@@ -15,6 +16,8 @@ maxbox = 5,5,0
 Transform bounding box to square box
 minbox = -5,-5,-5
 maxbox = 5,5,5
-Generated 116 points
+Skipped 16 duplicate vertices
+Generated 100 points
 Time on processing: 0 sec.
 Saving file: ./tmp/sample_grid_plane_10_nearest_10_10.ply
+Time on overall processing: 0.006 sec.

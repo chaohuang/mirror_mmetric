@@ -94,7 +94,7 @@ mm.exe \
 # Command references
 
 ```
-3D model processing commands v0.1.3
+3D model processing commands v0.1.4
 Usage:
   mm.exe command [OPTION...]
 
@@ -103,6 +103,7 @@ Command help:
 
 Command:
   compare	Compare model A vs model B
+  degrade	Degrade a mesh (todo points)
   quantize	Quantize model (mesh or point cloud) positions
   reindex	Reindex mesh and optionaly sort vertices and face indices
   sample	Convert mesh to point cloud
@@ -189,6 +190,7 @@ Usage:
                             with same coordinates (default: 2)
       --bAverageNormals     false(use provided normals), true(average normal
                             based on neighbors with same geometric distance)
+                            (default: true)
 
  pcqm mode options:
       --radiusCurvature arg     Set a radius for the construction of the
@@ -227,6 +229,21 @@ Usage:
   -o, --outputModel arg  path to output model (obj or ply file)
   -h, --help             Print usage
       --qp arg           Geometry quantization bitdepth (default: 16)
+
+```
+## Degrade
+
+```
+Degrade a mesh (todo points)
+Usage:
+  mm.exe degrade [OPTION...]
+
+  -i, --inputModel arg   path to input model (obj or ply file)
+  -o, --outputModel arg  path to output model (obj or ply file)
+      --mode arg         the sampling mode in [delface]
+      --nthFace arg      in delface mode, remove one face every nthFace.
+                         (default: 50)
+  -h, --help             Print usage
 
 ```
 ## Sequence

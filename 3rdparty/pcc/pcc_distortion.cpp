@@ -391,7 +391,7 @@ findMetric(PccPointCloud &cloudA, PccPointCloud &cloudB, commandPar &cPar, PccPo
     if (cPar.bColor || (!cPar.c2c_only && cloudNormalsB.bNormal) ) {
       sameDistPoints.push_back( indices[0] );
       for (size_t n = 1; n < num_results; n++) {
-        if (fabs(sqrDist[n] - sqrDist[n - 1]) < 1e-8) {
+        if (fabs(sqrDist[n] - sqrDist[n - 1]) < 1e-20) {
           sameDistPoints.push_back( indices[n] );
         } else {
           break;

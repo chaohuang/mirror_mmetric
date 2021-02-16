@@ -37,6 +37,7 @@ Usage:
                             with same coordinates (default: 2)
       --bAverageNormals     false(use provided normals), true(average normal
                             based on neighbors with same geometric distance)
+                            (default: true)
 
  pcqm mode options:
       --radiusCurvature arg     Set a radius for the construction of the

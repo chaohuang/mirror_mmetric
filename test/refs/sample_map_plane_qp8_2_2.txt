@@ -1,6 +1,7 @@
+Processing frame 0
 Input map: ./data/plane.png
 Loading file: ./data/plane_qp8.obj
-Time on loading: 0.01 sec.
+Time on loading: 0 sec.
 Input model: ./data/plane_qp8.obj
   Vertices: 5
   UVs: 5
@@ -8,6 +9,8 @@ Input model: ./data/plane_qp8.obj
   Normals: 0
 Sampling in MAP mode
   hideProgress = 1
-Generated 6 points
+Skipped 2 duplicate vertices
+Generated 4 points
 Time on processing: 0 sec.
 Saving file: ./tmp/sample_map_plane_qp8_2_2.ply
+Time on overall processing: 0.004 sec.

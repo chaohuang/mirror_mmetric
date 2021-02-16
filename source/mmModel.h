@@ -80,6 +80,13 @@ public:
 		c2 = glm::make_vec3(&colors[triangles[triIdx * 3 + 1] * 3]);
 		c3 = glm::make_vec3(&colors[triangles[triIdx * 3 + 2] * 3]);
 	}
+	
+	// no sanity check (for performance reasons)
+	inline void fetchTriangleNormals(const size_t triIdx, glm::vec3& n1, glm::vec3& n2, glm::vec3& n3) const {
+		n1 = glm::make_vec3(&normals[triangles[triIdx * 3 + 0] * 3]);
+		n2 = glm::make_vec3(&normals[triangles[triIdx * 3 + 1] * 3]);
+		n3 = glm::make_vec3(&normals[triangles[triIdx * 3 + 2] * 3]);
+	}
 
 	// no sanity check (for performance reasons)
 	inline void fetchTriangleUVs(const size_t triIdx, glm::vec2& uv1, glm::vec2& uv2, glm::vec2& uv3) const {
@@ -166,6 +173,7 @@ class ModelBuilder {
 	Model& output;
 	// set of <sorted vertices, associated index>
 	std::map<Vertex, size_t, CompareVertex<true, true, true, true> > vset;
+public:
 	// statistics
 	size_t foundCount;
 
@@ -253,16 +261,16 @@ inline void fetchTriangle(const Model& model, size_t index,
 {
 	model.fetchTriangleVertices(index, v1.pos, v2.pos, v3.pos);
 	if (hasUVCoords) {
-		v1.hasUVCoord = v2.hasUVCoord = v3.hasUVCoord = hasUVCoords;
+		v1.hasUVCoord = v2.hasUVCoord = v3.hasUVCoord = true;
 		model.fetchTriangleUVs(index, v1.uv, v2.uv, v3.uv);
 	}
 	if (hasColors) {
-		v1.hasColor = v2.hasColor = v3.hasColor= hasColors;
+		v1.hasColor = v2.hasColor = v3.hasColor= true;
 		model.fetchTriangleColors(index, v1.col, v2.col, v3.col);
 	}
 	if (hasNormals) {
-		v1.hasNormal = v2.hasNormal = v3.hasNormal = hasColors;
-		model.fetchTriangleColors(index, v1.nrm, v2.nrm, v3.nrm);
+		v1.hasNormal = v2.hasNormal = v3.hasNormal = true;
+		model.fetchTriangleNormals(index, v1.nrm, v2.nrm, v3.nrm);
 	}
 }
 
@@ -304,7 +312,7 @@ inline bool reindex(const Model& input, Model& output) {
 					output.normals.push_back(input.normals[idx.first * 3 + i]);
 				}
 			}
-			for (size_t i = 0; i < 2; i++) {
+			for (size_t i = 0; i < 2; i++) { 
 				output.uvcoords.push_back(input.uvcoords[idx.second * 2 + i]);
 			}
 		}

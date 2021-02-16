@@ -7,7 +7,7 @@ UNAME=`uname`
 # path to test input data
 DATA=./data
 # path to external data sets
-EXTDATA=../../../metrics/in
+EXTDATA=./extdata
 # path to test output references
 REFS=./refs
 # make a tmp folder to store processing ouotputs

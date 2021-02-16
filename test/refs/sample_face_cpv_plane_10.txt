@@ -1,6 +1,7 @@
+Processing frame 0
 Skipping map read, will parse use vertex color if any
 Loading file: ./data/cpv_plane.obj
-Time on loading: 0.008 sec.
+Time on loading: 0.001 sec.
 Input model: ./data/cpv_plane.obj
   Vertices: 5
   UVs: 0
@@ -14,6 +15,8 @@ Sampling in FACE mode
 minbox = -5,-5,0
 maxbox = 5,5,0
 step = 1
-Generated 180 points
+Skipped 4 duplicate vertices
+Generated 176 points
 Time on processing: 0 sec.
 Saving file: ./tmp/sample_face_cpv_plane_10.ply
+Time on overall processing: 0.006 sec.

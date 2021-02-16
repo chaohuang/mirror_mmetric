@@ -1,0 +1,11 @@
+Degrade a mesh (todo points)
+Usage:
+  mm.exe degrade [OPTION...]
+
+  -i, --inputModel arg   path to input model (obj or ply file)
+  -o, --outputModel arg  path to output model (obj or ply file)
+      --mode arg         the sampling mode in [delface]
+      --nthFace arg      in delface mode, remove one face every nthFace.
+                         (default: 50)
+  -h, --help             Print usage
+

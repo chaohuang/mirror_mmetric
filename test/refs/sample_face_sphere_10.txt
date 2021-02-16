@@ -1,3 +1,4 @@
+Processing frame 0
 Skipping map read, will parse use vertex color if any
 Loading file: ./data/sphere_qp8.obj
 Time on loading: 0.002 sec.
@@ -14,6 +15,8 @@ Sampling in FACE mode
 minbox = -1,-1,-1
 maxbox = 1,1,1
 step = 0.2
-Generated 1270 points
-Time on processing: 0 sec.
+Skipped 1 duplicate vertices
+Generated 1269 points
+Time on processing: 0.001 sec.
 Saving file: ./tmp/sample_face_sphere_10.ply
+Time on overall processing: 0.026 sec.
