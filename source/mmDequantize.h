@@ -16,19 +16,18 @@
 // Author: jean-eudes.marvie@interdigital.com
 // *****************************************************************
 
-#ifndef _MM_QUANTIZE_H_
-#define _MM_QUANTIZE_H_
+#ifndef _MM_DEQUANTIZE_H_
+#define _MM_DEQUANTIZE_H_
 
 // internal headers
 #include "mmCommand.h"
 #include "mmModel.h"
-#include <limits>
 
-class Quantize : Command {
+class Dequantize : Command {
 
 public:
 
-	Quantize() {};
+	Dequantize() {};
 
 	// Description of the command
 	static const char* name;
@@ -41,23 +40,23 @@ public:
 	virtual bool process(uint32_t frame);
 	virtual bool finalize() { return true; };
 
+	static void dequantize(
+		const Model& input, Model& output,
+		const uint32_t qp, const uint32_t qt, const uint32_t qn, const uint32_t qc,
+		const glm::vec3& minPos, const glm::vec3& maxPos, const glm::vec2& minUv, const glm::vec2& maxUv,
+		const glm::vec3& minNrm, const glm::vec3& maxNrm, const glm::vec3& minCol, const glm::vec3& maxCol);
+
 private:
 
 	// Command parameters
 	std::string inputModelFilename;
 	std::string outputModelFilename;
-	std::string outputVarFilename;
 	// Quantization parameters
-	uint32_t qp = 12;	// geometry
-	uint32_t qt = 12;	// UV coordinates
-	uint32_t qn = 12;	// normals
-	uint32_t qc = 8;	// colors
-	bool dequantize = false;
-	//
-	bool computeBboxPos = false;
-	bool computeBboxUv = false;
-	bool computeBboxNrm = false;
-	bool computeBboxCol = false;
+	uint32_t qp = 0; // geometry
+	uint32_t qt = 0; // UV coordinates
+	uint32_t qn = 0; // normals
+	uint32_t qc = 0; // colors
+
 	// min max vectors
 	std::string minPosStr;
 	std::string maxPosStr;
@@ -75,15 +74,6 @@ private:
 	std::string maxColStr;
 	glm::vec3 minCol = { 0.0F,0.0F,0.0F };
 	glm::vec3 maxCol = { 0.0F,0.0F,0.0F };
-	
-	// quantizes the model using parameters and range. If a range is not set (i.e. min == max) then a range is 
-	// computed internally. If quantization parameter is < 7, the related attribute is not quantized.
-	static void quantize(
-		const Model& input, Model& output,
-		const uint32_t qp, const uint32_t qt, const uint32_t qn, const uint32_t qc,
-		const glm::vec3& minPos, const glm::vec3& maxPos, const glm::vec2& minUv, const glm::vec2& maxUv,
-		const glm::vec3& minNrm, const glm::vec3& maxNrm, const glm::vec3& minCol, const glm::vec3& maxCol,
-		const std::string& outputVarFilename);
 
 };
 

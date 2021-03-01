@@ -91,10 +91,31 @@ mm.exe \
 	sample --mode grid -i quantized_%3d.obj -m map_00%3d.png -o pcloud_00%3d.obj
 ```
 
+The following statement will perform an analysis of the frames of a sequence and ouput a summary into file globals.txt. This
+text file can then be directly sourced by bash to access the variables and reinject into quantization command for instance. 
+In the following example, the extremums (Position bounding box, normal bounding box and uv bounding box) computed for the entire 
+sequence by analyse will be used as the quantization range for each frame by the quantize sequence.
+
+```
+mm.exe \
+	sequence --firstFrame 150 --lastFrame 165 ENd \
+	analyse --inputModel input_00%3d.obj --outputVar globals.txt
+
+# load result in memory
+source globals.txt
+
+mm.exe \
+	sequence --firstFrame 150 --lastFrame 165 END \
+	quantize --inputModel input_00%3d.obj  --outputModel=output_00%3d.obj \
+		--qp 12 --qt 12 --qn 10
+		--minPos="${globalMinPos}" --maxPos="${globalMaxPos}" \
+		--minUv="${globalMinUv}"   --maxUv="${globalMaxUv}" \
+		--minNrm="${globalMinNrm}" --maxNrm="${globalMaxNrm}"
+```
 # Command references
 
 ```
-3D model processing commands v0.1.4
+3D model processing commands v0.1.5
 Usage:
   mm.exe command [OPTION...]
 
@@ -102,9 +123,11 @@ Command help:
   mm.exe command --help
 
 Command:
+  analyse	Analyse model and/or texture map
   compare	Compare model A vs model B
   degrade	Degrade a mesh (todo points)
-  quantize	Quantize model (mesh or point cloud) positions
+  dequantize	Dequantize model (mesh or point cloud) 
+  quantize	Quantize model (mesh or point cloud)
   reindex	Reindex mesh and optionaly sort vertices and face indices
   sample	Convert mesh to point cloud
   sequence	Sequence global parameters
@@ -221,14 +244,35 @@ Usage:
 ## Quantize
 
 ```
-Quantize model (mesh or point cloud) positions
+Quantize model (mesh or point cloud)
 Usage:
   mm.exe quantize [OPTION...]
 
   -i, --inputModel arg   path to input model (obj or ply file)
   -o, --outputModel arg  path to output model (obj or ply file)
   -h, --help             Print usage
-      --qp arg           Geometry quantization bitdepth (default: 16)
+      --dequantize       set to process dequantification at the ouput
+      --qp arg           Geometry quantization bitdepth (default: 12)
+      --qt arg           UV coordinates quantization bitdepth (default: 12)
+      --qn arg           Normals quantization bitdepth (default: 12)
+      --qc arg           Colors quantization bitdepth (default: 8)
+      --minPos arg       min corner of vertex position bbox, a string of
+                         three floats. Computed of not set.
+      --maxPos arg       max corner of vertex position bbox, a string of
+                         three floats. Computed of not set.
+      --minUv arg        min corner of vertex texture coordinates bbox, a
+                         string of three floats. Computed of not set.
+      --maxUv arg        max corner of vertex texture coordinates bbox, a
+                         string of three floats. Computed of not set.
+      --minNrm arg       min corner of vertex normal bbox, a string of three
+                         floats. Computed of not set.
+      --maxNrm arg       max corner of vertex normal bbox, a string of three
+                         floats. Computed of not set.
+      --minCol arg       min corner of vertex color bbox, a string of three
+                         floats. Computed of not set.
+      --maxCol arg       max corner of vertex color bbox, a string of three
+                         floats. Computed of not set.
+      --outputVar arg    path to the output variables file.
 
 ```
 ## Degrade

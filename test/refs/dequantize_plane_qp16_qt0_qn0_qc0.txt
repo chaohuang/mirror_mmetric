@@ -1,0 +1,19 @@
+Processing frame 0
+Loading file: ./tmp/quantize_plane_qp16_qt0_qn0_qc0.obj
+Time on loading: 0 sec.
+Input model: ./tmp/quantize_plane_qp16_qt0_qn0_qc0.obj
+  Vertices: 5
+  UVs: 5
+  Colors: 0
+  Normals: 0
+De-quantizing
+  qp = 16
+  qt = 0
+  qn = 0
+  qc = 0
+  minPos="-5 -5 0"
+  maxPos="5 5 0"
+  rangePos=10
+Time on processing: 0 sec.
+Saving file: ./tmp/dequantize_plane_qp16_qt0_qn0_qc0.obj
+Time on overall processing: 0.008 sec.

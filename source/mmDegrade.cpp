@@ -37,9 +37,8 @@
 const char* Degrade::name = "degrade";
 const char* Degrade::brief = "Degrade a mesh (todo points)";
 
-// register the command
+// 
 Command* Degrade::create() { return new Degrade(); }
-static bool init = Command::addCreator(Degrade::name, Degrade::brief, Degrade::create);
 
 // 
 bool Degrade::initialize(Context* ctx, std::string app, int argc, char* argv[])

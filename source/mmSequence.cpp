@@ -32,9 +32,8 @@
 const char* Sequence::name = "sequence";
 const char* Sequence::brief = "Sequence global parameters";
 
-// register the command
+//
 Command* Sequence::create() { return new Sequence(); }
-static bool init = Command::addCreator(Sequence::name, Sequence::brief, Sequence::create);
 
 //
 bool Sequence::initialize(Context* ctx, std::string app, int argc, char* argv[])

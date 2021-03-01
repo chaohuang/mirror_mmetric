@@ -1,0 +1,3 @@
+  minPos="-5 -5 0"
+  maxPos="5 5 0"
+  rangePos=10

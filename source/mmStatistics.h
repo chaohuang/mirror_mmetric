@@ -56,11 +56,11 @@ namespace Statistics {
 
 	// 
 	inline void printToLog(Results& stats, std::string prefix, std::ostream& out) {
-		std::cout << prefix << " min      =" << stats.min << std::endl;
-		std::cout << prefix << " max      =" << stats.max << std::endl;
-		std::cout << prefix << " mean     =" << stats.mean << std::endl;
-		std::cout << prefix << " variance =" << stats.variance << std::endl;
-		std::cout << prefix << " std dev  =" << stats.stdDev << std::endl;
+		out << prefix << "Min=" << stats.min << std::endl;
+		out << prefix << "Max=" << stats.max << std::endl;
+		out << prefix << "Mean=" << stats.mean << std::endl;
+		out << prefix << "Variance=" << stats.variance << std::endl;
+		out << prefix << "StdDev=" << stats.stdDev << std::endl;
 	}
 	
 };

@@ -39,9 +39,8 @@
 const char* Reindex::name="reindex";
 const char* Reindex::brief="Reindex mesh and optionaly sort vertices and face indices";
 
-// register the command
+//
 Command* Reindex::create() { return new Reindex(); }
-static bool init = Command::addCreator(Reindex::name, Reindex::brief, Reindex::create);
 
 //
 bool Reindex::initialize(Context* ctx, std::string app, int argc, char* argv[])

@@ -1,4 +1,4 @@
-3D model processing commands v0.1.4
+3D model processing commands v0.1.5
 Usage:
   mm.exe command [OPTION...]
 
@@ -6,9 +6,11 @@ Command help:
   mm.exe command --help
 
 Command:
+  analyse	Analyse model and/or texture map
   compare	Compare model A vs model B
   degrade	Degrade a mesh (todo points)
-  quantize	Quantize model (mesh or point cloud) positions
+  dequantize	Dequantize model (mesh or point cloud) 
+  quantize	Quantize model (mesh or point cloud)
   reindex	Reindex mesh and optionaly sort vertices and face indices
   sample	Convert mesh to point cloud
   sequence	Sequence global parameters

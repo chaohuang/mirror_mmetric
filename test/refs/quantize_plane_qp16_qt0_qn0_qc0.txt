@@ -1,0 +1,20 @@
+Processing frame 0
+Loading file: ./data/plane.obj
+Time on loading: 0.001 sec.
+Input model: ./data/plane.obj
+  Vertices: 5
+  UVs: 5
+  Colors: 0
+  Normals: 0
+Quantizing
+  qp = 16
+  qt = 0
+  qn = 0
+  qc = 0
+Computing positions range
+  minPos="-5 -5 0"
+  maxPos="5 5 0"
+  rangePos=10
+Time on processing: 0.002 sec.
+Saving file: ./tmp/quantize_plane_qp16_qt0_qn0_qc0.obj
+Time on overall processing: 0.009 sec.

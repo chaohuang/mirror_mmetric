@@ -1,0 +1,24 @@
+Processing frame 0
+Loading file: ./data/plane.obj
+Time on loading: 0.001 sec.
+Input model: ./data/plane.obj
+  Vertices: 5
+  UVs: 5
+  Colors: 0
+  Normals: 0
+Quantizing
+  qp = 8
+  qt = 8
+  qn = 8
+  qc = 8
+Computing positions range
+  minPos="-5 -5 0"
+  maxPos="5 5 0"
+  rangePos=10
+Computing uv coordinates range
+  minUv="0 0"
+  maxUv="1 1"
+  rangeUv=1
+Time on processing: 0.003 sec.
+Saving file: ./tmp/quantize_plane_qp8_qt8_qn8_qc8.obj
+Time on overall processing: 0.011 sec.

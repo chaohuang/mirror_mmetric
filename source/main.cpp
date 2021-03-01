@@ -27,7 +27,7 @@
 #include "mmCommand.h"
 
 // software version
-#define MM_VERSION "0.1.4"
+#define MM_VERSION "0.1.5"
 
 // the name of the application binary
 // i.e argv[0] minus the eventual path
@@ -37,9 +37,30 @@
 #define APP_NAME "mm"
 #endif
 
+// The commands
+#include "mmAnalyse.h"
+#include "mmCompare.h"
+#include "mmDegrade.h"
+#include "mmQuantize.h"
+#include "mmDequantize.h"
+#include "mmReindex.h"
+#include "mmSample.h"
+#include "mmSequence.h"
+
 // analyse command line and run processings
 int main(int argc, char* argv[])
 {
+	// register the commands
+	Command::addCreator(Analyse::name, Analyse::brief, Analyse::create);
+	Command::addCreator(Compare::name, Compare::brief, Compare::create);
+	Command::addCreator(Degrade::name, Degrade::brief, Degrade::create);
+	Command::addCreator(Quantize::name, Quantize::brief, Quantize::create);
+	Command::addCreator(Dequantize::name, Dequantize::brief, Dequantize::create);
+	Command::addCreator(Reindex::name, Reindex::brief, Reindex::create);
+	Command::addCreator(Sample::name, Sample::brief, Sample::create);
+	Command::addCreator(Sequence::name, Sequence::brief, Sequence::create);
+	 
+	// execute the commands
 	if (argc > 1) {
 
 		// global timer

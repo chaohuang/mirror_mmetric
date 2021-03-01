@@ -1,6 +1,12 @@
 
 # Change log
 
+## Version 0.1.5
+
+- add quantize/dequantize for qp, qt, qn, qc
+- add analyse command to get stats on frame and sequences
+- fix command registration system
+
 ## Version 0.1.4
 
 - add remove duplicates for all sample modes (for exact vertex equality only)

@@ -22,7 +22,14 @@
 #include <string>
 #include <map>
 #include <iostream>
+#include <sstream> 
 
+// mathematics
+#include <glm/vec2.hpp>
+#include <glm/vec3.hpp>
+#include <glm/vec4.hpp>
+
+//
 #include "mmContext.h"
 
 class Command {
@@ -58,5 +65,54 @@ private:
 	static std::map<std::string, std::pair<Command::Creator, std::string>> _cmdCreators;
 	
 };
+
+//
+inline bool parseVec2(const std::string& s, glm::vec2& res) {
+	glm::vec2 tmp;
+	std::istringstream stream(s);
+	stream.exceptions(std::istringstream::failbit | std::istringstream::badbit);
+	try {
+		stream >> tmp.x;
+		stream >> tmp.y;
+		res = tmp;
+		return true;
+	}
+	catch (std::istringstream::failure) {
+		return false;
+	}
+}
+
+inline bool parseVec3(const std::string& s, glm::vec3& res) {
+	glm::vec3 tmp;
+	std::istringstream stream(s);
+	stream.exceptions(std::istringstream::failbit | std::istringstream::badbit);
+	try {
+		stream >> tmp.x;
+		stream >> tmp.y;
+		stream >> tmp.z;
+		res = tmp;
+		return true;
+	}
+	catch (std::istringstream::failure) {
+		return false;
+	}
+}
+
+inline bool parseVec4(const std::string& s, glm::vec4& res) {
+	glm::vec4 tmp;
+	std::istringstream stream(s);
+	stream.exceptions(std::istringstream::failbit | std::istringstream::badbit);
+	try {
+		stream >> tmp.x;
+		stream >> tmp.y;
+		stream >> tmp.z;
+		stream >> tmp.w;
+		res = tmp;
+		return true;
+	}
+	catch (std::istringstream::failure) {
+		return false;
+	}
+}
 
 #endif

@@ -44,9 +44,8 @@
 const char* Compare::name = "compare";
 const char* Compare::brief = "Compare model A vs model B";
 
-// register the command
+// 
 Command* Compare::create() { return new Compare(); }
-static bool init = Command::addCreator(Compare::name, Compare::brief, Compare::create);
 
 //
 bool Compare::initialize(Context* context, std::string app, int argc, char* argv[])
@@ -676,31 +675,31 @@ void Compare::pccFinalize(void) {
 			[&](size_t i) -> double { return pccResults[i].second.c2c_mse; },
 			stats);
 		
-		Statistics::printToLog(stats, "mseF, PSNR(p2point)", std::cout);
+		Statistics::printToLog(stats, "mseF, PSNR(p2point) ", std::cout);
 
 		Statistics::compute(pccResults.size(),
 			[&](size_t i) -> double { return pccResults[i].second.c2p_mse; },
 			stats);
 
-		Statistics::printToLog(stats, "mseF, PSNR(p2plane)", std::cout);
+		Statistics::printToLog(stats, "mseF, PSNR(p2plane) ", std::cout);
 
 		Statistics::compute(pccResults.size(),
 			[&](size_t i) -> double { return pccResults[i].second.color_psnr[0]; },
 			stats);
 
-		Statistics::printToLog(stats, "c[0],PSNRF         ", std::cout);
+		Statistics::printToLog(stats, "c[0],PSNRF          ", std::cout);
 
 		Statistics::compute(pccResults.size(),
 			[&](size_t i) -> double { return pccResults[i].second.color_psnr[1]; },
 			stats);
 
-		Statistics::printToLog(stats, "c[1],PSNRF         ", std::cout);
+		Statistics::printToLog(stats, "c[1],PSNRF          ", std::cout);
 
 		Statistics::compute(pccResults.size(),
 			[&](size_t i) -> double { return pccResults[i].second.color_psnr[2]; },
 			stats);
 
-		Statistics::printToLog(stats, "c[2],PSNRF         ", std::cout);
+		Statistics::printToLog(stats, "c[2],PSNRF          ", std::cout);
 
 	}
 
@@ -799,13 +798,13 @@ void Compare::pcqmFinalize(void) {
 			[&](size_t i) -> double { return std::get<1>(pcqmResults[i]); }, 
 			stats);
 
-		Statistics::printToLog(stats, "PCQM", std::cout);
+		Statistics::printToLog(stats, "PCQM ", std::cout);
 
 		Statistics::compute(pcqmResults.size(),
 			[&](size_t i) -> double { return std::get<2>(pcqmResults[i]); },
 			stats);
 
-		Statistics::printToLog(stats, "PCQM-PSNR", std::cout);
+		Statistics::printToLog(stats, "PCQM-PSNR ", std::cout);
 		
 	}
 

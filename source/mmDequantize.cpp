@@ -34,17 +34,16 @@
 #include "mmModel.h"
 #include "mmImage.h"
 #include "mmDequantize.h"
-#include "mmQuantize.h"
 #include "mmGeometry.h"
 
-const char* Quantize::name = "quantize";
-const char* Quantize::brief = "Quantize model (mesh or point cloud)";
+const char* Dequantize::name = "dequantize";
+const char* Dequantize::brief = "Dequantize model (mesh or point cloud) ";
+
+// register the command
+Command* Dequantize::create() { return new Dequantize(); }
 
 //
-Command* Quantize::create() { return new Quantize(); }
-
-//
-bool Quantize::initialize(Context* ctx, std::string app, int argc, char* argv[])
+bool Dequantize::initialize(Context* ctx, std::string app, int argc, char* argv[])
 {
 	// command line parameters
 	try
@@ -56,32 +55,29 @@ bool Quantize::initialize(Context* ctx, std::string app, int argc, char* argv[])
 			("o,outputModel", "path to output model (obj or ply file)",
 				cxxopts::value<std::string>())
 			("h,help", "Print usage")
-			("dequantize", "set to process dequantification at the ouput")
-			("qp", "Geometry quantization bitdepth",
-				cxxopts::value<uint32_t>()->default_value("12"))
-			("qt", "UV coordinates quantization bitdepth",
-				cxxopts::value<uint32_t>()->default_value("12"))
-			("qn", "Normals quantization bitdepth",
-				cxxopts::value<uint32_t>()->default_value("12"))
-			("qc", "Colors quantization bitdepth",
-				cxxopts::value<uint32_t>()->default_value("8"))
-			("minPos", "min corner of vertex position bbox, a string of three floats. Computed of not set.",
+			("qp", "Geometry quantization bitdepth. No dequantization of geometry if not set or < 7.",
+				cxxopts::value<uint32_t>())
+			("qt", "UV coordinates quantization bitdepth. No dequantization of uv coordinates if not set or < 7.",
+				cxxopts::value<uint32_t>())
+			("qn", "Normals quantization bitdepth. No dequantization of normals if not set or < 7.",
+				cxxopts::value<uint32_t>())
+			("qc", "Colors quantization bitdepth. No dequantization of colors if not set or < 7.",
+				cxxopts::value<uint32_t>())
+			("minPos", "min corner of vertex position bbox, a string of three floats. Mandatory if qp set and >= 7",
 				cxxopts::value<std::string>())
-			("maxPos", "max corner of vertex position bbox, a string of three floats. Computed of not set.",
+			("maxPos", "max corner of vertex position bbox, a string of three floats. Mandatory if qp set and >= 7",
 				cxxopts::value<std::string>())
-			("minUv",  "min corner of vertex texture coordinates bbox, a string of three floats. Computed of not set.",
+			("minUv",  "min corner of vertex texture coordinates bbox, a string of three floats. Mandatory if qt set and >= 7",
 				cxxopts::value<std::string>())
-			("maxUv",  "max corner of vertex texture coordinates bbox, a string of three floats. Computed of not set.",
+			("maxUv",  "max corner of vertex texture coordinates bbox, a string of three floats. Mandatory if qt set and >= 7",
 				cxxopts::value<std::string>())
-			("minNrm", "min corner of vertex normal bbox, a string of three floats. Computed of not set.",
+			("minNrm", "min corner of vertex normal bbox, a string of three floats. Mandatory if qn set and >= 7.",
 				cxxopts::value<std::string>())
-			("maxNrm", "max corner of vertex normal bbox, a string of three floats. Computed of not set.",
+			("maxNrm", "max corner of vertex normal bbox, a string of three floats. Mandatory if qn set and >= 7",
 				cxxopts::value<std::string>())
-			("minCol", "min corner of vertex color bbox, a string of three floats. Computed of not set.",
+			("minCol", "min corner of vertex colors bbox, a string of three floats. Mandatory if qc set and >= 7",
 				cxxopts::value<std::string>())
-			("maxCol", "max corner of vertex color bbox, a string of three floats. Computed of not set.",
-				cxxopts::value<std::string>())
-			("outputVar", "path to the output variables file.",
+			("maxCol", "max corner of vertex colors bbox, a string of three floats. Mandatory if qc set and >= 7",
 				cxxopts::value<std::string>())
 			;
 
@@ -109,22 +105,13 @@ bool Quantize::initialize(Context* ctx, std::string app, int argc, char* argv[])
 			std::cout << options.help() << std::endl;
 			return false;
 		}
-
-		if (result.count("outputVar"))
-			outputVarFilename = result["outputVar"].as<std::string>();
-
-		if (result.count("dequantize"))
-			dequantize = result["dequantize"].as<bool>();
-
+		//
 		if (result.count("qp"))
 			qp = result["qp"].as<uint32_t>();
-
 		if (result.count("qt"))
 			qt = result["qt"].as<uint32_t>();
-
 		if (result.count("qn"))
 			qn = result["qn"].as<uint32_t>();
-
 		if (result.count("qc"))
 			qc = result["qc"].as<uint32_t>();
 
@@ -144,6 +131,13 @@ bool Quantize::initialize(Context* ctx, std::string app, int argc, char* argv[])
 				return false;
 			}
 		}
+		if (qp >= 7) {
+			if (minPosStr == "" || maxPosStr == "") {
+				std::cout << "Error: qp >= 7 but minPos and/or maxPos not set." << std::endl;
+				return false;
+			}
+		}
+
 		if (result.count("minUv")) {
 			minUvStr = result["minUv"].as<std::string>();
 			if (!parseVec2(minUvStr, minUv)) {
@@ -160,6 +154,13 @@ bool Quantize::initialize(Context* ctx, std::string app, int argc, char* argv[])
 				return false;
 			}
 		}
+		if (qt >= 7) {
+			if (minUvStr == "" || maxUvStr == "") {
+				std::cout << "Error: qt >= 7 but minUv and/or maxUv not set." << std::endl;
+				return false;
+			}
+		}
+
 		if (result.count("minNrm")) {
 			minNrmStr = result["minNrm"].as<std::string>();
 			if (!parseVec3(minNrmStr, minNrm)) {
@@ -176,10 +177,17 @@ bool Quantize::initialize(Context* ctx, std::string app, int argc, char* argv[])
 				return false;
 			}
 		}
+		if (qn >= 7) {
+			if (minNrmStr == "" || maxNrmStr == "") {
+				std::cout << "Error: qn >= 7 but minNrm and/or maxNrm not set." << std::endl;
+				return false;
+			}
+		}
+
 		if (result.count("minCol")) {
 			minColStr = result["minCol"].as<std::string>();
 			if (!parseVec3(minColStr, minCol)) {
-				std::cout << "Error: parsing --minCol=\"" << minColStr
+				std::cout << "Error: parsing --minCol=\"" << minColStr 
 					<< "\" expected three floats with space separator" << std::endl;
 				return false;
 			}
@@ -187,8 +195,14 @@ bool Quantize::initialize(Context* ctx, std::string app, int argc, char* argv[])
 		if (result.count("maxCol")) {
 			maxColStr = result["maxCol"].as<std::string>();
 			if (!parseVec3(maxColStr, maxCol)) {
-				std::cout << "Error: parsing --maxCol=\"" << maxColStr
+				std::cout << "Error: parsing --maxCol=\"" << maxColStr 
 					<< "\" expected three floats with space separator" << std::endl;
+				return false;
+			}
+		}
+		if (qc >= 7) {
+			if (minColStr == "" || maxColStr == "") {
+				std::cout << "Error: qc >= 7 but minCol and/or maxCol not set." << std::endl;
 				return false;
 			}
 		}
@@ -202,7 +216,7 @@ bool Quantize::initialize(Context* ctx, std::string app, int argc, char* argv[])
 	return true;
 }
 
-bool Quantize::process(uint32_t frame) {
+bool Dequantize::process(uint32_t frame) {
 
 	// the input
 	Model* inputModel;
@@ -220,30 +234,15 @@ bool Quantize::process(uint32_t frame) {
 	// Perform the processings
 	clock_t t1 = clock();
 
-	std::cout << "Quantizing" << std::endl;
+	std::cout << "De-quantizing" << std::endl;
 	std::cout << "  qp = " << qp << std::endl;
 	std::cout << "  qt = " << qt << std::endl;
 	std::cout << "  qn = " << qn << std::endl;
 	std::cout << "  qc = " << qn << std::endl;
-	
-	if (dequantize) {
-		Model* quantizedModel = new Model();
-		
-		quantize(*inputModel, *quantizedModel, qp, qt, qn, qc, 
-			minPos, maxPos, minUv, maxUv, minNrm, maxNrm, minCol, maxCol,
-			outputVarFilename );
 
-		Dequantize::dequantize(*quantizedModel, *outputModel, qp, qt, qn, qc, 
-			minPos, maxPos, minUv, maxUv, minNrm, maxNrm, minCol, maxCol);
-		
-		delete quantizedModel;
-	}
-	else {
-		quantize(*inputModel, *outputModel, qp, qt, qn, qc, 
-			minPos, maxPos, minUv, maxUv, minNrm, maxNrm, minCol, maxCol,
-			outputVarFilename );
-	}
-	
+	Dequantize::dequantize(*inputModel, *outputModel, qp, qt, qn, qc, 
+		minPos, maxPos, minUv, maxUv, minNrm, maxNrm, minCol, maxCol );
+
 	clock_t t2 = clock();
 	std::cout << "Time on processing: " << ((float)(t2 - t1)) / CLOCKS_PER_SEC << " sec." << std::endl;
 
@@ -259,142 +258,88 @@ bool Quantize::process(uint32_t frame) {
 }
 
 //
-void Quantize::quantize(
+void Dequantize::dequantize(
 	const Model& input, Model& output, 
 	const uint32_t qp, const uint32_t qt, const uint32_t qn, const uint32_t qc,
 	const glm::vec3& minPos, const glm::vec3& maxPos, const glm::vec2& minUv, const glm::vec2& maxUv,
-	const glm::vec3& minNrm, const glm::vec3& maxNrm, const glm::vec3& minCol, const glm::vec3& maxCol,
-	const std::string& outputVarFilename )
+	const glm::vec3& minNrm, const glm::vec3& maxNrm, const glm::vec3& minCol, const glm::vec3& maxCol )
 {
-	// copy the input	
+
+	// copy input
 	output = input;
-	
-	// prepare loging and output var
-	std::vector<std::ostream*> out;
-	out.push_back(&std::cout);
-	std::ofstream fout;
-	if (outputVarFilename != "") {
-		fout.open(outputVarFilename.c_str(), std::ios::out);
-		if (fout) {
-			out.push_back(&fout);
-		}
-		else {
-			std::cout << "Error: could not create output file " << outputVarFilename << std::endl;
-		}
-	}
 
-	//quantize position
-	if (!input.vertices.empty() && qp >= 7) {
-		glm::vec3 minBox, maxBox;
-		if (minPos == maxPos) {
-			std::cout << "Computing positions range" << std::endl;
-			computeBBox(input.vertices, minBox, maxBox);
-		}
-		else {
-			std::cout << "Using parameter positions range" << std::endl;
-			minBox = minPos; maxBox = maxPos;
-		}
-		const glm::vec3 diag = maxBox - minBox;
+	// dequantize position
+	if (!input.vertices.empty() && qp >= 7 ) {
+		const glm::vec3 minBox = minPos;
+		const glm::vec3 maxBox = maxPos;
+		glm::vec3 diag = maxBox - minBox;
 		const float range = std::max(std::max(diag.x, diag.y), diag.z);
-		const int32_t maxPositionQuantizedValue = (1u << static_cast<uint32_t>(qp)) - 1;
-
-		for (size_t i = 0; i < out.size(); ++i) {
-			*out[i] << "  minPos=\"" << minBox.x << " " << minBox.y << " " << minBox.z << "\"" << std::endl;
-			*out[i] << "  maxPos=\"" << maxBox.x << " " << maxBox.y << " " << maxBox.z << "\"" << std::endl;
-			*out[i] << "  rangePos=" << range << std::endl;
-		}
+		const int32_t maxQuantizedValue = (1u << static_cast<uint32_t>(qp)) - 1;
+		
+		std::cout << "  minPos=\"" << minBox.x << " " << minBox.y << " " << minBox.z << "\"" << std::endl;
+		std::cout << "  maxPos=\"" << maxBox.x << " " << maxBox.y << " " << maxBox.z << "\"" << std::endl;
+		std::cout << "  rangePos=" << range << std::endl;
 
 		for (size_t i = 0; i < input.vertices.size() / 3; i++) {
 			for (glm::vec3::length_type c = 0; c < 3; ++c) {
-				uint32_t pos = static_cast<uint32_t> (std::floor(((input.vertices[i * 3 + c] - minBox[c]) / range) * maxPositionQuantizedValue + 0.5f));
-				output.vertices[i * 3 + c] = static_cast<float> (pos);
+				output.vertices[i * 3 + c] = (input.vertices[i * 3 + c] * range / maxQuantizedValue) + minBox[c];
 			}
 		}
 	}
 
-	//quantize UV coordinates 
+	// dequantize UV coordinates 
 	if (!input.uvcoords.empty() && qt >= 7) {
-		glm::vec2 minBox, maxBox;
-		if (minUv == maxUv) {
-			std::cout << "Computing uv coordinates range" << std::endl;
-			computeBBox(input.uvcoords, minBox, maxBox);
-		}
-		else {
-			std::cout << "Using parameter uv coordinates range" << std::endl;
-			minBox = minUv; maxBox = maxUv;
-		}
+		const glm::vec2 minBox = minUv;
+		const glm::vec2 maxBox = maxUv;
 		const glm::vec2 diag = maxBox - minBox;
 		const float range = std::max(diag.x, diag.y);
-		const int32_t maxUVcordQuantizedValue = (1u << static_cast<uint32_t>(qt)) - 1;
+		const int32_t maxQuantizedValue = (1u << static_cast<uint32_t>(qt)) - 1;
 		
-		for (size_t i = 0; i < out.size(); ++i) {
-			*out[i] << "  minUv=\"" << minBox.x << " " << minBox.y << "\"" << std::endl;
-			*out[i] << "  maxUv=\"" << maxBox.x << " " << maxBox.y << "\"" << std::endl;
-			*out[i] << "  rangeUv=" << range << std::endl;
-		}
+		std::cout << "  minUv=\"" << minBox.x << " " << minBox.y << "\"" << std::endl;
+		std::cout << "  maxUv=\"" << maxBox.x << " " << maxBox.y << "\"" << std::endl;
+		std::cout << "  rangeUv=" << range << std::endl;
 
 		for (size_t i = 0; i < input.uvcoords.size() / 2; i++) {
 			for (glm::vec2::length_type c = 0; c < 2; ++c) {
-				uint32_t uv = static_cast<uint32_t> (std::floor(((input.uvcoords[i * 2 + c] - minBox[c]) / range) * maxUVcordQuantizedValue + 0.5f));
-				output.uvcoords[i * 2 + c] = static_cast<float> (uv);
+				output.uvcoords[i * 2 + c] = (input.uvcoords[i * 2 + c] * range / maxQuantizedValue) + minBox[c];
 			}
 		}
 	}
 
-	//quantize normals
+	// dequantize normals
 	if (!input.normals.empty() && qn >= 7) {
-		glm::vec3 minBox, maxBox;
-		if (minNrm == maxNrm) {
-			std::cout << "Computing normals range" << std::endl;
-			computeBBox(input.normals, minBox, maxBox);
-		}
-		else {
-			std::cout << "Using parameter normals range" << std::endl;
-			minBox = minNrm; maxBox = maxNrm;
-		}
+		const glm::vec3 minBox = minNrm;
+		const glm::vec3 maxBox = maxNrm;
 		const glm::vec3 diag = maxBox - minBox;
 		const float range = std::max(std::max(diag.x, diag.y), diag.z);
-		const int32_t maxNormalQuantizedValue = (1u << static_cast<uint32_t>(qn)) - 1;
-		
-		for (size_t i = 0; i < out.size(); ++i) {
-			*out[i] << "  minNrm=\"" << minBox.x << " " << minBox.y << " " << minBox.z << "\"" << std::endl;
-			*out[i] << "  maxNrm=\"" << maxBox.x << " " << maxBox.y << " " << maxBox.z << "\"" << std::endl;
-			*out[i] << "  rangeNrm=" << range << std::endl;
-		}
+		const int32_t maxQuantizedValue = (1u << static_cast<uint32_t>(qn)) - 1;
+
+		std::cout << "  minNrm=\"" << minBox.x << " " << minBox.y << " " << minBox.z << "\"" << std::endl;
+		std::cout << "  maxNrm=\"" << maxBox.x << " " << maxBox.y << " " << maxBox.z << "\"" << std::endl;
+		std::cout << "  rangeNrm=" << range << std::endl;
 
 		for (size_t i = 0; i < input.normals.size() / 3; i++) {
 			for (glm::vec3::length_type c = 0; c < 3; ++c) {
-				uint32_t nrm = static_cast<uint32_t> (std::floor(((input.normals[i * 3 + c] - minBox[c]) / range) * maxNormalQuantizedValue + 0.5f));
-				output.normals[i * 3 + c] = static_cast<float> (nrm);
+				output.normals[i * 3 + c] = (input.normals[i * 3 + c] * range / maxQuantizedValue) + minBox[c];
 			}
 		}
 	}
 
-	//quantize colors
+	// dequantize colors
 	if (!input.colors.empty() && qc >= 7) {
-		glm::vec3 minBox, maxBox;
-		if (minCol == maxCol) {
-			std::cout << "Computing colors range" << std::endl;
-			computeBBox(input.normals, minBox, maxBox);
-		}
-		else {
-			std::cout << "Using parameter colors range" << std::endl;
-			minBox = minCol; maxBox = maxCol;
-		}
+		const glm::vec3 minBox = minCol;
+		const glm::vec3 maxBox = maxCol;
 		const glm::vec3 diag = maxBox - minBox;
 		const float range = std::max(std::max(diag.x, diag.y), diag.z);
-		const int32_t maxColorQuantizedValue = (1u << static_cast<uint32_t>(qn)) - 1;
-		
-		for (size_t i = 0; i < out.size(); ++i) {
-			*out[i] << "  minCol=\"" << minBox.x << " " << minBox.y << " " << minBox.z << "\"" << std::endl;
-			*out[i] << "  maxCol=\"" << maxBox.x << " " << maxBox.y << " " << maxBox.z << "\"" << std::endl;
-			*out[i] << "  rangeCol=" << range << std::endl;
-		}
+		const int32_t maxQuantizedValue = (1u << static_cast<uint32_t>(qn)) - 1;
+
+		std::cout << "  minCol=\"" << minBox.x << " " << minBox.y << " " << minBox.z << "\"" << std::endl;
+		std::cout << "  maxCol=\"" << maxBox.x << " " << maxBox.y << " " << maxBox.z << "\"" << std::endl;
+		std::cout << "  rangeCol=" << range << std::endl;
 
 		for (size_t i = 0; i < input.colors.size() / 3; i++) {
 			for (glm::vec3::length_type c = 0; c < 3; ++c) {
-				uint32_t col = static_cast<uint32_t> (std::floor(((input.colors[i * 3 + c] - minBox[c]) / range) * maxColorQuantizedValue + 0.5f));
-				output.colors[i * 3 + c] = static_cast<float> (col);
+				output.colors[i * 3 + c] = (input.colors[i * 3 + c] * range / maxQuantizedValue) + minBox[c];
 			}
 		}
 	}

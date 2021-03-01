@@ -88,3 +88,25 @@ mm.exe \
 	quantize --qp 12  -i input_00%3d.obj -o quantized_%3d.obj
 	sample --mode grid -i quantized_%3d.obj -m map_00%3d.png -o pcloud_00%3d.obj
 ```
+
+The following statement will perform an analysis of the frames of a sequence and ouput a summary into file globals.txt. This
+text file can then be directly sourced by bash to access the variables and reinject into quantization command for instance. 
+In the following example, the extremums (Position bounding box, normal bounding box and uv bounding box) computed for the entire 
+sequence by analyse will be used as the quantization range for each frame by the quantize sequence.
+
+```
+mm.exe \
+	sequence --firstFrame 150 --lastFrame 165 ENd \
+	analyse --inputModel input_00%3d.obj --outputVar globals.txt
+
+# load result in memory
+source globals.txt
+
+mm.exe \
+	sequence --firstFrame 150 --lastFrame 165 END \
+	quantize --inputModel input_00%3d.obj  --outputModel=output_00%3d.obj \
+		--qp 12 --qt 12 --qn 10
+		--minPos="${globalMinPos}" --maxPos="${globalMaxPos}" \
+		--minUv="${globalMinUv}"   --maxUv="${globalMaxUv}" \
+		--minNrm="${globalMinNrm}" --maxNrm="${globalMaxNrm}"
+```

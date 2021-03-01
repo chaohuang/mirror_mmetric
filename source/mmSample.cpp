@@ -40,9 +40,8 @@
 const char* Sample::name = "sample";
 const char* Sample::brief = "Convert mesh to point cloud";
 
-// register the command
+//
 Command* Sample::create() { return new Sample(); }
-static bool init = Command::addCreator(Sample::name, Sample::brief, Sample::create);
 
 // 
 bool Sample::initialize(Context* ctx, std::string app, int argc, char* argv[])

@@ -71,6 +71,37 @@ inline void computeBBox(const std::vector<float>& vertices, glm::vec3& minPos, g
 	}
 }
 
+inline void computeBBox(const std::vector<float>& vertices, glm::vec2& minPos, glm::vec2& maxPos, bool reset = true) {
+	if (reset) {
+		minPos = { FLT_MAX, FLT_MAX };
+		maxPos = { -FLT_MAX, -FLT_MAX };
+	}
+	for (size_t i = 0; i < vertices.size() / 2; i++) {
+		for (glm::vec3::length_type j = 0; j < 2; j++) {
+			minPos[j] = std::fmin(vertices[i * 2 + j], minPos[j]);
+			maxPos[j] = std::fmax(vertices[i * 2 + j], maxPos[j]);
+		}
+	}
+}
+
+inline void computeBBox(
+	const glm::vec3& minPosA, const glm::vec3& maxPosA,
+	const glm::vec3& minPosB, const glm::vec3& maxPosB,
+	glm::vec3& minPos, glm::vec3& maxPos )
+{
+	minPos = glm::min(minPosA, minPosB);
+	maxPos = glm::max(maxPosA, maxPosB);
+}
+
+inline void computeBBox(
+	const glm::vec2& minPosA, const glm::vec2& maxPosA,
+	const glm::vec2& minPosB, const glm::vec2& maxPosB,
+	glm::vec2& minPos, glm::vec2& maxPos)
+{
+	minPos = glm::min(minPosA, minPosB);
+	maxPos = glm::max(maxPosA, maxPosB);
+}
+
 // transform the box into a cube bbox fitting original
 inline void toCubicalBBox(glm::vec3& minPos, glm::vec3& maxPos) {
 	float low  = std::min(std::min(minPos.x, minPos.y), minPos.z);
