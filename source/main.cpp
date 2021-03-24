@@ -19,6 +19,7 @@
 //
 #include <iostream>
 #include <vector>
+#include <limits>
 #include <time.h>
 
 // internal headers
@@ -27,7 +28,7 @@
 #include "mmCommand.h"
 
 // software version
-#define MM_VERSION "0.1.5"
+#define MM_VERSION "0.1.6"
 
 // the name of the application binary
 // i.e argv[0] minus the eventual path
@@ -50,6 +51,9 @@
 // analyse command line and run processings
 int main(int argc, char* argv[])
 {
+	// this is mandatory to print floats with full precision 
+	std::cout.precision(std::numeric_limits< float >::max_digits10);
+
 	// register the commands
 	Command::addCreator(Analyse::name, Analyse::brief, Analyse::create);
 	Command::addCreator(Compare::name, Compare::brief, Compare::create);

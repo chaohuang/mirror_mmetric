@@ -1,6 +1,21 @@
 
 # Change log
 
+Primary author Jean-Eudes Marvie (InterDigital).
+
+Additional contributors mentioned per version or item hereafter.
+
+## Version 0.1.6
+
+Contributors: Danillo Graziosi (Sony), Ali Tabatabai (Sony)
+
+- add fixed point option to position quantize/dequantize
+- add post cleanup to quantize command to remove degenerate triangles (T-vertex removal not yet implemented) 
+- add sum in statistics (be aware of potential overflow for many sample and large sample values)
+- fix bounding box update in quantize method so --dequantize option works correctly when bbox are processed internally.
+- fix set cout floating point precision identical to log file precision
+- fix add #include <algorithm>, to mmGeometry.h to remove build issue on some platforms
+
 ## Version 0.1.5
 
 - add quantize/dequantize for qp, qt, qn, qc
@@ -79,4 +94,4 @@ Other fixes
 
 - add sampling map, face, grid,
 - add compare eq, pcc, pcqm
-- add quantize
+- add quantize (Contributor: Yannick Olivier - InterDigital)

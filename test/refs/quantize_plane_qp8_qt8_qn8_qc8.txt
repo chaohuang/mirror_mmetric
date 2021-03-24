@@ -15,10 +15,15 @@ Computing positions range
   minPos="-5 -5 0"
   maxPos="5 5 0"
   rangePos=10
+  maxPositionQuantizedValue=255
+  scale=0.0392156863
 Computing uv coordinates range
   minUv="0 0"
   maxUv="1 1"
   rangeUv=1
-Time on processing: 0.003 sec.
+Cleanup quantized mesh 
+Handled 7 duplicate vertices
+Generated 5 points
+Time on processing: 0.00300000003 sec.
 Saving file: ./tmp/quantize_plane_qp8_qt8_qn8_qc8.obj
-Time on overall processing: 0.011 sec.
+Time on overall processing: 0.0109999999 sec.

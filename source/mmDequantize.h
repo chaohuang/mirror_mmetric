@@ -44,36 +44,38 @@ public:
 		const Model& input, Model& output,
 		const uint32_t qp, const uint32_t qt, const uint32_t qn, const uint32_t qc,
 		const glm::vec3& minPos, const glm::vec3& maxPos, const glm::vec2& minUv, const glm::vec2& maxUv,
-		const glm::vec3& minNrm, const glm::vec3& maxNrm, const glm::vec3& minCol, const glm::vec3& maxCol);
+		const glm::vec3& minNrm, const glm::vec3& maxNrm, const glm::vec3& minCol, const glm::vec3& maxCol,
+		const bool useFixedPoint);
 
 private:
 
 	// Command parameters
-	std::string inputModelFilename;
-	std::string outputModelFilename;
+	std::string _inputModelFilename;
+	std::string _outputModelFilename;
 	// Quantization parameters
-	uint32_t qp = 0; // geometry
-	uint32_t qt = 0; // UV coordinates
-	uint32_t qn = 0; // normals
-	uint32_t qc = 0; // colors
-
+	uint32_t _qp = 0; // geometry
+	uint32_t _qt = 0; // UV coordinates
+	uint32_t _qn = 0; // normals
+	uint32_t _qc = 0; // colors
+	//
+	bool _useFixedPoint = false;
 	// min max vectors
-	std::string minPosStr;
-	std::string maxPosStr;
-	glm::vec3 minPos = { 0.0F,0.0F,0.0F };
-	glm::vec3 maxPos = { 0.0F,0.0F,0.0F };
-	std::string minUvStr;
-	std::string maxUvStr;
-	glm::vec2 minUv = { 0.0F,0.0F };
-	glm::vec2 maxUv = { 0.0F,0.0F };
-	std::string minNrmStr;
-	std::string maxNrmStr;
-	glm::vec3 minNrm = { 0.0F,0.0F,0.0F };
-	glm::vec3 maxNrm = { 0.0F,0.0F,0.0F };
-	std::string minColStr;
-	std::string maxColStr;
-	glm::vec3 minCol = { 0.0F,0.0F,0.0F };
-	glm::vec3 maxCol = { 0.0F,0.0F,0.0F };
+	std::string _minPosStr;
+	std::string _maxPosStr;
+	glm::vec3 _minPos = { 0.0F,0.0F,0.0F };
+	glm::vec3 _maxPos = { 0.0F,0.0F,0.0F };
+	std::string _minUvStr;
+	std::string _maxUvStr;
+	glm::vec2 _minUv = { 0.0F,0.0F };
+	glm::vec2 _maxUv = { 0.0F,0.0F };
+	std::string _minNrmStr;
+	std::string _maxNrmStr;
+	glm::vec3 _minNrm = { 0.0F,0.0F,0.0F };
+	glm::vec3 _maxNrm = { 0.0F,0.0F,0.0F };
+	std::string _minColStr;
+	std::string _maxColStr;
+	glm::vec3 _minCol = { 0.0F,0.0F,0.0F };
+	glm::vec3 _maxCol = { 0.0F,0.0F,0.0F };
 
 };
 

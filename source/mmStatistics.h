@@ -19,6 +19,9 @@
 #ifndef _MM_STATISTICS_H_
 #define _MM_STATISTICS_H_
 
+#include <algorithm>	// for std::min and std::max
+#include <math.h>		// for pow and sqrt
+
 namespace Statistics {
 
 	struct Results {
@@ -27,6 +30,7 @@ namespace Statistics {
 		double mean;
 		double variance;
 		double stdDev;
+		long double sum; // use long double to reduce risks of overflow
 	};
 
 	// sampler is a lambda func that takes size_t parameter and return associated 
@@ -38,13 +42,15 @@ namespace Statistics {
 		output.mean = 0.0;
 		output.min = std::numeric_limits<double>::max();
 		output.max = std::numeric_limits<double>::min();
+		output.sum = 0.0;
 		
 		// compute mean, min and max
 		for (size_t i = 0; i < nbSamples; ++i) {
 			const double sample = sampler(i);
-			output.mean += fract * sample;
+			output.mean += fract * sample; // we do not use sum for the computation since it might be overflow
 			output.max = std::max(output.max, sample);
 			output.min = std::min(output.min, sample);
+			output.sum += sample;
 		}
 		// compute variance
 		output.variance = 0.0;
@@ -58,6 +64,7 @@ namespace Statistics {
 	inline void printToLog(Results& stats, std::string prefix, std::ostream& out) {
 		out << prefix << "Min=" << stats.min << std::endl;
 		out << prefix << "Max=" << stats.max << std::endl;
+		out << prefix << "Sum=" << stats.sum << std::endl;
 		out << prefix << "Mean=" << stats.mean << std::endl;
 		out << prefix << "Variance=" << stats.variance << std::endl;
 		out << prefix << "StdDev=" << stats.stdDev << std::endl;

@@ -21,6 +21,7 @@
 
 //
 #include <vector>
+#include <algorithm>
 #include "glm/glm.hpp"
 
 // minimum precision parameter do not change

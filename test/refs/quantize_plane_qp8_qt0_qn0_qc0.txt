@@ -15,6 +15,11 @@ Computing positions range
   minPos="-5 -5 0"
   maxPos="5 5 0"
   rangePos=10
-Time on processing: 0.006 sec.
+  maxPositionQuantizedValue=255
+  scale=0.0392156863
+Cleanup quantized mesh 
+Handled 7 duplicate vertices
+Generated 5 points
+Time on processing: 0.00800000038 sec.
 Saving file: ./tmp/quantize_plane_qp8_qt0_qn0_qc0.obj
-Time on overall processing: 0.013 sec.
+Time on overall processing: 0.0160000008 sec.

@@ -1,3 +1,5 @@
   minPos="-5 -5 0"
   maxPos="5 5 0"
   rangePos=10
+  maxPositionQuantizedValue=65535
+  scale=0.000152590219

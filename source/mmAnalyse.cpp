@@ -139,7 +139,7 @@ bool Analyse::process(uint32_t frame) {
 			(double)inputModel->vertices.size() / 3,
 			(double)inputModel->colors.size() / 3,
 			(double)inputModel->normals.size() / 3,
-			(double)inputModel->uvcoords.size() / 3
+			(double)inputModel->uvcoords.size() / 2
 		));
 		
 		computeBBox(inputModel->vertices, minPos, maxPos);

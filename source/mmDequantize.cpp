@@ -67,9 +67,9 @@ bool Dequantize::initialize(Context* ctx, std::string app, int argc, char* argv[
 				cxxopts::value<std::string>())
 			("maxPos", "max corner of vertex position bbox, a string of three floats. Mandatory if qp set and >= 7",
 				cxxopts::value<std::string>())
-			("minUv",  "min corner of vertex texture coordinates bbox, a string of three floats. Mandatory if qt set and >= 7",
+			("minUv", "min corner of vertex texture coordinates bbox, a string of three floats. Mandatory if qt set and >= 7",
 				cxxopts::value<std::string>())
-			("maxUv",  "max corner of vertex texture coordinates bbox, a string of three floats. Mandatory if qt set and >= 7",
+			("maxUv", "max corner of vertex texture coordinates bbox, a string of three floats. Mandatory if qt set and >= 7",
 				cxxopts::value<std::string>())
 			("minNrm", "min corner of vertex normal bbox, a string of three floats. Mandatory if qn set and >= 7.",
 				cxxopts::value<std::string>())
@@ -79,6 +79,8 @@ bool Dequantize::initialize(Context* ctx, std::string app, int argc, char* argv[
 				cxxopts::value<std::string>())
 			("maxCol", "max corner of vertex colors bbox, a string of three floats. Mandatory if qc set and >= 7",
 				cxxopts::value<std::string>())
+			("useFixedPoint", "interprets minPos and maxPos inputs as fixed point 16.",
+				cxxopts::value<bool>())
 			;
 
 		auto result = options.parse(argc, argv);
@@ -91,7 +93,7 @@ bool Dequantize::initialize(Context* ctx, std::string app, int argc, char* argv[
 		}
 		//	
 		if (result.count("inputModel"))
-			inputModelFilename = result["inputModel"].as<std::string>();
+			_inputModelFilename = result["inputModel"].as<std::string>();
 		else {
 			std::cerr << "Error: missing inputModel parameter" << std::endl;
 			std::cout << options.help() << std::endl;
@@ -99,7 +101,7 @@ bool Dequantize::initialize(Context* ctx, std::string app, int argc, char* argv[
 		}
 		//
 		if (result.count("outputModel"))
-			outputModelFilename = result["outputModel"].as<std::string>();
+			_outputModelFilename = result["outputModel"].as<std::string>();
 		else {
 			std::cerr << "Error: missing outputModel parameter" << std::endl;
 			std::cout << options.help() << std::endl;
@@ -107,104 +109,107 @@ bool Dequantize::initialize(Context* ctx, std::string app, int argc, char* argv[
 		}
 		//
 		if (result.count("qp"))
-			qp = result["qp"].as<uint32_t>();
+			_qp = result["qp"].as<uint32_t>();
 		if (result.count("qt"))
-			qt = result["qt"].as<uint32_t>();
+			_qt = result["qt"].as<uint32_t>();
 		if (result.count("qn"))
-			qn = result["qn"].as<uint32_t>();
+			_qn = result["qn"].as<uint32_t>();
 		if (result.count("qc"))
-			qc = result["qc"].as<uint32_t>();
+			_qc = result["qc"].as<uint32_t>();
 
 		if (result.count("minPos")) {
-			minPosStr = result["minPos"].as<std::string>();
-			if (!parseVec3(minPosStr, minPos)) {
-				std::cout << "Error: parsing --minPos=\"" << minPosStr 
+			_minPosStr = result["minPos"].as<std::string>();
+			if (!parseVec3(_minPosStr, _minPos)) {
+				std::cout << "Error: parsing --minPos=\"" << _minPosStr
 					<< "\" expected three floats with space separator" << std::endl;
 				return false;
 			}
 		}
 		if (result.count("maxPos")) {
-			maxPosStr = result["maxPos"].as<std::string>();
-			if (!parseVec3(maxPosStr, maxPos)) {
-				std::cout << "Error: parsing --maxPos=\"" << maxPosStr 
+			_maxPosStr = result["maxPos"].as<std::string>();
+			if (!parseVec3(_maxPosStr, _maxPos)) {
+				std::cout << "Error: parsing --maxPos=\"" << _maxPosStr
 					<< "\" expected three floats with space separator" << std::endl;
 				return false;
 			}
 		}
-		if (qp >= 7) {
-			if (minPosStr == "" || maxPosStr == "") {
+		if (_qp >= 7) {
+			if (_minPosStr == "" || _maxPosStr == "") {
 				std::cout << "Error: qp >= 7 but minPos and/or maxPos not set." << std::endl;
 				return false;
 			}
 		}
 
 		if (result.count("minUv")) {
-			minUvStr = result["minUv"].as<std::string>();
-			if (!parseVec2(minUvStr, minUv)) {
-				std::cout << "Error: parsing --minUv=\"" << minUvStr 
+			_minUvStr = result["minUv"].as<std::string>();
+			if (!parseVec2(_minUvStr, _minUv)) {
+				std::cout << "Error: parsing --minUv=\"" << _minUvStr
 					<< "\" expected three floats with space separator" << std::endl;
 				return false;
 			}
 		}
 		if (result.count("maxUv")) {
-			maxUvStr = result["maxUv"].as<std::string>();
-			if (!parseVec2(maxUvStr, maxUv)) {
-				std::cout << "Error: parsing --maxUv=\"" << maxUvStr 
+			_maxUvStr = result["maxUv"].as<std::string>();
+			if (!parseVec2(_maxUvStr, _maxUv)) {
+				std::cout << "Error: parsing --maxUv=\"" << _maxUvStr
 					<< "\" expected three floats with space separator" << std::endl;
 				return false;
 			}
 		}
-		if (qt >= 7) {
-			if (minUvStr == "" || maxUvStr == "") {
+		if (_qt >= 7) {
+			if (_minUvStr == "" || _maxUvStr == "") {
 				std::cout << "Error: qt >= 7 but minUv and/or maxUv not set." << std::endl;
 				return false;
 			}
 		}
 
 		if (result.count("minNrm")) {
-			minNrmStr = result["minNrm"].as<std::string>();
-			if (!parseVec3(minNrmStr, minNrm)) {
-				std::cout << "Error: parsing --minNrm=\"" << minNrmStr 
+			_minNrmStr = result["minNrm"].as<std::string>();
+			if (!parseVec3(_minNrmStr, _minNrm)) {
+				std::cout << "Error: parsing --minNrm=\"" << _minNrmStr
 					<< "\" expected three floats with space separator" << std::endl;
 				return false;
 			}
 		}
 		if (result.count("maxNrm")) {
-			maxNrmStr = result["maxNrm"].as<std::string>();
-			if (!parseVec3(maxNrmStr, maxNrm)) {
-				std::cout << "Error: parsing --maxNrm=\"" << maxNrmStr 
+			_maxNrmStr = result["maxNrm"].as<std::string>();
+			if (!parseVec3(_maxNrmStr, _maxNrm)) {
+				std::cout << "Error: parsing --maxNrm=\"" << _maxNrmStr
 					<< "\" expected three floats with space separator" << std::endl;
 				return false;
 			}
 		}
-		if (qn >= 7) {
-			if (minNrmStr == "" || maxNrmStr == "") {
+		if (_qn >= 7) {
+			if (_minNrmStr == "" || _maxNrmStr == "") {
 				std::cout << "Error: qn >= 7 but minNrm and/or maxNrm not set." << std::endl;
 				return false;
 			}
 		}
 
 		if (result.count("minCol")) {
-			minColStr = result["minCol"].as<std::string>();
-			if (!parseVec3(minColStr, minCol)) {
-				std::cout << "Error: parsing --minCol=\"" << minColStr 
+			_minColStr = result["minCol"].as<std::string>();
+			if (!parseVec3(_minColStr, _minCol)) {
+				std::cout << "Error: parsing --minCol=\"" << _minColStr
 					<< "\" expected three floats with space separator" << std::endl;
 				return false;
 			}
 		}
 		if (result.count("maxCol")) {
-			maxColStr = result["maxCol"].as<std::string>();
-			if (!parseVec3(maxColStr, maxCol)) {
-				std::cout << "Error: parsing --maxCol=\"" << maxColStr 
+			_maxColStr = result["maxCol"].as<std::string>();
+			if (!parseVec3(_maxColStr, _maxCol)) {
+				std::cout << "Error: parsing --maxCol=\"" << _maxColStr
 					<< "\" expected three floats with space separator" << std::endl;
 				return false;
 			}
 		}
-		if (qc >= 7) {
-			if (minColStr == "" || maxColStr == "") {
+		if (_qc >= 7) {
+			if (_minColStr == "" || _maxColStr == "") {
 				std::cout << "Error: qc >= 7 but minCol and/or maxCol not set." << std::endl;
 				return false;
 			}
+		}
+		if (result.count("useFixedPoint")) {
+			_useFixedPoint = result["useFixedPoint"].as<bool>();
 		}
 	}
 	catch (const cxxopts::OptionException& e)
@@ -220,11 +225,11 @@ bool Dequantize::process(uint32_t frame) {
 
 	// the input
 	Model* inputModel;
-	if ((inputModel = IO::loadModel(inputModelFilename)) == NULL) {
+	if ((inputModel = IO::loadModel(_inputModelFilename)) == NULL) {
 		return false;
 	}
 	if (inputModel->vertices.size() == 0) {
-		std::cout << "Error: invalid input model from " << inputModelFilename << std::endl;
+		std::cout << "Error: invalid input model from " << _inputModelFilename << std::endl;
 		return false;
 	}
 
@@ -235,19 +240,19 @@ bool Dequantize::process(uint32_t frame) {
 	clock_t t1 = clock();
 
 	std::cout << "De-quantizing" << std::endl;
-	std::cout << "  qp = " << qp << std::endl;
-	std::cout << "  qt = " << qt << std::endl;
-	std::cout << "  qn = " << qn << std::endl;
-	std::cout << "  qc = " << qn << std::endl;
+	std::cout << "  qp = " << _qp << std::endl;
+	std::cout << "  qt = " << _qt << std::endl;
+	std::cout << "  qn = " << _qn << std::endl;
+	std::cout << "  qc = " << _qn << std::endl;
 
-	Dequantize::dequantize(*inputModel, *outputModel, qp, qt, qn, qc, 
-		minPos, maxPos, minUv, maxUv, minNrm, maxNrm, minCol, maxCol );
+	Dequantize::dequantize(*inputModel, *outputModel, _qp, _qt, _qn, _qc,
+		_minPos, _maxPos, _minUv, _maxUv, _minNrm, _maxNrm, _minCol, _maxCol, _useFixedPoint);
 
 	clock_t t2 = clock();
 	std::cout << "Time on processing: " << ((float)(t2 - t1)) / CLOCKS_PER_SEC << " sec." << std::endl;
 
 	// save the result
-	if (IO::saveModel(outputModelFilename, outputModel))
+	if (IO::saveModel(_outputModelFilename, outputModel))
 		return true;
 	else {
 		delete outputModel;
@@ -259,30 +264,53 @@ bool Dequantize::process(uint32_t frame) {
 
 //
 void Dequantize::dequantize(
-	const Model& input, Model& output, 
+	const Model& input, Model& output,
 	const uint32_t qp, const uint32_t qt, const uint32_t qn, const uint32_t qc,
 	const glm::vec3& minPos, const glm::vec3& maxPos, const glm::vec2& minUv, const glm::vec2& maxUv,
-	const glm::vec3& minNrm, const glm::vec3& maxNrm, const glm::vec3& minCol, const glm::vec3& maxCol )
+	const glm::vec3& minNrm, const glm::vec3& maxNrm, const glm::vec3& minCol, const glm::vec3& maxCol,
+	const bool useFixedPoint)
 {
 
 	// copy input
 	output = input;
 
 	// dequantize position
-	if (!input.vertices.empty() && qp >= 7 ) {
-		const glm::vec3 minBox = minPos;
-		const glm::vec3 maxBox = maxPos;
+	if (!input.vertices.empty() && qp >= 7) {
+		glm::vec3 minBox = minPos;
+		glm::vec3 maxBox = maxPos;
+		const int32_t fixedPoint16 = (1u << 16);
+		if (useFixedPoint) {
+			// converting the values to a fixed point representation
+			// minBox(FP16) will be used in AAPS -> shift
+			for (int i = 0; i < 3; i++) {
+				if (minBox[i] > 0)
+					minBox[i] = (std::floor(minBox[i] * fixedPoint16)) / fixedPoint16;
+				else
+					minBox[i] = (-1) * (std::ceil(std::abs(minBox[i]) * fixedPoint16)) / fixedPoint16;
+				if (maxBox[i] > 0)
+					maxBox[i] = (std::ceil(maxBox[i] * fixedPoint16)) / fixedPoint16;
+				else
+					maxBox[i] = (-1) * (std::floor(std::abs(maxBox[i]) * fixedPoint16)) / fixedPoint16;
+			}
+		}
+
 		glm::vec3 diag = maxBox - minBox;
 		const float range = std::max(std::max(diag.x, diag.y), diag.z);
 		const int32_t maxQuantizedValue = (1u << static_cast<uint32_t>(qp)) - 1;
-		
+		float scale = range / maxQuantizedValue;
+		if (useFixedPoint)
+			scale = (std::ceil(scale * fixedPoint16)) / fixedPoint16;
+
 		std::cout << "  minPos=\"" << minBox.x << " " << minBox.y << " " << minBox.z << "\"" << std::endl;
 		std::cout << "  maxPos=\"" << maxBox.x << " " << maxBox.y << " " << maxBox.z << "\"" << std::endl;
 		std::cout << "  rangePos=" << range << std::endl;
+		std::cout << "  maxQuantizedValue=" << maxQuantizedValue << std::endl;
+		std::cout << "  scale=" << scale << std::endl;
 
 		for (size_t i = 0; i < input.vertices.size() / 3; i++) {
 			for (glm::vec3::length_type c = 0; c < 3; ++c) {
-				output.vertices[i * 3 + c] = (input.vertices[i * 3 + c] * range / maxQuantizedValue) + minBox[c];
+				//output.vertices[i * 3 + c] = (input.vertices[i * 3 + c] * range / maxQuantizedValue) + minBox[c];
+				output.vertices[i * 3 + c] = (input.vertices[i * 3 + c] * scale) + minBox[c];
 			}
 		}
 	}
@@ -294,7 +322,7 @@ void Dequantize::dequantize(
 		const glm::vec2 diag = maxBox - minBox;
 		const float range = std::max(diag.x, diag.y);
 		const int32_t maxQuantizedValue = (1u << static_cast<uint32_t>(qt)) - 1;
-		
+
 		std::cout << "  minUv=\"" << minBox.x << " " << minBox.y << "\"" << std::endl;
 		std::cout << "  maxUv=\"" << maxBox.x << " " << maxBox.y << "\"" << std::endl;
 		std::cout << "  rangeUv=" << range << std::endl;

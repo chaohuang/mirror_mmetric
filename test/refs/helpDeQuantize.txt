@@ -29,4 +29,6 @@ Usage:
                          floats. Mandatory if qc set and >= 7
       --maxCol arg       max corner of vertex colors bbox, a string of three
                          floats. Mandatory if qc set and >= 7
+      --useFixedPoint    interprets minPos and maxPos inputs as fixed point
+                         16.
 

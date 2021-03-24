@@ -115,7 +115,7 @@ mm.exe \
 # Command references
 
 ```
-3D model processing commands v0.1.5
+3D model processing commands v0.1.6
 Usage:
   mm.exe command [OPTION...]
 
@@ -273,6 +273,8 @@ Usage:
       --maxCol arg       max corner of vertex color bbox, a string of three
                          floats. Computed of not set.
       --outputVar arg    path to the output variables file.
+      --useFixedPoint    internally convert the minPos and maxPos to fixed
+                         point 16.
 
 ```
 ## Degrade

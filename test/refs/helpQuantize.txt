@@ -27,4 +27,6 @@ Usage:
       --maxCol arg       max corner of vertex color bbox, a string of three
                          floats. Computed of not set.
       --outputVar arg    path to the output variables file.
+      --useFixedPoint    internally convert the minPos and maxPos to fixed
+                         point 16.
 
