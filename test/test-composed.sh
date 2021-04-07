@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# attention: using only 1 digit after coma for PCC PSNR results comparison due to imprecisions in linux/windows
+
 source config.sh
 
 OUT1=composed_sample_face_sphere
@@ -13,7 +15,7 @@ $CMD compare --mode pcc \
 	--inputModelA ${TMP}/${OUT1}.ply \
 	--inputModelB ${TMP}/${OUT2}.ply \
 	> ${TMP}/${OUT}.txt 2>&1
-fileHasString ${TMP}/${OUT}.txt "mseF,PSNR (p2plane): 59.786" 1
+fileHasString ${TMP}/${OUT}.txt "mseF,PSNR (p2plane): 59.7" 1
 
 OUT=composed_sample_face_compare_sphere_pcqm
 $CMD compare --mode pcqm \
@@ -25,11 +27,11 @@ fileHasString ${TMP}/${OUT}.txt "PCQM-PSNR=inf" 1
 # same without using intermediate files
 OUT=composed_inmem_sample_face_sphere
 $CMD \
-sample -i ${DATA}/sphere.obj -o ID:pc1 --mode face --resolution 50 --hideProgress END \
-sample -i ${DATA}/sphere_qp8.obj -o ID:pc2 --mode face --resolution 10 --hideProgress END \
-compare --mode pcc --inputModelA ID:pc1 --inputModelB ID:pc2 \
-> ${TMP}/${OUT}.txt 2>&1
-fileHasString ${TMP}/${OUT}.txt "mseF,PSNR (p2plane): 59.786" 1
+	sample -i ${DATA}/sphere.obj -o ID:pc1 --mode face --resolution 50 --hideProgress END \
+	sample -i ${DATA}/sphere_qp8.obj -o ID:pc2 --mode face --resolution 10 --hideProgress END \
+	compare --mode pcc --inputModelA ID:pc1 --inputModelB ID:pc2 \
+	> ${TMP}/${OUT}.txt 2>&1
+fileHasString ${TMP}/${OUT}.txt "mseF,PSNR (p2plane): 59.7" 1
 
 # external dataset
 if [ "$1" == "ext" ]; 
@@ -43,7 +45,7 @@ then
 	compare --mode pcqm --inputModelA ID:pc1 --inputModelB ID:pc2 END \
 	> ${TMP}/${OUT}.txt 2>&1
 
-	fileHasString ${TMP}/${OUT}.txt "mseF,PSNR (p2plane): 67.6801" 1	
-	fileHasString ${TMP}/${OUT}.txt "PCQM-PSNR=36.4337" 1
+	fileHasString ${TMP}/${OUT}.txt "mseF,PSNR (p2plane): 67.6" 1	
+	fileHasString ${TMP}/${OUT}.txt "PCQM-PSNR=36.4" 1
 
 fi

@@ -57,33 +57,39 @@ bool Sample::initialize(Context* ctx, std::string app, int argc, char* argv[])
 				cxxopts::value<std::string>())
 			("o,outputModel", "path to output model (obj or ply file)",
 				cxxopts::value<std::string>())
-			("mode", "the sampling mode in [face,grid,map,sdiv]",
+			("mode", "the sampling mode in [face,grid,map,sdiv,ediv]",
 				cxxopts::value<std::string>())
 			("hideProgress", "hide progress display in console for use by robot",
 				cxxopts::value<bool>()->default_value("false"))
 			("h,help", "Print usage")
 			;
-		options.add_options("Face mode")
+		options.add_options("face mode")
 			("float", "if set the processings and outputs will be float32, int32 otherwise",
 				cxxopts::value<bool>()->default_value("true"))
-			("resolution", "integer value in [1,maxuint], nb samples per edge of maximal size",
-				cxxopts::value<size_t>()->default_value("1024"))
 			("thickness", "floating point value, distance to border of the face",
 				cxxopts::value<float>()->default_value("0.0"))
 			;
-		options.add_options("Sdiv mode")
-			("areaThreshold", "area limit to stop subdivision",
+		options.add_options("sdiv mode")
+			("areaThreshold", "face area limit to stop subdivision",
 				cxxopts::value<float>()->default_value("1.0"))
 			("mapThreshold", "if set will refine until face vertices texels are distanced of 1 and areaThreshold reached",
 				cxxopts::value<bool>()->default_value("false"))
 			;
-		options.add_options("Grid mode")
+		options.add_options("ediv mode")
+			("lengthThreshold", "edge length limit to stop subdivision, used only if > 0, otherwise resolution is used.",
+				cxxopts::value<float>()->default_value("0.0"))
+			;
+		options.add_options("grid mode")
 			("gridSize", "integer value in [1,maxint], side size of the grid",
 				cxxopts::value<int>()->default_value("1024"))
 			;
-		options.add_options("Grid, Face and sdiv modes")
+		options.add_options("face and ediv modes")
+			("resolution", "integer value in [1,maxuint], step/edgeLength = resolution / size(largest bbox side). In ediv mode, the resolution is used only if lengthThreshold=0.",
+				cxxopts::value<size_t>()->default_value("1024"))
+			;
+		options.add_options("grid, face, sdiv and ediv modes.")
 			("bilinear", "if set, texture filtering will be bilinear, nearest otherwise",
-				cxxopts::value<bool>()->default_value("true"))
+				cxxopts::value<bool>()->default_value("false"))
 			;
 
 		auto result = options.parse(argc, argv);
@@ -126,6 +132,8 @@ bool Sample::initialize(Context* ctx, std::string app, int argc, char* argv[])
 			thickness = result["thickness"].as<float>();
 		if (result.count("areaThreshold"))
 			areaThreshold = result["areaThreshold"].as<float>();
+		if (result.count("lengthThreshold"))
+			lengthThreshold = result["lengthThreshold"].as<float>();
 		if (result.count("mapThreshold"))
 			mapThreshold = result["mapThreshold"].as<bool>();
 		if (result.count("gridSize"))
@@ -200,6 +208,14 @@ bool Sample::process(uint32_t frame) {
 		std::cout << "  hideProgress = " << hideProgress << std::endl;
 		Sample::meshToPcDiv(*inputModel, *outputModel, *textureMap, areaThreshold, mapThreshold, bilinear, !hideProgress);
 	}
+	else if (mode == "ediv") {
+		std::cout << "Sampling in EDIV mode" << std::endl;
+		std::cout << "  Edge length threshold = " << lengthThreshold << std::endl;
+		std::cout << "  Resolution = " << resolution << std::endl;
+		std::cout << "  Bilinear = " << bilinear << std::endl;
+		std::cout << "  hideProgress = " << hideProgress << std::endl;
+		Sample::meshToPcDivEdge(*inputModel, *outputModel, *textureMap, lengthThreshold, resolution, bilinear, !hideProgress);
+	}
 	clock_t t2 = clock();
 	std::cout << "Time on processing: " << ((float)(t2 - t1)) / CLOCKS_PER_SEC << " sec." << std::endl;
 
@@ -245,7 +261,7 @@ void Sample::meshToPcFace(
 			input.colors.size() != 0,
 			input.normals.size() != 0,
 			v1, v2, v3);
-		
+
 		// check if triangle is not degenerate
 		if (triangleArea(v1.pos, v2.pos, v3.pos) < DBL_EPSILON) {
 			++skipped;
@@ -278,7 +294,7 @@ void Sample::meshToPcFace(
 
 				for (float step_normal = -step_normal_bdry; step_normal <= step_normal_bdry; step_normal += step) {
 
-					Vertex v; 
+					Vertex v;
 					v.pos = v1.pos + step12 * v12_norm + step23 * v23_norm + step_normal * normal;
 					v.nrm = normal; v.hasNormal = true;
 
@@ -295,13 +311,13 @@ void Sample::meshToPcFace(
 							texture2D_bilinear(tex_map, uv, v.col);
 						else
 							texture2D(tex_map, uv, v.col);
-						v.hasColor=true;
+						v.hasColor = true;
 					}
 					else if (input.colors.size() != 0) { // use color per vertex
 						v.col[0] = v1.col[0] + step12 / l12 * (v2.col[0] - v1.col[0]) + step23 / l23 * (v3.col[0] - v2.col[0]);
 						v.col[1] = v1.col[1] + step12 / l12 * (v2.col[1] - v1.col[1]) + step23 / l23 * (v3.col[1] - v2.col[1]);
 						v.col[2] = v1.col[2] + step12 / l12 * (v2.col[2] - v1.col[2]) + step23 / l23 * (v3.col[2] - v2.col[2]);
-						v.hasColor=true;
+						v.hasColor = true;
 					}
 
 					// add the vertex 
@@ -426,7 +442,7 @@ void Sample::meshToPcGrid(
 						Vertex v;
 						v.pos = rayOrigin + rayDirection * res[0];
 						v.nrm = normal; v.hasNormal = true;
-						
+
 						// compute the color fi any
 						// use the texture map
 						if (input.uvcoords.size() != 0 && tex_map.data != NULL) {
@@ -460,7 +476,7 @@ void Sample::meshToPcGrid(
 		std::cout << std::endl;
 	if (skipped != 0)
 		std::cout << "Skipped " << skipped << " degenerate triangles" << std::endl;
-	if ( builder.foundCount != 0 )
+	if (builder.foundCount != 0)
 		std::cout << "Skipped " << builder.foundCount << " duplicate vertices" << std::endl;
 	std::cout << "Generated " << output.vertices.size() / 3 << " points" << std::endl;
 
@@ -519,15 +535,15 @@ void Sample::meshToPcMap(
 		// find the integer coordinates covered in the map
 		glm::i32vec2 intUvMin = { (tex_map.width - 1) * uvMin.x, (tex_map.height - 1) * uvMin.y };
 		glm::i32vec2 intUvMax = { (tex_map.width - 1) * uvMax.x, (tex_map.height - 1) * uvMax.y };
-		
+
 		// loop over the box in image space
 		// if a pixel center is in the triangle then backproject
 		// and create a new point with the pixel color
 		for (size_t i = intUvMin[0]; i <= intUvMax[0]; ++i) {
 			for (size_t j = intUvMin[1]; j <= intUvMax[1]; ++j) {
-				
+
 				// the new vertex
-				Vertex v; 
+				Vertex v;
 				// force to face normal
 				v.hasNormal = true; v.nrm = normal;
 				// get the UV for the center of the pixel
@@ -536,12 +552,12 @@ void Sample::meshToPcMap(
 				// test if this pixelUV is in the triangle UVs
 				glm::vec3 bary; // the barycentrics if success
 				if (getBarycentric(v.uv, v1.uv, v2.uv, v3.uv, bary)) {
-						
+
 					// revert pixelUV to find point in 3D
 					triangleInterpolation(v1.pos, v2.pos, v3.pos, bary.x, bary.y, v.pos);
 
 					// fetch the color
-					texture2D(tex_map, v.uv, v.col); 
+					texture2D(tex_map, v.uv, v.col);
 					v.hasColor = true;
 
 					// add to results
@@ -612,17 +628,17 @@ void subdivideTriangle(
 	// (we do not interpolate normals but use face normal) - might be better as an option
 	e1.pos = v1.pos * 0.5F + v2.pos * 0.5F;
 	e1.col = v1.col * 0.5F + v2.col * 0.5F;
-	e1.uv  = v1.uv * 0.5F + v2.uv * 0.5F;
+	e1.uv = v1.uv * 0.5F + v2.uv * 0.5F;
 	e1.nrm = normal;
 
 	e2.pos = v2.pos * 0.5F + v3.pos * 0.5F;
 	e2.col = v2.col * 0.5F + v3.col * 0.5F;
-	e2.uv  = v2.uv * 0.5F + v3.uv * 0.5F;
+	e2.uv = v2.uv * 0.5F + v3.uv * 0.5F;
 	e2.nrm = normal;
 
 	e3.pos = v3.pos * 0.5F + v1.pos * 0.5F;
 	e3.col = v3.col * 0.5F + v1.col * 0.5F;
-	e3.uv  = v3.uv * 0.5F + v1.uv * 0.5F;
+	e3.uv = v3.uv * 0.5F + v1.uv * 0.5F;
 	e3.nrm = normal;
 
 	// push the new vertices
@@ -637,8 +653,8 @@ void subdivideTriangle(
 	subdivideTriangle(e2, v3, e3, tex_map, thres, mapThreshold, bilinear, output);
 }
 
-// perform a reverse sampling of the texture map to generate mesh samples
-// the color of the point is then using the texel color => no filtering
+// Use triangle subdivision algorithm to perform the sampling
+// Use simple subdiv scheme, stop criterion on triangle area or texture sample distance <= 1 pixel
 void Sample::meshToPcDiv(
 	const Model& input, Model& output,
 	const Image& tex_map, float areaThreshold, bool mapThreshold, bool bilinear, bool logProgress)
@@ -648,7 +664,7 @@ void Sample::meshToPcDiv(
 
 	// to prevent storing duplicate points, we use a ModelBuilder
 	ModelBuilder builder(output);
-	
+
 	// For each triangle
 	for (size_t triIdx = 0; triIdx < input.triangles.size() / 3; ++triIdx) {
 
@@ -657,12 +673,12 @@ void Sample::meshToPcDiv(
 
 		Vertex v1, v2, v3;
 
-		fetchTriangle(input, triIdx, 
+		fetchTriangle(input, triIdx,
 			input.uvcoords.size() != 0,
 			input.colors.size() != 0,
 			input.normals.size() != 0,
-			v1, v2, v3 );
-		
+			v1, v2, v3);
+
 		// check if triangle is not degenerate
 		if (triangleArea(v1.pos, v2.pos, v3.pos) < DBL_EPSILON) {
 			++skipped;
@@ -689,7 +705,194 @@ void Sample::meshToPcDiv(
 	if (skipped != 0)
 		std::cout << "Skipped " << skipped << " degenerate triangles" << std::endl;
 	if (builder.foundCount != 0)
-		std::cout << "Skipped " << builder.foundCount << " duplicate vertices" << std::endl;
+		std::cout << "Handled " << builder.foundCount << " duplicate vertices" << std::endl;
+	std::cout << "Generated " << output.vertices.size() / 3 << " points" << std::endl;
+
+}
+
+//
+//          v2
+//   		/\
+//         /  \
+//     e1 /----\ e2
+//       / \  / \ 
+//      /   \/   \
+//    v1 -------- v3
+//          e3
+//
+void subdivideTriangleEdge(
+	const Vertex& v1,
+	const Vertex& v2,
+	const Vertex& v3,
+	const Image& tex_map,
+	const float lengthThreshold,
+	const bool bilinear,
+	ModelBuilder& output
+) {
+
+	// the face normal
+	glm::vec3 normal;
+	triangleNormal(v1.pos, v2.pos, v3.pos, normal);
+
+	// do we split the edges: length(edge)/2 >= threshold
+	const bool split1 = glm::length(v2.pos - v1.pos) * 0.5F >= lengthThreshold;
+	const bool split2 = glm::length(v2.pos - v3.pos) * 0.5F >= lengthThreshold;
+	const bool split3 = glm::length(v3.pos - v1.pos) * 0.5F >= lengthThreshold;
+	
+	// early return if threshold reached for each edge
+	if (!split1 && !split2 && !split3)
+		return;
+
+	// the edge centers ~ the potential new vertices
+	Vertex e1, e2, e3;
+	// we use v1 as reference in term of components to push
+	e1.hasColor = e2.hasColor = e3.hasColor = v1.hasColor;
+	e1.hasUVCoord = e2.hasUVCoord = e3.hasUVCoord = v1.hasUVCoord;
+	// forces normals, we use generated per face ones
+	e1.hasNormal = e2.hasNormal = e3.hasNormal = true;
+
+	// compute and push the new edge centers if needed,
+	if (split1) {
+		e1.pos = (v1.pos + v2.pos) * 0.5F;
+		e1.col = (v1.col + v2.col) * 0.5F;
+		e1.uv = (v1.uv + v2.uv) * 0.5F;
+		e1.nrm = normal;
+		output.pushVertex(e1, tex_map, bilinear);
+	}
+	if (split2) {
+		e2.pos = (v2.pos + v3.pos) * 0.5F;
+		e2.col = (v2.col + v3.col) * 0.5F;
+		e2.uv = (v2.uv + v3.uv) * 0.5F;
+		e2.nrm = normal;
+		output.pushVertex(e2, tex_map, bilinear);
+	}
+	if (split3) {
+		e3.pos = (v3.pos + v1.pos) * 0.5F;
+		e3.col = (v3.col + v1.col) * 0.5F;
+		e3.uv = (v3.uv + v1.uv) * 0.5F;
+		e3.nrm = normal;
+		output.pushVertex(e3, tex_map, bilinear);
+	}
+
+	// go deeper in the subdivision if needed
+	// three edge split
+	if (split1 && split2 && split3) {
+		subdivideTriangleEdge(e1, e2, e3, tex_map, lengthThreshold, bilinear, output);
+		subdivideTriangleEdge(v1, e1, e3, tex_map, lengthThreshold, bilinear, output);
+		subdivideTriangleEdge(e1, v2, e2, tex_map, lengthThreshold, bilinear, output);
+		subdivideTriangleEdge(e2, v3, e3, tex_map, lengthThreshold, bilinear, output);
+		return;
+	}
+	// two edge split
+	if (!split1 && split2 && split3) {
+		subdivideTriangleEdge(v1, v2, e3, tex_map, lengthThreshold, bilinear, output);
+		subdivideTriangleEdge(e3, v2, e2, tex_map, lengthThreshold, bilinear, output);
+		subdivideTriangleEdge(e2, v3, e3, tex_map, lengthThreshold, bilinear, output);
+		return;
+	}
+	if (split1 && !split2 && split3) {
+		subdivideTriangleEdge(v1, e1, e3, tex_map, lengthThreshold, bilinear, output);
+		subdivideTriangleEdge(e1, v2, e3, tex_map, lengthThreshold, bilinear, output);
+		subdivideTriangleEdge(v2, v3, e3, tex_map, lengthThreshold, bilinear, output);
+		return;
+	}
+	if (split1 && split2 && !split3) {
+		subdivideTriangleEdge(v1, e1, v3, tex_map, lengthThreshold, bilinear, output);
+		subdivideTriangleEdge(e1, e2, v3, tex_map, lengthThreshold, bilinear, output);
+		subdivideTriangleEdge(e1, v2, e2, tex_map, lengthThreshold, bilinear, output);
+		return;
+	}
+	// one edge split
+	if (!split1 && !split2 && split3) {
+		subdivideTriangleEdge(v1, v2, e3, tex_map, lengthThreshold, bilinear, output);
+		subdivideTriangleEdge(v2, v3, e3, tex_map, lengthThreshold, bilinear, output);
+		return;
+	}
+	if (!split1 && split2 && !split3) {
+		subdivideTriangleEdge(v1, v2, e2, tex_map, lengthThreshold, bilinear, output);
+		subdivideTriangleEdge(v1, e2, v3, tex_map, lengthThreshold, bilinear, output);
+		return;
+	}
+	if (split1 && !split2 && !split3) {
+		subdivideTriangleEdge(v1, e1, v3, tex_map, lengthThreshold, bilinear, output);
+		subdivideTriangleEdge(e1, v2, v3, tex_map, lengthThreshold, bilinear, output);
+		return;
+	}
+}
+
+// Use triangle subdivision algorithm to perform the sampling
+// Use subdiv scheme without T-vertices, stop criterion on edge size
+void Sample::meshToPcDivEdge(
+	const Model& input, Model& output,
+	const Image& tex_map, float lengthThreshold, size_t resolution, bool bilinear, bool logProgress)
+{
+	float length = lengthThreshold;
+
+	if (length == 0) {
+		std::cout << "Overriding lengthThreshold from resolution=" << resolution << std::endl;
+		if (resolution == 0) {
+			std::cout << "Error: resolution must be > 0 if lengthThreshold = 0.0" << std::endl;
+			return;
+		}
+		// computes the bounding box of the vertices
+		glm::vec3 minPos, maxPos;
+		computeBBox(input.vertices, minPos, maxPos);
+		std::cout << "  minbox = " << minPos[0] << "," << minPos[1] << "," << minPos[2] << std::endl;
+		std::cout << "  maxbox = " << maxPos[0] << "," << maxPos[1] << "," << maxPos[2] << std::endl;
+		// computes the edge length threshold from resolution of the largest size of the bbox
+		const glm::vec3 diag = maxPos - minPos;
+		const float boxMaxSize = std::max(diag.x, std::max(diag.y, diag.z));
+		length = boxMaxSize / resolution;
+		std::cout << "  lengthThreshold = " << length << std::endl;
+	}
+
+	// to prevent storing duplicate points, we use a ModelBuilder
+	ModelBuilder builder(output);
+
+	// number of degenerate triangles
+	size_t skipped = 0;
+
+	// For each triangle
+	for (size_t triIdx = 0; triIdx < input.triangles.size() / 3; ++triIdx) {
+
+		if (logProgress)
+			std::cout << '\r' << triIdx << "/" << input.triangles.size() / 3 << std::flush;
+
+		Vertex v1, v2, v3;
+
+		fetchTriangle(input, triIdx,
+			input.uvcoords.size() != 0,
+			input.colors.size() != 0,
+			input.normals.size() != 0,
+			v1, v2, v3);
+
+		// check if triangle is not degenerate
+		if (triangleArea(v1.pos, v2.pos, v3.pos) < DBL_EPSILON) {
+			++skipped;
+			continue;
+		}
+
+		// compute face normal (forces) - might be better as an option
+		glm::vec3 normal;
+		triangleNormal(v1.pos, v2.pos, v3.pos, normal);
+		v1.nrm = v2.nrm = v3.nrm = normal;
+		v1.hasNormal = v2.hasNormal = v3.hasNormal = true;
+
+		// push the vertices if needed
+		builder.pushVertex(v1, tex_map, bilinear);
+		builder.pushVertex(v2, tex_map, bilinear);
+		builder.pushVertex(v3, tex_map, bilinear);
+
+		// subdivide recursively
+		subdivideTriangleEdge(v1, v2, v3, tex_map, length, bilinear, builder);
+
+	}
+	if (logProgress)
+		std::cout << std::endl;
+	if (skipped != 0)
+		std::cout << "Skipped " << skipped << " degenerate triangles" << std::endl;
+	if (builder.foundCount != 0)
+		std::cout << "Handled " << builder.foundCount << " duplicate vertices" << std::endl;
 	std::cout << "Generated " << output.vertices.size() / 3 << " points" << std::endl;
 
 }

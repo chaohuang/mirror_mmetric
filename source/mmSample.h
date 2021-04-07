@@ -34,18 +34,20 @@ private:
 	std::string outputModelFilename;
 	bool hideProgress = false;
 	// the type of processing
-	// in "face", "grid", "map"
 	std::string mode = "face";
 	// Face options
-	size_t resolution = 1024;
 	float thickness = 0.0;
 	// Grid options
 	int gridSize = 1024;
-	// Face and Grid options
+	// Face, Grid and sdiv options
 	bool bilinear = false;
 	// Face subdiv options
 	float areaThreshold = 1.0F;
 	bool mapThreshold = false;
+	// Edge subdiv options (0.0 mean use resolution)
+	float lengthThreshold = 0.0F;
+	// Edge and Face options
+	size_t resolution = 1024;
 
 public:
 
@@ -73,10 +75,13 @@ public:
 	// revert sampling, guided by texture map
 	static void meshToPcMap(const Model& input, Model& output, const Image& tex_map, bool logProgress);
 
-	// triangle dubdivision based
+	// triangle dubdivision based, area stop criterion
 	static void meshToPcDiv(const Model& input, Model& output, const Image& tex_map, 
 		float areaThreshold, bool mapThreshold, bool bilinear, bool logProgress);
 
+	// triangle dubdivision based, edge stop criterion
+	static void meshToPcDivEdge(const Model& input, Model& output, const Image& tex_map,
+		float lengthThreshold, size_t resolution, bool bilinear, bool logProgress);
 };
 
 #endif

@@ -15,23 +15,29 @@ fileHasString ${TMP}/${OUT}.txt "PCQM-PSNR=inf" 1
 # external dataset
 if [ "$1" == "ext" ]; 
 then
-	OUT=compare_pcqm_basket_qp8
+	OUT=compare_pcqm_basket_qp8_orig
 	$CMD compare --mode pcqm --radiusFactor 1.0 \
 		--inputModelA ${EXTDATA}/basketball_player_00000001.obj --inputMapA  ${EXTDATA}/basketball_player_00000001.png \
 		--inputModelB ${DATA}/basketball_player_00000001_qp8_orig.obj --inputMapB  ${EXTDATA}/basketball_player_00000001.png  > ${TMP}/${OUT}.txt 2>&1
-	fileHasString ${TMP}/${OUT}.txt "PCQM-PSNR=36.8991" 1
+	fileHasString ${TMP}/${OUT}.txt "PCQM-PSNR=36.899058" 1
+
+	OUT=compare_pcqm_basket_qp8_hole
+	$CMD compare --mode pcqm --radiusFactor 1.0 \
+		--inputModelA ${EXTDATA}/basketball_player_00000001.obj --inputMapA  ${EXTDATA}/basketball_player_00000001.png \
+		--inputModelB ${DATA}/basketball_player_00000001_qp8_hole.obj --inputMapB  ${EXTDATA}/basketball_player_00000001.png  > ${TMP}/${OUT}.txt 2>&1
+	fileHasString ${TMP}/${OUT}.txt "PCQM-PSNR=36.8903" 1
 
 	OUT=compare_pcqm_basket_qp16
 	$CMD compare --mode pcqm --radiusFactor 1.0 \
 		--inputModelA ${EXTDATA}/basketball_player_00000001.obj --inputMapA  ${EXTDATA}/basketball_player_00000001.png \
 		--inputModelB ${DATA}/basketball_player_00000001_qp16.obj --inputMapB  ${EXTDATA}/basketball_player_00000001.png  > ${TMP}/${OUT}.txt 2>&1
-	fileHasString ${TMP}/${OUT}.txt "PCQM-PSNR=46.7802" 1
+	fileHasString ${TMP}/${OUT}.txt "PCQM-PSNR=46.7802411" 1
 
 	OUT=compare_pcqm_basket_qp16_nomap
 	$CMD compare --mode pcqm \
 		--inputModelA ${EXTDATA}/basketball_player_00000001.obj  \
 		--inputModelB ${DATA}/basketball_player_00000001_qp16.obj  > ${TMP}/${OUT}.txt 2>&1
-	fileHasString ${TMP}/${OUT}.txt "PCQM-PSNR=68.2679" 1
+	fileHasString ${TMP}/${OUT}.txt "PCQM-PSNR=68.2679284" 1
 
 	# test sequence mode with self 
 	OUT=compare_pcqm_longdress_1K_seq

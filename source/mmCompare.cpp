@@ -359,9 +359,9 @@ int Compare::equ(
 		// doundInB[true] if the nth face of B matches one face of A
 		std::vector<bool> foundInB(inputB.triangles.size() / 3, false);
 
-		bool hasColors = inputA.colors.size() != 0 && inputB.colors.size() != 0;
-		bool hasUvCoords = inputA.uvcoords.size() != 0 && inputB.uvcoords.size() != 0;
-		bool hasNormals = inputA.normals.size() != 0 && inputB.normals.size() != 0;
+		const bool hasColors = inputA.hasColors() && inputB.hasColors();
+		const bool hasUvCoords = inputA.hasUvCoords() && inputB.hasUvCoords();
+		const bool hasNormals = inputA.hasNormals() && inputB.hasNormals();
 		
 		size_t diffs = 0; // count the differences if no earlyReturn option
 

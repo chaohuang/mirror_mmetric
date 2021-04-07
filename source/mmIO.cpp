@@ -210,11 +210,13 @@ bool IO::_loadModel(std::string filename, Model& output) {
 
 	if (success) {
 		// print stats
-		std::cout << "Input model: " << filename << std::endl;
-		std::cout << "  Vertices: " << output.vertices.size() / 3 << std::endl;
-		std::cout << "  UVs: "      << output.uvcoords.size() / 2 << std::endl;
-		std::cout << "  Colors: "     << output.colors.size() / 3 << std::endl;
-		std::cout << "  Normals: " << output.normals.size() / 3 << std::endl;
+		std::cout << "Input model: "   << filename << std::endl;
+		std::cout << "  Vertices: "    << output.vertices.size() / 3 << std::endl;
+		std::cout << "  UVs: "         << output.uvcoords.size() / 2 << std::endl;
+		std::cout << "  Colors: "      << output.colors.size() / 3 << std::endl;
+		std::cout << "  Normals: "     << output.normals.size() / 3 << std::endl;
+		std::cout << "  Triangles: "   << output.triangles.size() / 3 << std::endl;
+		std::cout << "  Trianglesuv: " << output.trianglesuv.size() / 3 << std::endl;
 	}
 
 	return success;
@@ -266,10 +268,14 @@ bool IO::_saveModel(std::string filename, const Model& input) {
 bool IO::_loadObj(std::string filename, Model& output) {
 
 	std::ifstream fin;
+	// use a big 4MB buffer to accelerate reads
+	char* buf = new char[4 * 1024 * 1024 + 1]; 
+	fin.rdbuf()->pubsetbuf(buf, 4 * 1024 * 1024 + 1);
 	fin.open(filename.c_str(), std::ios::in);
 	if (!fin)
 	{
 		std::cerr << "Error: can't open file " << filename << std::endl;
+		delete[] buf;
 		return false;
 	}
 	int temp_index;
@@ -311,6 +317,8 @@ bool IO::_loadObj(std::string filename, Model& output) {
 				in >> temp_str;
 				size_t found;
 
+				// parsing of texture coord indexes
+				// TODO parsing of normals indexes and reindex
 				found = temp_str.find_first_of("/");
 				if (found != std::string::npos) {
 					temp_index = atoi(temp_str.substr(0, found).c_str()) - 1;
@@ -325,6 +333,12 @@ bool IO::_loadObj(std::string filename, Model& output) {
 		std::getline(fin, line);
 	}
 	fin.close();
+	delete[] buf;
+
+	if (output.normals.size() != 0 && output.normals.size() != output.vertices.size()) {
+		std::cout << "Warning: obj read, normals with separate index table are not yet supported. Skipping normals." << std::endl;
+		output.normals.clear();
+	}
 
 	return true;
 }
@@ -332,7 +346,16 @@ bool IO::_loadObj(std::string filename, Model& output) {
 bool IO::_saveObj(std::string filename, const Model& input) {
 
 	std::ofstream fout;
-	fout.open(filename.c_str(), std::ios::out); // TODO check error
+	// use a big 4MB buffer to accelerate writes
+	char* buf = new char[4 * 1024 * 1024 + 1]; 
+	fout.rdbuf()->pubsetbuf(buf, 4 * 1024 * 1024 + 1);
+	fout.open(filename.c_str(), std::ios::out); 
+	if (!fout)
+	{
+		std::cerr << "Error: can't open file " << filename << std::endl;
+		delete[] buf;
+		return false;
+	}
 	// this is mandatory to print floats with full precision
 	fout.precision(std::numeric_limits< float >::max_digits10);
 
@@ -371,7 +394,7 @@ bool IO::_saveObj(std::string filename, const Model& input) {
 			input.triangles[i * 3 + 2] + 1 << "/" << input.triangles[i * 3 + 2] + 1 << std::endl;
 	}
 	fout.close();
-
+	delete[] buf;
 	return true;
 }
 
@@ -465,7 +488,16 @@ bool IO::_loadPly(std::string filename, Model& output)
 bool IO::_savePly(std::string filename, const Model& input)
 {
 	std::ofstream fout;
-	fout.open(filename.c_str(), std::ios::out); // tod check for error
+	// use a big 4MB buffer to accelerate writes
+	char* buf = new char[4 * 1024 * 1024 + 1]; 
+	fout.rdbuf()->pubsetbuf(buf, 4 * 1024 * 1024 + 1);
+	fout.open(filename.c_str(), std::ios::out); 
+	if (!fout)
+	{
+		std::cerr << "Error: can't open file " << filename << std::endl;
+		delete[] buf;
+		return false;
+	}
 	// this is mandatory to print floats with full precision
 	fout.precision(std::numeric_limits< float >::max_digits10);
 
@@ -488,8 +520,7 @@ bool IO::_savePly(std::string filename, const Model& input)
 		fout << "property uchar green" << std::endl;
 		fout << "property uchar blue" << std::endl;
 	}
-	//yo- if ((input.colors.size() / 4) == (input.vertices.size() / 3) )
-	//yo-   fout << "property uchar alpha" << std::endl;
+
 	if (!input.triangles.empty()) {
 		fout << "element face " << input.triangles.size() / 3 << std::endl;
 		fout << "property list uchar int vertex_indices" << std::endl;
@@ -531,7 +562,7 @@ bool IO::_savePly(std::string filename, const Model& input)
 	}
 
 	fout.close();
-
+	delete[] buf;
 	return true;
 }
 

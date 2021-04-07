@@ -26,6 +26,7 @@ cp -f ${DATA_PATH}/8i_idcc_v1/longdress/vox10_face40k_map2k/longdress_vox10_1051
 cp -f ${DATA_PATH}/8i_idcc_v1/longdress/vox10_face40k_map2k/longdress_vox10_1052_poisson40k_uv_map* ./extdata
 cp -f ${DATA_PATH}/8i_idcc_v1/longdress/vox10_face40k_map2k/longdress_vox10_1053_poisson40k_uv_map* ./extdata
 cp -f ${DATA_PATH}/8i_idcc_v1/longdress/vox10_face40k_map2k/longdress_vox10_1054_poisson40k_uv_map* ./extdata
+cp -f ${DATA_PATH}/8i_idcc_v1/longdress/vox10_face40k_map2k_globals.txt ./extdata
 cp -f ${DATA_PATH}/owlii/Mesh/basketball_player/basketball_player_00000001* ./extdata
 cp -f ${DATA_PATH}/owlii/Mesh/basketball_player/basketball_player_00000002* ./extdata
 cp -f ${DATA_PATH}/owlii/Mesh/basketball_player/basketball_player_00000003* ./extdata

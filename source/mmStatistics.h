@@ -31,6 +31,7 @@ namespace Statistics {
 		double variance;
 		double stdDev;
 		long double sum; // use long double to reduce risks of overflow
+		double minkowsky;
 	};
 
 	// sampler is a lambda func that takes size_t parameter and return associated 
@@ -43,6 +44,7 @@ namespace Statistics {
 		output.min = std::numeric_limits<double>::max();
 		output.max = std::numeric_limits<double>::min();
 		output.sum = 0.0;
+		output.minkowsky = 0.0;
 		
 		// compute mean, min and max
 		for (size_t i = 0; i < nbSamples; ++i) {
@@ -58,6 +60,14 @@ namespace Statistics {
 			output.variance += fract * pow(sampler(i) - output.mean, 2.0);
 		}
 		output.stdDev = sqrt(output.variance);
+
+		// compute Minkowsky with parameter ms=3
+		const double ms = 3;
+		// finalize the code here
+		for (size_t i = 0; i < nbSamples; i++) {
+			output.minkowsky += fract * pow(abs(sampler(i)), ms);
+		}
+		output.minkowsky = pow(output.minkowsky, 1.0 / ms);
 	}
 
 	// 
@@ -68,6 +78,7 @@ namespace Statistics {
 		out << prefix << "Mean=" << stats.mean << std::endl;
 		out << prefix << "Variance=" << stats.variance << std::endl;
 		out << prefix << "StdDev=" << stats.stdDev << std::endl;
+		out << prefix << "Minkowsky=" << stats.minkowsky << std::endl;
 	}
 	
 };

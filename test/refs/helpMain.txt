@@ -1,4 +1,4 @@
-3D model processing commands v0.1.6
+3D model processing commands v0.1.7
 Usage:
   mm.exe command [OPTION...]
 
@@ -10,6 +10,7 @@ Command:
   compare	Compare model A vs model B
   degrade	Degrade a mesh (todo points)
   dequantize	Dequantize model (mesh or point cloud) 
+  normals	Computes the mesh normals.
   quantize	Quantize model (mesh or point cloud)
   reindex	Reindex mesh and optionaly sort vertices and face indices
   sample	Convert mesh to point cloud

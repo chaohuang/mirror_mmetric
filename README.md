@@ -115,7 +115,7 @@ mm.exe \
 # Command references
 
 ```
-3D model processing commands v0.1.6
+3D model processing commands v0.1.7
 Usage:
   mm.exe command [OPTION...]
 
@@ -127,6 +127,7 @@ Command:
   compare	Compare model A vs model B
   degrade	Degrade a mesh (todo points)
   dequantize	Dequantize model (mesh or point cloud) 
+  normals	Computes the mesh normals.
   quantize	Quantize model (mesh or point cloud)
   reindex	Reindex mesh and optionaly sort vertices and face indices
   sample	Convert mesh to point cloud
@@ -134,40 +135,18 @@ Command:
 
 ```
 
-## Sample
+## Analyse
 
 ```
-Convert mesh to point cloud
+Analyse model and/or texture map
 Usage:
-  mm.exe sample [OPTION...]
+  mm.exe analyse [OPTION...]
 
-  -i, --inputModel arg   path to input model (obj or ply file)
-  -m, --inputMap arg     path to input texture map (png, jpeg)
-  -o, --outputModel arg  path to output model (obj or ply file)
-      --mode arg         the sampling mode in [face,grid,map,sdiv]
-      --hideProgress     hide progress display in console for use by robot
-  -h, --help             Print usage
-
- Face mode options:
-      --float           if set the processings and outputs will be float32,
-                        int32 otherwise (default: true)
-      --resolution arg  integer value in [1,maxuint], nb samples per edge of
-                        maximal size (default: 1024)
-      --thickness arg   floating point value, distance to border of the face
-                        (default: 0.0)
-
- Grid mode options:
-      --gridSize arg  integer value in [1,maxint], side size of the grid
-                      (default: 1024)
-
- Grid, Face and sdiv modes options:
-      --bilinear  if set, texture filtering will be bilinear, nearest
-                  otherwise (default: true)
-
- Sdiv mode options:
-      --areaThreshold arg  area limit to stop subdivision (default: 1.0)
-      --mapThreshold       if set will refine until face vertices texels are
-                           distanced of 1 and areaThreshold reached
+      --inputModel arg  path to input model (obj or ply file)
+      --inputMap arg    path to input texture map (png, jpeg)
+      --outputCsv arg   optional path to output results file
+      --outputVar arg   optional path to output variables file
+  -h, --help            Print usage
 
 ```
 
@@ -227,18 +206,73 @@ Usage:
 
 ```
 
-## Reindex
+## Degrade
 
 ```
-Reindex mesh and optionaly sort vertices and face indices
+Degrade a mesh (todo points)
 Usage:
-  mm.exe reindex [OPTION...]
+  mm.exe degrade [OPTION...]
+
+  -i, --inputModel arg   path to input model (obj or ply file)
+  -o, --outputModel arg  path to output model (obj or ply file)
+      --mode arg         the sampling mode in [delface]
+      --nthFace arg      in delface mode, remove one face every nthFace.
+                         (default: 50)
+  -h, --help             Print usage
+
+```
+## Dequantize
+
+```
+Dequantize model (mesh or point cloud) 
+Usage:
+  mm.exe dequantize [OPTION...]
 
   -i, --inputModel arg   path to input model (obj or ply file)
   -o, --outputModel arg  path to output model (obj or ply file)
   -h, --help             Print usage
-      --sort arg         Sort method in none, vertices, oriented, unoriented.
-                         (default: none)
+      --qp arg           Geometry quantization bitdepth. No dequantization of
+                         geometry if not set or < 7.
+      --qt arg           UV coordinates quantization bitdepth. No
+                         dequantization of uv coordinates if not set or < 7.
+      --qn arg           Normals quantization bitdepth. No dequantization of
+                         normals if not set or < 7.
+      --qc arg           Colors quantization bitdepth. No dequantization of
+                         colors if not set or < 7.
+      --minPos arg       min corner of vertex position bbox, a string of
+                         three floats. Mandatory if qp set and >= 7
+      --maxPos arg       max corner of vertex position bbox, a string of
+                         three floats. Mandatory if qp set and >= 7
+      --minUv arg        min corner of vertex texture coordinates bbox, a
+                         string of three floats. Mandatory if qt set and >= 7
+      --maxUv arg        max corner of vertex texture coordinates bbox, a
+                         string of three floats. Mandatory if qt set and >= 7
+      --minNrm arg       min corner of vertex normal bbox, a string of three
+                         floats. Mandatory if qn set and >= 7.
+      --maxNrm arg       max corner of vertex normal bbox, a string of three
+                         floats. Mandatory if qn set and >= 7
+      --minCol arg       min corner of vertex colors bbox, a string of three
+                         floats. Mandatory if qc set and >= 7
+      --maxCol arg       max corner of vertex colors bbox, a string of three
+                         floats. Mandatory if qc set and >= 7
+      --useFixedPoint    interprets minPos and maxPos inputs as fixed point
+                         16.
+
+```
+## Normals
+
+```
+Computes the mesh normals.
+Usage:
+  mm.exe normals [OPTION...]
+
+  -i, --inputModel arg   path to input model (obj or ply file)
+  -o, --outputModel arg  path to output model (obj or ply file)
+  -h, --help             Print usage
+      --normalized       generated normals are normalized (default: true)
+      --noSeams          if enabled generation is slower but vertex located
+                         on UV seams are properly used as one same vertex,
+                         hence removing lighting seams. (default: true)
 
 ```
 ## Quantize
@@ -277,19 +311,63 @@ Usage:
                          point 16.
 
 ```
-## Degrade
+## Reindex
 
 ```
-Degrade a mesh (todo points)
+Reindex mesh and optionaly sort vertices and face indices
 Usage:
-  mm.exe degrade [OPTION...]
+  mm.exe reindex [OPTION...]
 
   -i, --inputModel arg   path to input model (obj or ply file)
   -o, --outputModel arg  path to output model (obj or ply file)
-      --mode arg         the sampling mode in [delface]
-      --nthFace arg      in delface mode, remove one face every nthFace.
-                         (default: 50)
   -h, --help             Print usage
+      --sort arg         Sort method in none, vertices, oriented, unoriented.
+                         (default: none)
+
+```
+## Sample
+
+```
+Convert mesh to point cloud
+Usage:
+  mm.exe sample [OPTION...]
+
+  -i, --inputModel arg   path to input model (obj or ply file)
+  -m, --inputMap arg     path to input texture map (png, jpeg)
+  -o, --outputModel arg  path to output model (obj or ply file)
+      --mode arg         the sampling mode in [face,grid,map,sdiv,ediv]
+      --hideProgress     hide progress display in console for use by robot
+  -h, --help             Print usage
+
+ ediv mode options:
+      --lengthThreshold arg  edge length limit to stop subdivision, used only
+                             if > 0, otherwise resolution is used. (default:
+                             0.0)
+
+ face and ediv modes options:
+      --resolution arg  integer value in [1,maxuint], step/edgeLength =
+                        resolution / size(largest bbox side). In ediv mode, the
+                        resolution is used only if lengthThreshold=0. (default:
+                        1024)
+
+ face mode options:
+      --float          if set the processings and outputs will be float32,
+                       int32 otherwise (default: true)
+      --thickness arg  floating point value, distance to border of the face
+                       (default: 0.0)
+
+ grid mode options:
+      --gridSize arg  integer value in [1,maxint], side size of the grid
+                      (default: 1024)
+
+ grid, face, sdiv and ediv modes. options:
+      --bilinear  if set, texture filtering will be bilinear, nearest
+                  otherwise
+
+ sdiv mode options:
+      --areaThreshold arg  face area limit to stop subdivision (default: 1.0)
+      --mapThreshold       if set will refine until face vertices texels are
+                           distanced of 1 and areaThreshold reached
 
 ```
 ## Sequence

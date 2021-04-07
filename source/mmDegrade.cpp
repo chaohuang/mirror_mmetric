@@ -140,9 +140,9 @@ bool Degrade::process(uint32_t frame) {
 
 bool Degrade::delface(const Model& input, size_t nthFace, Model& output) {
 	
-	bool hasNormals = input.normals.size() != 0;
-	bool hasUvCoord = input.uvcoords.size() != 0;
-	bool hasColors = input.colors.size() != 0;
+	const bool hasNormals = input.hasNormals();
+	const bool hasUvCoord = input.hasUvCoords();
+	const bool hasColors = input.hasColors();
 
 	ModelBuilder builder(output);
 

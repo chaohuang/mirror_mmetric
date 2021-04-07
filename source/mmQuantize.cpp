@@ -286,6 +286,8 @@ void Quantize::quantize(
 		// this is mandatory to print floats with full precision
 		fout.precision(std::numeric_limits< float >::max_digits10);
 		if (fout) {
+			// this is mandatory to print floats with full precision
+			fout.precision(std::numeric_limits< float >::max_digits10);
 			out.push_back(&fout);
 		}
 		else {

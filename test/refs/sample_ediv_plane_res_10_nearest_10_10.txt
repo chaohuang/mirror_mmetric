@@ -1,0 +1,23 @@
+Processing frame 0
+Input map: ./data/plane_10_10.png
+Loading file: ./data/plane.obj
+Time on loading: 0 sec.
+Input model: ./data/plane.obj
+  Vertices: 5
+  UVs: 5
+  Colors: 0
+  Normals: 0
+Sampling in EDIV mode
+  Edge length threshold = 0
+  Resolution = 10
+  Bilinear = 0
+  hideProgress = 1
+Overriding lengthThreshold from resolution=10
+  minbox = -5,-5,0
+  maxbox = 5,5,0
+  lengthThreshold = 1
+Handled 55 duplicate vertices
+Generated 81 points
+Time on processing: 0.00100000005 sec.
+Saving file: ./tmp/sample_ediv_plane_res_10_nearest_10_10.ply
+Time on overall processing: 0.00400000019 sec.

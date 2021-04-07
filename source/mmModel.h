@@ -23,6 +23,7 @@
 #include <set>
 #include <vector>
 #include <algorithm>
+#include <functional>
 // mathematics
 #include <glm/vec3.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -36,14 +37,49 @@ class Model {
 public:
 	std::string header;					// mostly for OBJ material
 	std::vector<std::string> comments;	// mostly for PLY
-	std::vector<float> vertices;
-	std::vector<float> uvcoords;
-	std::vector<float> normals;
-	std::vector<float> colors;
-	std::vector<int> triangles;
-	std::vector<int> trianglesuv;
-
+	std::vector<float> vertices;		// vertex positions (x,y,z)
+	std::vector<float> uvcoords;		// vertex uv coordinates (u,v)
+	std::vector<float> normals;			// vertex normals (x,y,z)
+	std::vector<float> colors;			// vertex colors (r,g,b)
+	std::vector<float> faceNormals;		// per triangle normals (x,y,z)
+	std::vector<int> triangles;			// triangle position indices
+	std::vector<int> trianglesuv;		// triangle uv indices
+	
 	Model() {}
+
+	bool isPointCloud(void) const { return hasVertices() && !hasTriangles(); }
+	bool isMesh(void) const { return hasVertices() && !hasTriangles(); }
+
+	bool hasTriangles(void) const { return ( triangles.size() != 0 ) && ( triangles.size() % 3 == 0 ); }
+	bool hasVertices(void) const { return ( vertices.size() != 0 ) && ( vertices.size() % 3 == 0 ); }
+	bool hasColors(void) const { return hasVertices() && colors.size() == vertices.size(); }
+	
+	bool hasUvCoords(void) const { 
+		return uvcoords.size() != 0 && uvcoords.size() % 2 == 0 &&
+			((trianglesuv.size() != 0 && trianglesuv.size() % 3 == 0) ||
+			(hasVertices() && uvcoords.size() / 2 == vertices.size() / 3)); 
+	}
+
+	// return true if model has vertex normals
+	bool hasNormals(void) const { return hasVertexNormals(); }
+	// return true if model has vertex normals
+	bool hasVertexNormals(void) const { return hasVertices() && normals.size() == vertices.size(); }
+	// return true if model has face normals
+	bool hasTriangleNormals(void) const { return hasTriangles() && faceNormals.size() == triangles.size(); }
+
+	// return the number of triangles
+	inline size_t getTriangleCount(void) const { return triangles.size() / 3; }
+
+	// return the number of vertices
+	inline size_t getPositionCount(void) const { return vertices.size() / 3;  }
+	// return the number of colors 
+	inline size_t getColorCount(void) const { return colors.size() / 3; }
+	// return the number of uv coordinates
+	inline size_t getUvCount(void) const { return uvcoords.size() / 2; }
+	// return the number of normals
+	inline size_t getNormalCount(void) const { return normals.size() / 3; }
+	// return the number of face normals
+	inline size_t getFaceNormalCount(void) const { return faceNormals.size() / 3; }
 
 	// no sanity check (for performance reasons)
 	inline glm::vec3 fetchPosition(const size_t triIdx, const size_t vertIdx) const {
@@ -58,6 +94,10 @@ public:
 		return glm::make_vec3(&normals[triangles[triIdx * 3 + vertIdx] * 3]);
 	}
 	// no sanity check (for performance reasons)
+	inline glm::vec3 fetchNormal(const size_t normalIdx) const {
+		return glm::make_vec3(&normals[normalIdx * 3]);
+	}
+	// no sanity check (for performance reasons)
 	inline glm::vec2 fetchUv(const size_t triIdx, const size_t vertIdx) const {
 		if (trianglesuv.size()) {
 			return glm::make_vec2(&uvcoords[trianglesuv[triIdx * 3 + vertIdx] * 2]);
@@ -65,6 +105,17 @@ public:
 		else {
 			return glm::make_vec2(&uvcoords[triangles[triIdx * 3 + vertIdx] * 2]);
 		}
+	}
+	// no sanity check (for performance reasons)
+	inline glm::vec3 fetchFaceNormal(const size_t triIdx) const {
+		return glm::make_vec3(&faceNormals[triIdx * 3]);
+	}
+
+	// no sanity check (for performance reasons)
+	inline void fetchTriangleIndices(const size_t triIdx, int& i1, int& i2, int& i3) const {
+		i1 = triangles[triIdx * 3 + 0];
+		i2 = triangles[triIdx * 3 + 1];
+		i3 = triangles[triIdx * 3 + 2];
 	}
 
 	// no sanity check (for performance reasons)
@@ -99,6 +150,145 @@ public:
 			uv1 = glm::make_vec2(&uvcoords[triangles[triIdx * 3 + 0] * 2]);
 			uv2 = glm::make_vec2(&uvcoords[triangles[triIdx * 3 + 1] * 2]);
 			uv3 = glm::make_vec2(&uvcoords[triangles[triIdx * 3 + 2] * 2]);
+		}
+	}
+	
+	// normalize face and vertex normals if any
+	// degenerate normals are replaced by (0,0,1)
+	inline void normalizeNormals( void ) {
+
+		// normalize vertex normals if any
+		for (size_t i = 0; i < getNormalCount(); i++) {
+			glm::vec3 normal = fetchNormal(i);
+			normal = glm::normalize(normal);
+			if (std::isnan(normal[0])) { 
+				// use default z normal if invalid face
+				normal = glm::vec3(0.0F, 0.0F, 1.0F);
+			}
+			for (glm::vec3::length_type c = 0; c < 3; c++) {
+				normals[i * 3 + c] = normal[c];
+			}
+		}
+
+		// normalze triangle normals if any
+		for (size_t i = 0; i < getFaceNormalCount(); i++) {
+			glm::vec3 normal = fetchFaceNormal(i);
+			normal = glm::normalize(normal);
+			if (std::isnan(normal[0])) { 
+				// use default z normal if invalid face
+				normal = glm::vec3(0.0F, 0.0F, 1.0F);
+			}
+			for (glm::vec3::length_type c = 0; c < 3; c++) {
+				faceNormals[i * 3 + c] = normal[c];
+			}
+		}
+	}
+
+	// some normals might be invalid if faces are degenerate
+	// normalize set to true will normalize and set invalid normals to 0,0,1
+	inline void computeFaceNormals(bool normalize = true) {
+		// allocate output
+		faceNormals.resize(getTriangleCount() * 3);
+		//
+		for (size_t t = 0; t < getTriangleCount(); t++) {
+			//
+			const glm::vec3 v1 = fetchPosition(t, 0);
+			const glm::vec3 v2 = fetchPosition(t, 1);
+			const glm::vec3 v3 = fetchPosition(t, 2);
+			// computes face normal
+			glm::vec3 faceNormal;
+			const glm::vec3 v12 = v2 - v1;
+			const glm::vec3 v13 = v3 - v1;
+			faceNormal = glm::cross(v12, v13);
+			// write the result
+			for (glm::vec3::length_type c = 0; c < 3; c++) {
+				faceNormals[t * 3 + c] = faceNormal[c];
+			}
+		}
+		// normalize if requested
+		if (normalize) {
+			normalizeNormals();
+		}
+	}
+
+	// some normals might be invalid if faces are degenerate
+	// normalize set to true will normalize and set invalid normals to 0,0,1
+	// noSeams set to true will takes more time to compute but prevent seam effect if model has UV patches
+	inline void computeVertexNormals(bool normalize = true, bool noSeams=true) {
+		//
+		if (!hasTriangleNormals()) {
+			computeFaceNormals(false);
+		}
+		//
+		normals.resize(vertices.size(), 0.0F);
+		// map ( position -> map ( vertexIndex, faceNormal ))
+		// used in no seams mode
+		auto cmp = [](const glm::vec3& a, const glm::vec3& b) { 
+			if (a.x != b.x) return a.x < b.x;
+			if (a.y != b.y) return a.y < b.y;
+			return a.z < b.z;
+		};
+
+		typedef std::map< int, glm::vec3> TmpVertNormals;
+		typedef std::map<glm::vec3, TmpVertNormals,
+			std::function<bool(const glm::vec3&, const glm::vec3&)>> TmpPosNormals;
+
+		TmpPosNormals tmpNormals(cmp);
+		
+		//
+		for (size_t t = 0; t < getTriangleCount(); t++) {
+
+			int idx[3];
+			fetchTriangleIndices(t, idx[0], idx[1], idx[2]);
+			const glm::vec3 normal = fetchFaceNormal(t);
+
+			if (noSeams) {
+				glm::vec3 pos[3];
+				fetchTriangleVertices(t, pos[0], pos[1], pos[2]);
+				for (size_t i = 0; i < 3; i++) {
+					// p1
+					auto posIter = tmpNormals.find(pos[i]);
+					bool found = false;
+					if (posIter != tmpNormals.end()) {
+						auto vertIter = posIter->second.find(idx[i]);
+						if (vertIter != posIter->second.end()) {
+							vertIter->second = vertIter->second + normal;
+							found = true;
+						}
+					}
+					if (!found) tmpNormals[pos[i]][idx[i]] = normal;
+				}
+			}
+			else {
+				for (size_t i = 0; i < 3; i++) {
+					for (glm::vec3::length_type c = 0; c < 3; c++) {
+						normals[idx[i] * 3 + c] += normal[c];
+					}
+				}
+			}
+		}
+
+		if (noSeams) { // second pass in noseams mode
+			TmpPosNormals::const_iterator posIter;
+			TmpVertNormals::const_iterator vertIter;
+			// iteratr the positions
+			for (posIter = tmpNormals.begin(); posIter != tmpNormals.end(); posIter++) {
+				// iterates the vertices that share the same position and cumulate normals
+				glm::vec3 normal(0.0F, 0.0F, 0.0F);
+				for (vertIter = posIter->second.begin(); vertIter != posIter->second.end(); vertIter++) {
+					normal += vertIter->second;
+				}
+				// assign normal sum to all the indices of this position
+				for (vertIter = posIter->second.begin(); vertIter != posIter->second.end(); vertIter++) {
+					for (glm::vec3::length_type c = 0; c < 3; c++) {
+						normals[vertIter->first * 3 + c] = normal[c];
+					}
+				}
+			}
+		}
+		
+		if (normalize) {
+			normalizeNormals();
 		}
 	}
 
@@ -333,9 +523,9 @@ inline bool reorder(const Model& input, std::string sorting, Model& output)
 	if (sorting != "vertex" && sorting != "oriented" && sorting != "unoriented")
 		return false;
 
-	bool hasNormal = input.normals.size();
-	bool hasUvCoord = input.uvcoords.size();
-	bool hasColor = input.colors.size();
+	const bool hasNormal = input.hasNormals();
+	const bool hasUvCoord = input.hasUvCoords();
+	const bool hasColor = input.hasColors();
 
 	// A - first reconstruct the mesh so that we have a single index table 
 	// and no duplicates vertices 

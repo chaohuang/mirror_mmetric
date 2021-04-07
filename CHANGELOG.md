@@ -5,6 +5,18 @@ Primary author Jean-Eudes Marvie (InterDigital).
 
 Additional contributors mentioned per version or item hereafter.
 
+## Version 0.1.7
+
+- add sample ediv mode, subdivision by edge length 
+	- Contributors: J.E. Marvie (InterDigital), Jungsun Kim (Apple), Khaled Mammou (Apple).
+- add large memory buffers for faster model read/writes
+- add normal command to generate mesh per-vertex normals, 
+	- fast mode similar to open3D and MeshLab approach
+	- and slower noseams mode for better quality
+- add statistics computation of Minkowsky "mean" for ms=3
+- fix issues with loading obj models having separate normal index table (skipped)
+- fix issues on error handling
+
 ## Version 0.1.6
 
 Contributors: Danillo Graziosi (Sony), Ali Tabatabai (Sony)

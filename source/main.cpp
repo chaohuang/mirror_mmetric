@@ -28,7 +28,7 @@
 #include "mmCommand.h"
 
 // software version
-#define MM_VERSION "0.1.6"
+#define MM_VERSION "0.1.7"
 
 // the name of the application binary
 // i.e argv[0] minus the eventual path
@@ -47,6 +47,7 @@
 #include "mmReindex.h"
 #include "mmSample.h"
 #include "mmSequence.h"
+#include "mmNormals.h"
 
 // analyse command line and run processings
 int main(int argc, char* argv[])
@@ -63,6 +64,7 @@ int main(int argc, char* argv[])
 	Command::addCreator(Reindex::name, Reindex::brief, Reindex::create);
 	Command::addCreator(Sample::name, Sample::brief, Sample::create);
 	Command::addCreator(Sequence::name, Sequence::brief, Sequence::create);
+	Command::addCreator(Normals::name, Normals::brief, Normals::create);
 	 
 	// execute the commands
 	if (argc > 1) {
