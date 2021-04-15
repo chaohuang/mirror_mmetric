@@ -56,10 +56,32 @@ fileHasString ${TMP}/${OUT}.txt "model vertices are not equals" 1
 # external dataset
 if [ "$1" == "ext" ]; 
 then
-OUT=compare_equ_basket_self
-$CMD compare --mode equ \
-	--inputModelA ${EXTDATA}/basketball_player_00000001.obj  \
-	--inputModelB ${EXTDATA}/basketball_player_00000001.obj > ${TMP}/${OUT}.txt 2>&1
-fileHasString ${TMP}/${OUT}.txt "meshes are equal" 1
-# TODO add some tests with permutations
+	OUT=compare_equ_basket_self
+	$CMD compare --mode equ \
+		--inputModelA ${EXTDATA}/basketball_player_00000001.obj  \
+		--inputModelB ${EXTDATA}/basketball_player_00000001.obj > ${TMP}/${OUT}.txt 2>&1
+	fileHasString ${TMP}/${OUT}.txt "meshes are equal" 1
+	# TODO add some tests with permutations
+		
+	OUT=compare_eq_longdress_yuv420
+	$CMD  \
+		compare --mode equ  \
+		--inputModelA ${EXTDATA}/longdress_fr1051.obj \
+		--inputMapA  ${EXTDATA}/longdress_fr1051.png \
+		--inputModelB ${EXTDATA}/longdress_fr1051.obj \
+		--inputMapB  ${EXTDATA}/longdress_fr1051_2048x2048_yuv420p.yuv \
+		 > ${TMP}/${OUT}.txt 2>&1
+	fileHasString ${TMP}/${OUT}.txt "texture maps are not equal" 1
+	grep -iF "error" ${TMP}/${OUT}.txt
+
+	OUT=compare_eq_longdress_gbrp444
+	$CMD  \
+		compare --mode equ  \
+		--inputModelA ${EXTDATA}/longdress_fr1051.obj \
+		--inputMapA  ${EXTDATA}/longdress_fr1051.png \
+		--inputModelB ${EXTDATA}/longdress_fr1051.obj \
+		--inputMapB  ${EXTDATA}/longdress_fr1051_2048x2048_gbrp444.rgb \
+		 > ${TMP}/${OUT}.txt 2>&1
+	grep -iF "error" ${TMP}/${OUT}.txt
+	fileHasString ${TMP}/${OUT}.txt "texture maps are equal" 1
 fi

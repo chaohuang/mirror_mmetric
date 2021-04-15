@@ -53,7 +53,7 @@ bool Sample::initialize(Context* ctx, std::string app, int argc, char* argv[])
 		options.add_options()
 			("i,inputModel", "path to input model (obj or ply file)",
 				cxxopts::value<std::string>())
-			("m,inputMap", "path to input texture map (png, jpeg)",
+			("m,inputMap", "path to input texture map (png, jpg, rgb, yuv)",
 				cxxopts::value<std::string>())
 			("o,outputModel", "path to output model (obj or ply file)",
 				cxxopts::value<std::string>())
@@ -211,7 +211,7 @@ bool Sample::process(uint32_t frame) {
 	else if (mode == "ediv") {
 		std::cout << "Sampling in EDIV mode" << std::endl;
 		std::cout << "  Edge length threshold = " << lengthThreshold << std::endl;
-		std::cout << "  Resolution = " << resolution << std::endl;
+		std::cout << "  Resolution = " << resolution  << (lengthThreshold != 0 ? "(skipped)" : "") << std::endl;
 		std::cout << "  Bilinear = " << bilinear << std::endl;
 		std::cout << "  hideProgress = " << hideProgress << std::endl;
 		Sample::meshToPcDivEdge(*inputModel, *outputModel, *textureMap, lengthThreshold, resolution, bilinear, !hideProgress);

@@ -47,7 +47,9 @@ public:
 	
 	Model() {}
 
+	// a model that has at least vertices but no topology
 	bool isPointCloud(void) const { return hasVertices() && !hasTriangles(); }
+	// a model that has at least vertices and a topology
 	bool isMesh(void) const { return hasVertices() && !hasTriangles(); }
 
 	bool hasTriangles(void) const { return ( triangles.size() != 0 ) && ( triangles.size() % 3 == 0 ); }
@@ -86,8 +88,16 @@ public:
 		return glm::make_vec3(&vertices[triangles[triIdx * 3 + vertIdx] * 3]);
 	}
 	// no sanity check (for performance reasons)
+	inline glm::vec3 fetchPosition(const size_t posIdx) const {
+		return glm::make_vec3(&vertices[posIdx * 3]);
+	}
+	// no sanity check (for performance reasons)
 	inline glm::vec3 fetchColor(const size_t triIdx, const size_t vertIdx) const {
 		return glm::make_vec3(&colors[triangles[triIdx * 3 + vertIdx] * 3]);
+	}
+	// no sanity check (for performance reasons)
+	inline glm::vec3 fetchColor(const size_t colIdx) const {
+		return glm::make_vec3(&colors[colIdx * 3]);
 	}
 	// no sanity check (for performance reasons)
 	inline glm::vec3 fetchNormal(const size_t triIdx, const size_t vertIdx) const {
@@ -105,6 +115,10 @@ public:
 		else {
 			return glm::make_vec2(&uvcoords[triangles[triIdx * 3 + vertIdx] * 2]);
 		}
+	}
+	// no sanity check (for performance reasons)
+	inline glm::vec2 fetchUv(const size_t uvIdx) const {
+		return glm::make_vec2(&uvcoords[uvIdx * 2]);
 	}
 	// no sanity check (for performance reasons)
 	inline glm::vec3 fetchFaceNormal(const size_t triIdx) const {

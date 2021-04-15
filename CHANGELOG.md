@@ -5,6 +5,20 @@ Primary author Jean-Eudes Marvie (InterDigital).
 
 Additional contributors mentioned per version or item hereafter.
 
+## Version 0.1.8
+
+- add output details to compare --mode equ if --earlyReturn not set
+- add texture map comparison in compare --mode equ
+- add near lossless topology check in compare --mode pcc and --mode pcqm
+- add Video input implementation
+- fix remove quantization post cleanup step (was introducting defects: manifold, holes)
+- fix color quantize/dequantize using qn instead of qc
+- fix Update compare documentation, inputA is the reference
+- fix loadOBJ function, issue with empty lines
+
+Video input was implemented by Danillo Graziosi (Sony).
+Several stabilizations were also proposed by Danillo.
+
 ## Version 0.1.7
 
 - add sample ediv mode, subdivision by edge length 

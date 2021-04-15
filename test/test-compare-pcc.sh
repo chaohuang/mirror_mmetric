@@ -89,6 +89,16 @@ then
 		 > ${TMP}/${OUT}.txt 2>&1
 	grep -iF "error" ${TMP}/${OUT}.txt
 
+	OUT=compare_pcc_longdress_near_lossless
+	$CMD  \
+		compare --mode pcc  \
+		--inputModelA ${EXTDATA}/longdress_fr1051.obj \
+		--inputMapA  ${EXTDATA}/longdress_fr1051.png \
+		--inputModelB ${EXTDATA}/longdress_fr1051_tfan.obj \
+		--inputMapB  ${EXTDATA}/longdress_fr1051.png \
+		--topologyFile ${EXTDATA}/longdress_fr1051_tfan_topo.txt \
+		 > ${TMP}/${OUT}.txt 2>&1
+	grep -iF "error" ${TMP}/${OUT}.txt
 fi
 
 # EOF

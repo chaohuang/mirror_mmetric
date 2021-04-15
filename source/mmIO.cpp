@@ -111,26 +111,46 @@ bool IO::saveModel(std::string templateName, Model* model) {
 
 //
 Image* IO::loadImage(std::string templateName) {
+	
+	// The IO store is purged for each new frame. 
+	// So in case of video file without %d template we just use the filename (unchanged by resolveName).
 	std::string name = resolveName(_context->getFrame(), templateName);
 	std::map<std::string, Image*>::iterator it = IO::_images.find(name);
-	if (it == IO::_images.end()) {
-		if (name.substr(0, 3) == "ID:") {
-			std::cout << "Error: image with id " << name << "not defined" << std::endl;
+	
+	// use image/frame from store
+	if (it != IO::_images.end()) {
+		return it->second;
+	}
+	
+	// not found in store but name is an ID => error
+	if (name.substr(0, 3) == "ID:") {
+		std::cout << "Error: image with id " << name << "not defined" << std::endl;
+		return NULL;
+	}
+
+	// else try to load the image/frame
+	Image* image = new Image();
+
+	std::string ext = templateName.substr(templateName.find_last_of("."));
+	std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) { return std::tolower(c); });
+
+	if (ext == ".yuv" || ext == ".rgb") {
+		// try to load as video
+		if (!IO::_loadImageFromVideo(name, *image)) {
+			delete image;
 			return NULL;
 		}
-		else { // we try to load the model
-			Image* image = new Image();
-			if (!IO::_loadImage(name, *image)) {
-				delete image;
-				return NULL;
-			}
-			else {
-				IO::_images[name] = image;
-				return image;
-			}
+	}
+	else {
+		// try to load as image
+		if (!IO::_loadImage(name, *image)) {
+			delete image;
+			return NULL;
 		}
 	}
-	return it->second;
+	// add to the store
+	IO::_images[name] = image;
+	return image;	
 };
 
 /*
@@ -285,11 +305,12 @@ bool IO::_loadObj(std::string filename, Model& output) {
 	std::getline(fin, line);
 	while (fin) {
 		std::istringstream in(line);
+		temp_flag = "";
 		in >> temp_flag;  // temp_flag: the first word in the line
 		if (temp_flag.compare(std::string("mtllib")) == 0) {
 			output.header = std::string(line.c_str());
 		}
-		if (temp_flag.compare(std::string("v")) == 0) {
+		else if (temp_flag.compare(std::string("v")) == 0) {
 			// parse the position
 			for (int i = 0; i < 3; i++) {
 				in >> temp_pos;
@@ -576,6 +597,107 @@ bool IO::_loadImage(std::string filename, Image& output) {
 			std::cout << "Error: opening file " << filename << std::endl;
 			return false;
 		}
+	}
+	else {
+		std::cout << "Error: invalid empty filename" << std::endl;
+		return false;
+	}
+
+	// success
+	return true;
+}
+
+bool IO::_loadImageFromVideo(std::string filename, Image& output) {
+
+	// Reading map if needed
+	if (filename != "") {
+		// parsing filename to extract metadata
+		// int frIdx, int width, int height, bool isYUV, bool is444,
+		size_t      pos = filename.find_last_of(".");
+		std::string extension = filename.substr(pos);
+		bool isYUV = (extension.compare(".yuv") == 0);
+		size_t      pos2 = filename.find_last_of("_");
+		std::string codingType = filename.substr(pos2 + 1, pos - pos2 - 1);
+		bool is444 = (codingType.compare("yuv420p") != 0);
+		size_t      pos3 = filename.substr(0, pos2 - 1).find_last_of("_");
+		std::string frameDimension = filename.substr(0, pos2).substr(pos3 + 1);
+		int width = std::stoi(frameDimension.substr(0, frameDimension.find('x')));
+		int height = std::stoi(frameDimension.substr(frameDimension.find('x') + 1));
+		int frameIndex = _context->getFrame() - _context->getFirstFrame();
+		// 
+		std::cout << "Reading video frame "<< frameIndex <<" from file: " << filename << std::endl;
+		int chromaStride = is444? width : width/2;
+		int chromaHeight = is444? height : height/2;
+		int frSize = (height*width+2*chromaStride*chromaHeight);
+		//open the video file and search for the frame index
+        std::ifstream in;
+        in.open(filename, std::ifstream::in | std::ios::binary);
+        if (!in.is_open()) { return false; }
+        in.seekg(frameIndex * frSize, std::ios::beg);
+		//reading frame (only 8-bit data is allowed at this moment)
+        char* frame = new char[frSize];
+        in.read(frame, frSize);
+        in.close();
+		//now convert the frame
+		if(!is444){
+			//chroma upsampling using nearest neighbor
+			char* frameUpscaled = new char[3*width*height];
+			//copy the luma channel
+			memcpy(frameUpscaled,frame,width*height);
+			//copy the down-sampled chroma channel
+			for(int y=0;y<chromaHeight;y++)
+				for(int x=0;x<chromaStride;x++){
+					frameUpscaled[width*height + ((2*x) + width*(2*y))] = frame[width*height + (x + chromaStride*y)];
+					frameUpscaled[width*height + ((2*x+1) + width*(2*y))] = frame[width*height + (x + chromaStride*y)];
+					frameUpscaled[width*height + ((2*x) + width*(2*y+1))] = frame[width*height + (x + chromaStride*y)];
+					frameUpscaled[width*height + ((2*x+1) + width*(2*y+1))] = frame[width*height + (x + chromaStride*y)];
+				}
+
+			//copy the down-sampled chroma channel
+			for(int y=0;y<chromaHeight;y++)
+				for(int x=0;x<chromaStride;x++){
+					frameUpscaled[2*width*height + ((2*x) + width*(2*y))] = frame[width*height + chromaStride*chromaHeight + (x + chromaStride*y)];
+					frameUpscaled[2*width*height + ((2*x+1) + width*(2*y))] = frame[width*height + chromaStride*chromaHeight + (x + chromaStride*y)];
+					frameUpscaled[2*width*height + ((2*x) + width*(2*y+1))] = frame[width*height + chromaStride*chromaHeight + (x + chromaStride*y)];
+					frameUpscaled[2*width*height + ((2*x+1) + width*(2*y+1))] = frame[width*height + chromaStride*chromaHeight + (x + chromaStride*y)];
+				}
+			delete[] frame;
+			frame = frameUpscaled;
+		}
+		output.data = new unsigned char[3*width*height];
+		output.height = height;
+		output.width = width;
+		output.nbc = 3;
+		if(isYUV){
+			//convert to RGB
+			for(int y=0;y<height;y++){
+				for(int x=0;x<width;x++){
+					double Y = (unsigned char)frame[x + width*y];
+					Y = std::min<double>(std::max<double>(Y/255.0,0.0),1.0);
+					double Cb = (unsigned char)frame[width*height + x + width*y];
+					Cb = std::min<double>(std::max<double>((Cb-128)/255.0,-0.5),0.5);
+					double Cr = (unsigned char)frame[2*width*height + x + width*y];
+					Cr = std::min<double>(std::max<double>((Cr-128)/255.0,-0.5),0.5);
+					double R = Y + 1.57480 * Cr;
+					output.data[(x + width*y)*3 + 0] = (unsigned char)std::round(255*std::min<double>(std::max<double>(R, 0.0),1.0));
+					double G = Y - 0.18733 * Cb - 0.46813 * Cr;
+					output.data[(x + width*y)*3 + 1] = (unsigned char)std::round(255*std::min<double>(std::max<double>(G, 0.0),1.0));
+					double B = Y + 1.85563 * Cb;
+					output.data[(x + width*y)*3 + 2] = (unsigned char)std::round(255*std::min<double>(std::max<double>(B, 0.0),1.0));
+				}
+			}
+		}
+		else{
+			//is GBR, so re-order the color planes
+			for(int y=0;y<height;y++){
+				for(int x=0;x<width;x++){
+					output.data[(x + width*y)*3 + 0] = frame[(x + width*y) + 2*width*height];
+					output.data[(x + width*y)*3 + 2] = frame[(x + width*y) + width*height]; 
+					output.data[(x + width*y)*3 + 1] = frame[(x + width*y)];
+				}
+			}
+		}
+		delete[] frame;
 	}
 	else {
 		std::cout << "Error: invalid empty filename" << std::endl;

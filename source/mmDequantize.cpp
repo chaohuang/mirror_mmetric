@@ -359,7 +359,7 @@ void Dequantize::dequantize(
 		const glm::vec3 maxBox = maxCol;
 		const glm::vec3 diag = maxBox - minBox;
 		const float range = std::max(std::max(diag.x, diag.y), diag.z);
-		const int32_t maxQuantizedValue = (1u << static_cast<uint32_t>(qn)) - 1;
+		const int32_t maxQuantizedValue = (1u << static_cast<uint32_t>(qc)) - 1;
 
 		std::cout << "  minCol=\"" << minBox.x << " " << minBox.y << " " << minBox.z << "\"" << std::endl;
 		std::cout << "  maxCol=\"" << maxBox.x << " " << maxBox.y << " " << maxBox.z << "\"" << std::endl;

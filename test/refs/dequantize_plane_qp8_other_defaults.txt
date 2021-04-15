@@ -1,11 +1,13 @@
 Processing frame 0
 Loading file: ./tmp/quantize_plane_qp8_other_defaults.obj
-Time on loading: 0 sec.
+Time on loading: 0.00100000005 sec.
 Input model: ./tmp/quantize_plane_qp8_other_defaults.obj
   Vertices: 5
   UVs: 5
   Colors: 0
   Normals: 0
+  Triangles: 4
+  Trianglesuv: 4
 De-quantizing
   qp = 8
   qt = 12
@@ -15,10 +17,10 @@ De-quantizing
   maxPos="5 5 0"
   rangePos=10
   maxQuantizedValue=255
-  scale=0.0392157
+  scale=0.0392156877
   minUv="0 0"
   maxUv="1 1"
   rangeUv=1
 Time on processing: 0 sec.
 Saving file: ./tmp/dequantize_plane_qp8_other_defaults.obj
-Time on overall processing: 0.004 sec.
+Time on overall processing: 0.00200000009 sec.

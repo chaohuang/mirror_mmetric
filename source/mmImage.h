@@ -32,10 +32,10 @@ public:
 	Image(void):width(0),height(0),nbc(0),data(NULL){}
 
 	// no sanity check for performance reasons
-	inline void fetchRGB(const unsigned int i, const unsigned int j,  glm::vec3& rgb) const {
-		rgb.r = data[(j * width + i) * nbc + 0];
-		rgb.g = data[(j * width + i) * nbc + 1];
-		rgb.b = data[(j * width + i) * nbc + 2];
+	inline void fetchRGB(const size_t col, const size_t row,  glm::vec3& rgb) const {
+		rgb.r = data[(row * width + col) * nbc + 0];
+		rgb.g = data[(row * width + col) * nbc + 1];
+		rgb.b = data[(row * width + col) * nbc + 2];
 	}
 
 };

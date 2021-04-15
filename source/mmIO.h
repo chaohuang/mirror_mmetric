@@ -46,6 +46,7 @@ public:
 
 	static bool saveModel(std::string templateName, Model* model);
 
+	// load image files and images from videos
 	// name can be filename or "ID:xxxx"
 	// return NULL in case of error
 	static Image* loadImage(std::string templateName);
@@ -82,6 +83,8 @@ private:
 
 	// Images
 	static bool _loadImage(std::string filename, Image& output);
+	static bool _loadImageFromVideo(std::string filename, Image& output);
+
 
 };
 

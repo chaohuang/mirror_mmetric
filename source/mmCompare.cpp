@@ -57,13 +57,13 @@ bool Compare::initialize(Context* context, std::string app, int argc, char* argv
 	{
 		cxxopts::Options options(app + " " + name, brief);
 		options.add_options()
-			("inputModelA", "path to input model A (obj or ply file)",
+			("inputModelA", "path to reference input model (obj or ply file)",
 				cxxopts::value<std::string>())
-			("inputModelB", "path to input model B (obj or ply file)",
+			("inputModelB", "path to distorted input model (obj or ply file)",
 				cxxopts::value<std::string>())
-			("inputMapA", "path to input texture map A (png, jpeg)",
+			("inputMapA", "path to reference input texture map (png, jpg, rgb, yuv)",
 				cxxopts::value<std::string>())
-			("inputMapB", "path to input texture map B (png, jpeg)",
+			("inputMapB", "path to distorted input texture map (png, jpg, rgb, yuv)",
 				cxxopts::value<std::string>())
 			("outputModelA", "path to output model A (obj or ply file)",
 				cxxopts::value<std::string>())
@@ -104,6 +104,11 @@ bool Compare::initialize(Context* context, std::string app, int argc, char* argv
 				cxxopts::value<int>()->default_value("20"))
 			("radiusFactor", "Set a radius factor for the statistic computation.",
 				cxxopts::value<double>()->default_value("2.0"))
+
+			;
+		options.add_options("pcc and pcqm modes, near lossless")
+			("topologyFile", "path to the topology text file matching modelB topology to modelA topology. Setting option with non empty filename will activate the test.",
+				cxxopts::value<std::string>())
 			;
 
 		auto result = options.parse(argc, argv);
@@ -166,13 +171,17 @@ bool Compare::initialize(Context* context, std::string app, int argc, char* argv
 			params.neighborsProc = result["neighborsProc"].as<int>();
 		if (result.count("averageNormals"))
 			params.bAverageNormals = result["averageNormals"].as<bool>();
-		// PCSM
+		// PCQM
 		if (result.count("radiusCurvature"))
 			radiusCurvature = result["radiusCurvature"].as<double>();
 		if (result.count("thresholdKnnSearch"))
 			thresholdKnnSearch = result["thresholdKnnSearch"].as<int>();
 		if (result.count("radiusFactor"))
 			radiusFactor = result["radiusFactor"].as<double>();
+		// common to PCC and PCQM
+		if (result.count("topologyFile"))
+			topologyFilename = result["topologyFile"].as<string>();
+
 	}
 	catch (const cxxopts::OptionException& e)
 	{
@@ -244,6 +253,7 @@ bool Compare::process(uint32_t frame) {
 	}
 	else if (mode == "pcc") {
 		std::cout << "Compare models using MPEG PCC distortion metric" << std::endl;
+		std::cout << "  topologyFile = " << topologyFilename << std::endl;
 		std::cout << "  singlePass = " << params.singlePass << std::endl;
 		std::cout << "  hausdorff = " << params.hausdorff << std::endl;
 		std::cout << "  color = " << params.bColor << std::endl;
@@ -254,10 +264,11 @@ bool Compare::process(uint32_t frame) {
 		res = Compare::pcc(
 			*inputModelA, *inputModelB,
 			*textureMapA, *textureMapB, params,
-			*outputModelA, *outputModelB);
+			*outputModelA, *outputModelB, topologyFilename);
 	}
 	else if (mode == "pcqm") {
 		std::cout << "Compare models using PCQM distortion metric" << std::endl;
+		std::cout << "  topologyFile = " << topologyFilename << std::endl;
 		std::cout << "  radiusCurvature = " << radiusCurvature << std::endl;
 		std::cout << "  thresholdKnnSearch = " << thresholdKnnSearch << std::endl;
 		std::cout << "  radiusFactor = " << radiusFactor << std::endl;
@@ -267,7 +278,7 @@ bool Compare::process(uint32_t frame) {
 			radiusCurvature,
 			thresholdKnnSearch,
 			radiusFactor,
-			*outputModelA, *outputModelB);
+			*outputModelA, *outputModelB, topologyFilename);
 	}
 	else {
 		std::cerr << "Error: invalid --mode " << mode << std::endl;
@@ -346,6 +357,42 @@ int Compare::equ(
 	Model& outputA, Model& outputB)
 {	
 
+	// we test the maps
+	if (mapA.data != NULL || mapB.data != NULL){
+		if (mapA.data == NULL){
+			std::cout << "texture maps are not equal: mapA is null" << std::endl;
+		}
+		else if (mapB.data == NULL) {
+			std::cout << "texture maps are not equal: mapB is null" << std::endl;
+		}
+		else {
+			if (mapA.width != mapB.width || mapA.height != mapB.height) {
+				std::cout << "texture maps are not equal: dimensions are not equal" << std::endl;
+			}
+			else {
+				size_t diffs = 0;
+				for (size_t row = 0; row < mapA.height; ++row) {
+					for (size_t col = 0; col < mapA.width; ++col) {
+						glm::vec3 colA, colB;
+						mapA.fetchRGB(col, row, colA);
+						mapB.fetchRGB(col, row, colB);
+						if (colA != colB)
+							++diffs;
+					}
+				}
+				if (diffs != 0) {
+					std::cout << "texture maps are not equal: " << diffs << "pixel differences" << std::endl;
+				}
+				else {
+					std::cout << "texture maps are equal" << std::endl;
+				}
+			}
+		}
+	}
+	else {
+		std::cout << "skipping texture maps comparison" << std::endl;
+	}
+
 	if (inputA.triangles.size() != inputB.triangles.size()) {
 		std::cout << "meshes are not equal, number of triangles are different " << 
 			inputA.triangles.size() / 3 << " vs " << inputB.triangles.size() / 3 << std::endl;
@@ -357,7 +404,7 @@ int Compare::equ(
 
 		// prepare a store for face status 
 		// doundInB[true] if the nth face of B matches one face of A
-		std::vector<bool> foundInB(inputB.triangles.size() / 3, false);
+		std::vector<bool> foundInB(inputB.getTriangleCount(), false);
 
 		const bool hasColors = inputA.hasColors() && inputB.hasColors();
 		const bool hasUvCoords = inputA.hasUvCoords() && inputB.hasUvCoords();
@@ -397,9 +444,36 @@ int Compare::equ(
 		}
 		else {
 			std::cout << "meshes are not equal, " << diffs << " different triangles" << std::endl;
+			// provide more details on what is different at additional computation cost (request from Sony team)
+			size_t vertDiffs = std::abs( (long long)(inputA.getPositionCount() - inputB.getPositionCount()) );
+			for (size_t index = 0; index < std::min(inputA.getPositionCount(), inputB.getPositionCount()); ++index) {
+				if (inputA.fetchPosition(index) != inputB.fetchPosition(index))
+					++vertDiffs;
+			}
+			std::cout << "Position differences: " << vertDiffs << std::endl;
+			//
+			size_t uvDiffs = std::abs((long long)(inputA.getUvCount() - inputB.getUvCount()));
+			for (size_t index = 0; index < std::min(inputA.getUvCount(), inputB.getUvCount()); ++index) {
+				if (inputA.fetchUv(index) != inputB.fetchUv(index))
+					++uvDiffs;
+			}
+			std::cout << "UV coords differences: " << uvDiffs << std::endl;
+			//
+			size_t colorDiffs = std::abs((long long)(inputA.getColorCount() - inputB.getColorCount()));
+			for (size_t index = 0; index < std::min(inputA.getColorCount(), inputB.getColorCount()); ++index) {
+				if (inputA.fetchColor(index) != inputB.fetchColor(index))
+					++colorDiffs;
+			}
+			std::cout << "Colors differences: " << colorDiffs << std::endl;
+			//
+			size_t normalDiffs = std::abs((long long)(inputA.getNormalCount() - inputB.getNormalCount()));
+			for (size_t index = 0; index < std::min(inputA.getNormalCount(), inputB.getNormalCount()); ++index) {
+				if (inputA.fetchNormal(index) != inputB.fetchNormal(index))
+					++normalDiffs;
+			}
+			std::cout << "Normals differences: " << normalDiffs << std::endl;
 		}
 		return true;
-
 	}
 	// Point cloud mode, sort vertices then compare
 	else {
@@ -625,8 +699,18 @@ int Compare::pcc(
 	const Model& modelA, const Model& modelB,
 	const Image& mapA, const Image& mapB,
 	pcc_quality::commandPar& params,
-	Model& outputA, Model& outputB
+	Model& outputA, Model& outputB,
+	const std::string& topoMapFilenane
 ) {
+	// 0 - check topology if needed
+	if (topoMapFilenane.length() != 0) {
+		if(checkTopology(topoMapFilenane, modelA, modelB))
+		{
+			std::cout<<"Given the mapping in "<<topoMapFilenane<<" the topologies correspond to each other"<<std::endl;
+		} else {
+			std::cout<<"Given the mapping in "<<topoMapFilenane<<" the topologies DO NOT correspond to each other"<<std::endl;
+		}
+	}
 
 	// 1 - sample the models if needed
 	sampleIfNeeded(modelA, mapA, outputA);
@@ -749,8 +833,19 @@ int Compare::pcqm(
 	const double radiusCurvature,
 	const int thresholdKnnSearch,
 	const double radiusFactor,
-	Model& outputA, Model& outputB
+	Model& outputA, Model& outputB,
+	const std::string& topoMapFilenane
 ) {
+
+	// 0 - check topology if needed
+	if (topoMapFilenane.length() != 0) {
+		if(checkTopology(topoMapFilenane, modelA, modelB))
+		{
+			std::cout<<"Given the mapping in "<<topoMapFilenane<<" the topologies correspond to each other"<<std::endl;
+		} else {
+			std::cout<<"Given the mapping in "<<topoMapFilenane<<" the topologies DO NOT correspond to each other"<<std::endl;
+		}
+	}
 
 	// 1 - sample the models if needed
 	sampleIfNeeded(modelA, mapA, outputA);
@@ -808,4 +903,102 @@ void Compare::pcqmFinalize(void) {
 		
 	}
 
+}
+
+bool Compare::checkTopology(const std::string& topoMapFilenane, const Model& modelA, const Model& modelB) {
+	
+	// 1 - Test if number of triangles of output matches input number of triangles
+	if (modelA.getTriangleCount() != modelB.getTriangleCount()) {
+		std::cout << "Topologies are different: number of triangles differs (A=" << 
+			modelA.getTriangleCount() << ",B=" << modelB.getTriangleCount() << ").";
+		return false;
+	}
+
+	// 2 - parse the topomap and test bijection
+
+	// where to store the topo map,
+	// topoMap[dest face index] = source face index
+	std::vector< size_t > topoMap(modelA.getTriangleCount(), 0);
+	// did we already set one association for teh given index
+	std::vector< bool > visited(modelA.getTriangleCount(), false);
+
+	//
+	std::ifstream topoFile;
+	topoFile.open(topoMapFilenane.c_str(), std::ios::in);
+	if (!topoFile)
+	{
+		std::cerr << "Error: can't open topology mapping file " << topoMapFilenane << std::endl;
+		return false;
+	}
+	// file parsing
+	size_t lineNo=0;
+	std::string line;
+	std::getline(topoFile, line);
+	while (topoFile) {
+		// parse the line
+		std::istringstream in(line);
+		size_t faces[2]; 
+		for (size_t index = 0; index < 2; ++index) {
+			if (! (in >> faces[index]) ) {
+				std::cerr << "Error: " << topoMapFilenane << ":" << lineNo 
+					<< " missing face number " << index << std::endl;
+				return false;
+			}
+			if (faces[index] >= modelA.getTriangleCount()) {
+				std::cerr << "Error: " << topoMapFilenane << ":" << lineNo 
+					<< " face index out of range (faces[" << index << "]=" << faces[index]
+					<<") >= (modelA.getTriangleCount()=" << modelA.getTriangleCount() << ")" << std::endl;
+				return false;
+			}
+		}
+		if (visited[faces[0]]) {
+			std::cerr << "Error: " << topoMapFilenane << ":" << lineNo 
+				<< " modelB face " << faces[0] << " already associated with modelA face " << topoMap[faces[0]] << std::endl;
+			return false;
+		}
+		visited[faces[0]] = true;
+		topoMap[faces[0]] = faces[1];
+		// read next line
+		std::getline(topoFile, line);
+		lineNo++;
+	}
+	topoFile.close();
+
+	// we already know that modelA and modelA tri count are equal
+	// and that association map did not contain out of range indices
+	// and that each association was unique
+	// so just need to check that every entry has an association
+	bool bijective = true;
+	for (size_t index = 0; index < visited.size(); ++index) {
+		bijective = bijective && visited[index] == 1;
+	}
+	if (!bijective) {
+		std::cout << "Topologies are different: topology map is not bijective."<< std::endl;
+		return false;
+	}
+
+	// 3 - Test if each output triangle respects the orientation of its associated input triangle
+	// recall that modelA and modelB trianglecount are equals
+	// we want cosine of angle made by both normals to be positive
+	// Note:
+	// - our orientation check does not only rely on the topology indexes but also on the positions (together with their distortion)
+	// - are there cases where quantization might flip some faces ? Don't know.
+	// - this approach migh t not be fully robust, to be cross checked and discussed.
+	for (size_t triIdx = 0; triIdx < modelB.getTriangleCount(); ++triIdx) {
+		glm::vec3 av1, av2, av3, bv1, bv2, bv3;
+		modelA.fetchTriangleVertices(topoMap[triIdx], av1, av2, av3);
+		modelB.fetchTriangleVertices(triIdx, bv1, bv2, bv3);
+		glm::vec3 an, bn;
+		triangleNormal(av1, av2, av3, an);
+		triangleNormal(bv1, bv2, bv3, bn);
+		float dot = glm::dot(an, bn);
+		if ( dot < 0.0f ){
+			std::cout << "Topologies are different: orientations are not preserved ("<< dot <<" < 0.0)."<< std::endl;
+			std::cout << "Triangle["<<topoMap[triIdx]<<"] = [("<< av1[0] <<","<< av1[1] <<","<< av1[2] <<"),("<< av2[0] <<","<< av2[1] <<","<< av2[2] <<"),("<< av3[0] <<","<< av3[1] <<","<< av3[2] <<")] and normal ("<< an[0] <<","<< an[1] <<","<< an[2] <<")."<< std::endl;
+			std::cout << "Triangle["<<triIdx<<"] = [("<< bv1[0] <<","<< bv1[1] <<","<< bv1[2] <<"),("<< bv2[0] <<","<< bv2[1] <<","<< bv2[2] <<"),("<< bv3[0] <<","<< bv3[1] <<","<< bv3[2] <<")] and normal ("<< bn[0] <<","<< bn[1] <<","<< bn[2] <<")."<< std::endl;
+			return false;
+		};
+	}
+	//
+	return true;
 }

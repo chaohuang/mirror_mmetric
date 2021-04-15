@@ -1,11 +1,13 @@
 Processing frame 0
 Loading file: ./data/plane.obj
-Time on loading: 0.001 sec.
+Time on loading: 0 sec.
 Input model: ./data/plane.obj
   Vertices: 5
   UVs: 5
   Colors: 0
   Normals: 0
+  Triangles: 4
+  Trianglesuv: 4
 Quantizing
   qp = 8
   qt = 0
@@ -17,9 +19,6 @@ Computing positions range
   rangePos=10
   maxPositionQuantizedValue=255
   scale=0.0392156863
-Cleanup quantized mesh 
-Handled 7 duplicate vertices
-Generated 5 points
-Time on processing: 0.00800000038 sec.
+Time on processing: 0.00200000009 sec.
 Saving file: ./tmp/quantize_plane_qp8_qt0_qn0_qc0.obj
-Time on overall processing: 0.0160000008 sec.
+Time on overall processing: 0.00400000019 sec.

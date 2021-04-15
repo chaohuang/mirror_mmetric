@@ -115,7 +115,7 @@ mm.exe \
 # Command references
 
 ```
-3D model processing commands v0.1.7
+3D model processing commands v0.1.8
 Usage:
   mm.exe command [OPTION...]
 
@@ -157,10 +157,12 @@ Compare model A vs model B
 Usage:
   mm.exe compare [OPTION...]
 
-      --inputModelA arg   path to input model A (obj or ply file)
-      --inputModelB arg   path to input model B (obj or ply file)
-      --inputMapA arg     path to input texture map A (png, jpeg)
-      --inputMapB arg     path to input texture map B (png, jpeg)
+      --inputModelA arg   path to reference input model (obj or ply file)
+      --inputModelB arg   path to distorted input model (obj or ply file)
+      --inputMapA arg     path to reference input texture map (png, jpg, rgb,
+                          yuv)
+      --inputMapB arg     path to distorted input texture map (png, jpg, rgb,
+                          yuv)
       --outputModelA arg  path to output model A (obj or ply file)
       --outputModelB arg  path to output model B (obj or ply file)
       --mode arg          the comparison mode in [equ,pcc,pcqm] (default:
@@ -176,6 +178,11 @@ Usage:
                      true)
       --unoriented   If set, comparison will not consider faces orientation
                      for comparisons.
+
+ pcc and pcqm modes, near lossless options:
+      --topologyFile arg  path to the topology text file matching modelB
+                          topology to modelA topology. Setting option with non
+                          empty filename will activate the test.
 
  pcc mode options:
       --singlePass          Force running a single pass, where the loop is
@@ -333,7 +340,7 @@ Usage:
   mm.exe sample [OPTION...]
 
   -i, --inputModel arg   path to input model (obj or ply file)
-  -m, --inputMap arg     path to input texture map (png, jpeg)
+  -m, --inputMap arg     path to input texture map (png, jpg, rgb, yuv)
   -o, --outputModel arg  path to output model (obj or ply file)
       --mode arg         the sampling mode in [face,grid,map,sdiv,ediv]
       --hideProgress     hide progress display in console for use by robot

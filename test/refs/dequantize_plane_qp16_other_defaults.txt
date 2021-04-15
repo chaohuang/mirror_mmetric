@@ -1,11 +1,13 @@
 Processing frame 0
 Loading file: ./tmp/quantize_plane_qp16_other_defaults.obj
-Time on loading: 0.001 sec.
+Time on loading: 0.00100000005 sec.
 Input model: ./tmp/quantize_plane_qp16_other_defaults.obj
   Vertices: 5
   UVs: 5
   Colors: 0
   Normals: 0
+  Triangles: 4
+  Trianglesuv: 4
 De-quantizing
   qp = 16
   qt = 12
@@ -15,10 +17,10 @@ De-quantizing
   maxPos="5 5 0"
   rangePos=10
   maxQuantizedValue=65535
-  scale=0.00015259
+  scale=0.000152590219
   minUv="0 0"
   maxUv="1 1"
   rangeUv=1
 Time on processing: 0 sec.
 Saving file: ./tmp/dequantize_plane_qp16_other_defaults.obj
-Time on overall processing: 0.008 sec.
+Time on overall processing: 0.00300000003 sec.

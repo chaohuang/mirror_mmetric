@@ -275,7 +275,7 @@ void Quantize::quantize(
 )
 {
 	// copy the input
-	Model tmpModel = input;
+	output = input;
 
 	// prepare logging and output var
 	std::vector<std::ostream*> out;
@@ -341,7 +341,7 @@ void Quantize::quantize(
 		for (size_t i = 0; i < input.vertices.size() / 3; i++) {
 			for (glm::vec3::length_type c = 0; c < 3; ++c) {
 				uint32_t pos = static_cast<uint32_t> (std::floor(((double(input.vertices[i * 3 + c] - minBox[c])) / scale) + 0.5f));
-				tmpModel.vertices[i * 3 + c] = static_cast<float> (pos);
+				output.vertices[i * 3 + c] = static_cast<float> (pos);
 			}
 		}
 	}
@@ -372,7 +372,7 @@ void Quantize::quantize(
 		for (size_t i = 0; i < input.uvcoords.size() / 2; i++) {
 			for (glm::vec2::length_type c = 0; c < 2; ++c) {
 				uint32_t uv = static_cast<uint32_t> (std::floor(((input.uvcoords[i * 2 + c] - minBox[c]) / range) * maxUVcordQuantizedValue + 0.5f));
-				tmpModel.uvcoords[i * 2 + c] = static_cast<float> (uv);
+				output.uvcoords[i * 2 + c] = static_cast<float> (uv);
 			}
 		}
 	}
@@ -403,7 +403,7 @@ void Quantize::quantize(
 		for (size_t i = 0; i < input.normals.size() / 3; i++) {
 			for (glm::vec3::length_type c = 0; c < 3; ++c) {
 				uint32_t nrm = static_cast<uint32_t> (std::floor(((input.normals[i * 3 + c] - minBox[c]) / range) * maxNormalQuantizedValue + 0.5f));
-				tmpModel.normals[i * 3 + c] = static_cast<float> (nrm);
+				output.normals[i * 3 + c] = static_cast<float> (nrm);
 			}
 		}
 	}
@@ -423,7 +423,7 @@ void Quantize::quantize(
 		}
 		const glm::vec3 diag = maxBox - minBox;
 		const float range = std::max(std::max(diag.x, diag.y), diag.z);
-		const int32_t maxColorQuantizedValue = (1u << static_cast<uint32_t>(qn)) - 1;
+		const int32_t maxColorQuantizedValue = (1u << static_cast<uint32_t>(qc)) - 1;
 
 		for (size_t i = 0; i < out.size(); ++i) {
 			*out[i] << "  minCol=\"" << minBox.x << " " << minBox.y << " " << minBox.z << "\"" << std::endl;
@@ -434,55 +434,9 @@ void Quantize::quantize(
 		for (size_t i = 0; i < input.colors.size() / 3; i++) {
 			for (glm::vec3::length_type c = 0; c < 3; ++c) {
 				uint32_t col = static_cast<uint32_t> (std::floor(((input.colors[i * 3 + c] - minBox[c]) / range) * maxColorQuantizedValue + 0.5f));
-				tmpModel.colors[i * 3 + c] = static_cast<float> (col);
+				output.colors[i * 3 + c] = static_cast<float> (col);
 			}
 		}
 	}
-
-	// not a mesh we do not need to cleanup
-	// copy is not optimal, shall better use pointers at the begining of the func
-	if (tmpModel.triangles.size() == 0) {
-		output = tmpModel;
-		return;
-	}
-
-	// remove degenerate triangles, and use common index for all attributes
-	std::cout << "Cleanup quantized mesh " << std::endl;
-
-	// preserve materials or other infos
-	output.comments = tmpModel.comments;
-	output.header = tmpModel.header;
-
-	// to prevent storing duplicate points, we use a ModelBuilder
-	ModelBuilder builder(output);
-
-	size_t skipped = 0; // number of degenerate triangles
-
-	// For each triangle
-	for (size_t triIdx = 0; triIdx < tmpModel.triangles.size() / 3; ++triIdx) {
-
-		Vertex v1, v2, v3;
-
-		fetchTriangle(tmpModel, triIdx,
-			input.uvcoords.size() != 0,
-			input.colors.size() != 0,
-			input.normals.size() != 0,
-			v1, v2, v3);
-
-		// check if triangle is not degenerate
-		if (triangleArea(v1.pos, v2.pos, v3.pos) < DBL_EPSILON) {
-			++skipped;
-			continue;
-		}
-
-		// add triangle to output and reindex
-		builder.pushTriangle(v1, v2, v3);
-
-	}
-
-	if (skipped != 0)
-		std::cout << "Skipped " << skipped << " degenerate triangles" << std::endl;
-	if (builder.foundCount != 0)
-		std::cout << "Handled " << builder.foundCount << " duplicate vertices" << std::endl;
-	std::cout << "Generated " << output.vertices.size() / 3 << " points" << std::endl;
+	
 }
