@@ -5,100 +5,109 @@
 source config.sh
 
 # compare pcc
-
 OUT=compare_pcc_plane
-$CMD compare --mode pcc --inputModelA ${DATA}/plane.obj --inputModelB ${DATA}/plane.obj \
-	--inputMapA ${DATA}/plane.png --inputMapB ${DATA}/plane.png > ${TMP}/${OUT}.txt 2>&1
-fileHasString ${TMP}/${OUT}.txt "mseF,PSNR (p2plane): inf" 1
+if [ "$1" == "" ] || [ "$1" == "ext" ] ||  [ "$1" == "$OUT" ]; then
+	echo $OUT
+	$CMD compare --mode pcc --inputModelA ${DATA}/plane.obj --inputModelB ${DATA}/plane.obj \
+		--inputMapA ${DATA}/plane.png --inputMapB ${DATA}/plane.png > ${TMP}/${OUT}.txt 2>&1
+	grep -iF "error" ${TMP}/${OUT}.txt
+	fileHasString ${TMP}/${OUT}.txt "mseF,PSNR (p2plane): inf" 1
+fi
 
 # no map, no color
 OUT=compare_pcc_sphere_qp8
-$CMD compare --mode pcc --inputModelA ${DATA}/sphere.obj --inputModelB ${DATA}/sphere_qp8.obj > ${TMP}/${OUT}.txt 2>&1
-fileHasString ${TMP}/${OUT}.txt "mseF,PSNR (p2plane): 66.4" 1
+if [ "$1" == "" ] || [ "$1" == "ext" ] ||  [ "$1" == "$OUT" ]; then
+	echo $OUT
+	$CMD compare --mode pcc --inputModelA ${DATA}/sphere.obj --inputModelB ${DATA}/sphere_qp8.obj > ${TMP}/${OUT}.txt 2>&1
+	grep -iF "error" ${TMP}/${OUT}.txt
+	fileHasString ${TMP}/${OUT}.txt "mseF,PSNR (p2plane): 66.4" 1
+fi
 
-# external dataset
-if [ "$1" == "ext" ]; 
-then
+####
+# extended tests
 
-	OUT=compare_pcc_basket_self
+OUT=compare_pcc_basket_self
+if [ "$1" == "ext" ] || [ "$1" == "$OUT" ]; then
+	echo $OUT
 	$CMD compare --mode pcc \
-		--inputModelA ${EXTDATA}/basketball_player_00000001.obj --inputMapA  ${EXTDATA}/basketball_player_00000001.png \
-		--inputModelB ${EXTDATA}/basketball_player_00000001.obj --inputMapB  ${EXTDATA}/basketball_player_00000001.png > ${TMP}/${OUT}.txt 2>&1
+		--inputModelA ${DATA}/basketball_player_00000001.obj --inputMapA  ${DATA}/basketball_player_00000001.png \
+		--inputModelB ${DATA}/basketball_player_00000001.obj --inputMapB  ${DATA}/basketball_player_00000001.png > ${TMP}/${OUT}.txt 2>&1
+	grep -iF "error" ${TMP}/${OUT}.txt
 	fileHasString ${TMP}/${OUT}.txt "mseF,PSNR (p2plane): inf" 1
 	fileHasString ${TMP}/${OUT}.txt "c\[0\],PSNRF         : inf" 1
-
-	OUT=compare_pcc_basket_qp8_self
+fi
+	
+OUT=compare_pcc_basket_qp8_self
+if [ "$1" == "ext" ] || [ "$1" == "$OUT" ]; then
+	echo $OUT
 	$CMD compare --mode pcc \
-		--inputModelA ${DATA}/basketball_player_00000001_qp8_orig.obj --inputMapA  ${EXTDATA}/basketball_player_00000001.png \
-		--inputModelB ${DATA}/basketball_player_00000001_qp8_orig.obj --inputMapB  ${EXTDATA}/basketball_player_00000001.png \
+		--inputModelA ${TMPDATA}/basketball_player_00000001_qp8.obj --inputMapA  ${DATA}/basketball_player_00000001.png \
+		--inputModelB ${TMPDATA}/basketball_player_00000001_qp8.obj --inputMapB  ${DATA}/basketball_player_00000001.png \
 		--outputModelA ${TMP}/${OUT}_A.ply --outputModelB ${TMP}/${OUT}_B.ply > ${TMP}/${OUT}.txt 2>&1
+	grep -iF "error" ${TMP}/${OUT}.txt
 	fileHasString ${TMP}/${OUT}.txt "mseF,PSNR (p2plane): inf" 1
 	fileHasString ${TMP}/${OUT}.txt "c\[0\],PSNRF         : inf" 1
+fi
 
-	OUT=compare_pcc_basket_qp8_self_presampled
+OUT=compare_pcc_basket_qp8_self_presampled
+if [ "$1" == "ext" ] || [ "$1" == "$OUT" ]; then
+	echo $OUT
 	$CMD compare --mode pcc \
 		--inputModelA ${TMP}/compare_pcc_basket_qp8_self_A.ply \
 		--inputModelB ${TMP}/compare_pcc_basket_qp8_self_B.ply > ${TMP}/${OUT}.txt 2>&1
+	grep -iF "error" ${TMP}/${OUT}.txt
 	fileHasString ${TMP}/${OUT}.txt "mseF,PSNR (p2plane): inf" 1
 	fileHasString ${TMP}/${OUT}.txt "c\[0\],PSNRF         : inf" 1
+fi
 
-	OUT=compare_pcc_basket_qp8_orig
+OUT=compare_pcc_basket_qp8
+if [ "$1" == "ext" ] || [ "$1" == "$OUT" ]; then
+	echo $OUT
 	$CMD compare --mode pcc \
-		--inputModelA ${EXTDATA}/basketball_player_00000001.obj --inputMapA  ${EXTDATA}/basketball_player_00000001.png \
-		--inputModelB ${DATA}/basketball_player_00000001_qp8_orig.obj --inputMapB  ${EXTDATA}/basketball_player_00000001.png \
+		--inputModelA ${DATA}/basketball_player_00000001.obj --inputMapA  ${DATA}/basketball_player_00000001.png \
+		--inputModelB ${TMPDATA}/basketball_player_00000001_qp8.obj --inputMapB  ${DATA}/basketball_player_00000001.png \
 		> ${TMP}/${OUT}.txt 2>&1
+	grep -iF "error" ${TMP}/${OUT}.txt
+	fileHasString ${TMP}/${OUT}.txt "mseF,PSNR (p2plane): 67.6" 1
+	fileHasString ${TMP}/${OUT}.txt "c\[0\],PSNRF         : 32.2" 1
+fi
+
+OUT=compare_pcc_basket_qp8_hole
+if [ "$1" == "ext" ] || [ "$1" == "$OUT" ]; then
+	echo $OUT
+	$CMD compare --mode pcc \
+		--inputModelA ${DATA}/basketball_player_00000001.obj --inputMapA  ${DATA}/basketball_player_00000001.png \
+		--inputModelB ${DATA}/basketball_player_00000001_qp8_hole.obj --inputMapB  ${DATA}/basketball_player_00000001.png \
+		> ${TMP}/${OUT}.txt 2>&1
+	grep -iF "error" ${TMP}/${OUT}.txt
 	fileHasString ${TMP}/${OUT}.txt "mseF,PSNR (p2plane): 67.6" 1
 	fileHasString ${TMP}/${OUT}.txt "c\[0\],PSNRF         : 31.9" 1
+fi
 
-	OUT=compare_pcc_basket_qp8_hole
+OUT=compare_pcc_basket_qp16_nomap
+if [ "$1" == "ext" ] || [ "$1" == "$OUT" ]; then
+	echo $OUT
 	$CMD compare --mode pcc \
-		--inputModelA ${EXTDATA}/basketball_player_00000001.obj --inputMapA  ${EXTDATA}/basketball_player_00000001.png \
-		--inputModelB ${DATA}/basketball_player_00000001_qp8_hole.obj --inputMapB  ${EXTDATA}/basketball_player_00000001.png \
-		> ${TMP}/${OUT}.txt 2>&1
-	fileHasString ${TMP}/${OUT}.txt "mseF,PSNR (p2plane): 67.6" 1
-	fileHasString ${TMP}/${OUT}.txt "c\[0\],PSNRF         : 31.9" 1
-
-	OUT=compare_pcc_basket_qp16_self
-	$CMD compare --mode pcc \
-		--inputModelA ${DATA}/basketball_player_00000001_qp16.obj --inputMapA  ${EXTDATA}/basketball_player_00000001.png \
-		--inputModelB ${DATA}/basketball_player_00000001_qp16.obj --inputMapB  ${EXTDATA}/basketball_player_00000001.png  > ${TMP}/${OUT}.txt 2>&1
-	fileHasString ${TMP}/${OUT}.txt "mseF,PSNR (p2plane): inf" 1
-	fileHasString ${TMP}/${OUT}.txt "c\[0\],PSNRF         : inf" 1	
-
-	OUT=compare_pcc_basket_qp16
-	$CMD compare --mode pcc \
-		--inputModelA ${EXTDATA}/basketball_player_00000001.obj --inputMapA  ${EXTDATA}/basketball_player_00000001.png \
-		--inputModelB ${DATA}/basketball_player_00000001_qp16.obj --inputMapB  ${EXTDATA}/basketball_player_00000001.png  > ${TMP}/${OUT}.txt 2>&1
+		--inputModelA ${DATA}/basketball_player_00000001.obj  \
+		--inputModelB ${TMPDATA}/basketball_player_00000001_qp16.obj  > ${TMP}/${OUT}.txt 2>&1
+	grep -iF "error" ${TMP}/${OUT}.txt
 	fileHasString ${TMP}/${OUT}.txt "mseF,PSNR (p2plane): 115.3" 1
-	fileHasString ${TMP}/${OUT}.txt "c\[0\],PSNRF         : 38.1" 1	
+fi
 
-	OUT=compare_pcc_basket_qp16_nomap
-	$CMD compare --mode pcc \
-		--inputModelA ${EXTDATA}/basketball_player_00000001.obj  \
-		--inputModelB ${DATA}/basketball_player_00000001_qp16.obj  > ${TMP}/${OUT}.txt 2>&1
-	fileHasString ${TMP}/${OUT}.txt "mseF,PSNR (p2plane): 115.3" 1
-
-	# test sequence mode with self
-	OUT=compare_pcc_longdress_1K_seq
-	$CMD sequence --firstFrame 1051 --lastFrame 1053 END \
+OUT=compare_pcc_basket_qp16_seq
+if [ "$1" == "ext" ] || [ "$1" == "$OUT" ]; then
+	echo $OUT
+	$CMD sequence --firstFrame 1 --lastFrame 3 END \
 		compare --mode pcc  \
-		--inputModelA ${EXTDATA}/longdress_vox10_%4d_poisson40k_uv_map.obj \
-		--inputMapA  ${EXTDATA}/longdress_vox10_%4d_poisson40k_uv_map.png \
-		--inputModelB ${EXTDATA}/longdress_vox10_%4d_poisson40k_uv_map.obj \
-		--inputMapB  ${EXTDATA}/longdress_vox10_%4d_poisson40k_uv_map.png \
+		--inputModelA ${DATA}/basketball_player_0000000%1d.obj \
+		--inputMapA  ${DATA}/basketball_player_0000000%1d.png \
+		--inputModelB ${TMPDATA}/basketball_player_0000000%1d_qp16.obj \
+		--inputMapB  ${DATA}/basketball_player_0000000%1d.png \
 		 > ${TMP}/${OUT}.txt 2>&1
 	grep -iF "error" ${TMP}/${OUT}.txt
-
-	OUT=compare_pcc_longdress_near_lossless
-	$CMD  \
-		compare --mode pcc  \
-		--inputModelA ${EXTDATA}/longdress_fr1051.obj \
-		--inputMapA  ${EXTDATA}/longdress_fr1051.png \
-		--inputModelB ${EXTDATA}/longdress_fr1051_tfan.obj \
-		--inputMapB  ${EXTDATA}/longdress_fr1051.png \
-		--topologyFile ${EXTDATA}/longdress_fr1051_tfan_topo.txt \
-		 > ${TMP}/${OUT}.txt 2>&1
-	grep -iF "error" ${TMP}/${OUT}.txt
+	# following p2plane line will work on Linux but not windows that leads to 115
+	fileHasString ${TMP}/${OUT}.txt "mseF, PSNR(p2plane) Mean=114.97" 1
+	fileHasString ${TMP}/${OUT}.txt "c\[0\],PSNRF          Mean=69.70" 1	
 fi
 
 # EOF

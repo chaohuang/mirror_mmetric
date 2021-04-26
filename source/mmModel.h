@@ -47,6 +47,18 @@ public:
 	
 	Model() {}
 
+	// purge everything
+	inline void reset(void) {
+		header = ""; 
+		comments.clear();
+		vertices.clear();
+		uvcoords.clear();
+		normals.clear();
+		faceNormals.clear();
+		triangles.clear();
+		trianglesuv.clear();
+	}
+
 	// a model that has at least vertices but no topology
 	bool isPointCloud(void) const { return hasVertices() && !hasTriangles(); }
 	// a model that has at least vertices and a topology

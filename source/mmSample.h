@@ -27,11 +27,13 @@
 class Sample : Command {
 
 private:
-
+	// the context for frame access
+	Context* _context;
 	// the command options
 	std::string inputModelFilename;
 	std::string inputTextureFilename;
 	std::string outputModelFilename;
+	std::string _outputCsvFilename;
 	bool hideProgress = false;
 	// the type of processing
 	std::string mode = "face";
@@ -47,7 +49,11 @@ private:
 	// Edge subdiv options (0.0 mean use resolution)
 	float lengthThreshold = 0.0F;
 	// Edge and Face options
-	size_t resolution = 1024;
+	size_t _resolution = 1024;
+	// sample count constrained sampling
+	size_t _nbSamplesMin = 0;
+	size_t _nbSamplesMax = 0;
+	size_t _maxIterations = 10;
 
 public:
 
@@ -65,23 +71,53 @@ public:
 	virtual bool finalize() { return true; }
 
 	// sample the mesh on a face basis
-	static void meshToPcFace(const Model& input, Model& output,	const Image& tex_map, 
+	static void meshToPcFace(const Model& input, Model& output, const Image& tex_map,
 		size_t resolution, float thickness, bool bilinear, bool logProgress);
 
-	// will sample the mesh on a grid basis of resolution gridRes, result will be generated as float or integer
-	static void meshToPcGrid(const Model& input, Model& output,	const Image& tex_map, 
+	// sample the mesh on a face basis
+	// system will search the resolution according to the nbSamplesMin and nbSamplesMax parameters
+	// costly method, shall be used only for calibration
+	static void meshToPcFace(
+		const Model& input, Model& output, const Image& tex_map,
+		size_t nbSamplesMin, size_t nbSamplesMax, size_t maxIterations,
+		float thickness, bool bilinear, bool logProgress, size_t &computedResolution);
+
+	// will sample the mesh on a grid basis of resolution gridRes
+	static void meshToPcGrid(const Model& input, Model& output, const Image& tex_map,
 		size_t gridSize, bool bilinear, bool logProgress);
+
+	// will sample the mesh on a grid basis of resolution gridRes, result will be generated as float or integer
+	// system will search the resolution according to the nbSamplesMin and nbSamplesMax parameters
+	// costly method, shall be used only for calibration
+	static void meshToPcGrid(
+		const Model& input, Model& output, const Image& tex_map,
+		size_t nbSamplesMin, size_t nbSamplesMax, size_t maxIterations,
+		bool bilinear, bool logProgress, size_t& computedResolution);
 
 	// revert sampling, guided by texture map
 	static void meshToPcMap(const Model& input, Model& output, const Image& tex_map, bool logProgress);
 
 	// triangle dubdivision based, area stop criterion
-	static void meshToPcDiv(const Model& input, Model& output, const Image& tex_map, 
+	static void meshToPcDiv(const Model& input, Model& output, const Image& tex_map,
 		float areaThreshold, bool mapThreshold, bool bilinear, bool logProgress);
+
+	// triangle dubdivision based, area stop criterion
+	// system will search the resolution according to the nbSamplesMin and nbSamplesMax parameters
+	// costly method, shall be used only for calibration
+	static void meshToPcDiv(const Model& input, Model& output, const Image& tex_map,
+		size_t nbSamplesMin, size_t nbSamplesMax, size_t maxIterations,
+		bool bilinear, bool logProgress, float& computedThres);
 
 	// triangle dubdivision based, edge stop criterion
 	static void meshToPcDivEdge(const Model& input, Model& output, const Image& tex_map,
-		float lengthThreshold, size_t resolution, bool bilinear, bool logProgress);
+		float lengthThreshold, size_t resolution, bool bilinear, bool logProgress, float& computedThres);
+
+	// triangle dubdivision based, edge stop criterion
+	// system will search the resolution according to the nbSamplesMin and nbSamplesMax parameters
+	// costly method, shall be used only for calibration
+	static void meshToPcDivEdge(const Model& input, Model& output, const Image& tex_map,
+		size_t nbSamplesMin, size_t nbSamplesMax, size_t maxIterations,
+		bool bilinear, bool logProgress, float& computedThres);
 };
 
 #endif

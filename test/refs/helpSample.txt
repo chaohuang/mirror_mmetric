@@ -7,6 +7,8 @@ Usage:
   -o, --outputModel arg  path to output model (obj or ply file)
       --mode arg         the sampling mode in [face,grid,map,sdiv,ediv]
       --hideProgress     hide progress display in console for use by robot
+      --outputCsv arg    filename of the file where per frame statistics will
+                         append. (default: )
   -h, --help             Print usage
 
  ediv mode options:
@@ -31,8 +33,18 @@ Usage:
                       (default: 1024)
 
  grid, face, sdiv and ediv modes. options:
-      --bilinear  if set, texture filtering will be bilinear, nearest
-                  otherwise
+      --bilinear           if set, texture filtering will be bilinear,
+                           nearest otherwise
+      --nbSamplesMin arg   if set different from 0, the system will rerun the
+                           sampling multiple times to find the best parameter
+                           producing a number of samples in [nbAmplesMin,
+                           nbSamplesMax]. This process is very time comsuming.
+                           (default: 0)
+      --nbSamplesMax arg   see --nbSampleMin documentation. Must be > to
+                           --nbSamleMin. (default: 0)
+      --maxIterations arg  Maximum number of iterations in sample count
+                           constrained sampling, i.e. when --nbSampleMin > 0.
+                           (default: 10)
 
  sdiv mode options:
       --areaThreshold arg  face area limit to stop subdivision (default: 1.0)

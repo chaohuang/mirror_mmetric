@@ -69,7 +69,7 @@ bool Compare::initialize(Context* context, std::string app, int argc, char* argv
 				cxxopts::value<std::string>())
 			("outputModelB", "path to output model B (obj or ply file)",
 				cxxopts::value<std::string>())
-			("mode", "the comparison mode in [equ,pcc,pcqm]",
+			("mode", "the comparison mode in [equ,pcc,pcqm,topo]",
 				cxxopts::value<std::string>()->default_value("equ"))
 			("h,help", "Print usage")
 			;
@@ -80,6 +80,12 @@ bool Compare::initialize(Context* context, std::string app, int argc, char* argv
 				cxxopts::value<bool>()->default_value("true"))
 			("unoriented", "If set, comparison will not consider faces orientation for comparisons.",
 				cxxopts::value<bool>()->default_value("false"))
+			;
+		options.add_options("topo mode")
+			("faceMapFile", "path to the topology text file matching modelB topology (face) to modelA topology (face).",
+				cxxopts::value<std::string>())
+			("vertexMapFile", "path to the topology text file matching modelB topology (vertex) to modelA topology (vertex).",
+				cxxopts::value<std::string>())
 			;
 		options.add_options("pcc mode")
 			("singlePass", "Force running a single pass, where the loop is over the original point cloud",
@@ -104,11 +110,6 @@ bool Compare::initialize(Context* context, std::string app, int argc, char* argv
 				cxxopts::value<int>()->default_value("20"))
 			("radiusFactor", "Set a radius factor for the statistic computation.",
 				cxxopts::value<double>()->default_value("2.0"))
-
-			;
-		options.add_options("pcc and pcqm modes, near lossless")
-			("topologyFile", "path to the topology text file matching modelB topology to modelA topology. Setting option with non empty filename will activate the test.",
-				cxxopts::value<std::string>())
 			;
 
 		auto result = options.parse(argc, argv);
@@ -135,20 +136,25 @@ bool Compare::initialize(Context* context, std::string app, int argc, char* argv
 			std::cout << options.help() << std::endl;
 			return false;
 		}
-		// Optional
+		// mode in equ,pcc,pcqm,topo. defaults to equ
+		if (result.count("mode")){
+			mode = result["mode"].as<std::string>();
+			if (mode != "equ" && mode != "pcc" && mode != "pcqm" && mode != "topo") {
+				std::cerr << "Error: invalid --mode \"" << mode << "\"" << std::endl;
+				return false;
+			}
+		}
+		// Optional input texture maps
 		if (result.count("inputMapA"))
 			inputTextureAFilename = result["inputMapA"].as<std::string>();
-		// Optional
 		if (result.count("inputMapB"))
 			inputTextureBFilename = result["inputMapB"].as<std::string>();
+
 		// Optional
 		if (result.count("outputModelA"))
 			outputModelAFilename = result["outputModelA"].as<std::string>();
 		if (result.count("outputModelB"))
 			outputModelBFilename = result["outputModelB"].as<std::string>();
-		//
-		if (result.count("mode"))
-			mode = result["mode"].as<std::string>();
 		// eq
 		if (result.count("epsilon"))
 			epsilon = result["epsilon"].as<float>();
@@ -178,10 +184,11 @@ bool Compare::initialize(Context* context, std::string app, int argc, char* argv
 			thresholdKnnSearch = result["thresholdKnnSearch"].as<int>();
 		if (result.count("radiusFactor"))
 			radiusFactor = result["radiusFactor"].as<double>();
-		// common to PCC and PCQM
-		if (result.count("topologyFile"))
-			topologyFilename = result["topologyFile"].as<string>();
-
+		// topo
+		if (result.count("faceMapFile"))
+			faceMapFilename = result["faceMapFile"].as<string>();
+		if (result.count("vertexMapFile"))
+			vertexMapFilename = result["vertexMapFile"].as<string>();
 	}
 	catch (const cxxopts::OptionException& e)
 	{
@@ -251,9 +258,18 @@ bool Compare::process(uint32_t frame) {
 			epsilon, earlyReturn, unoriented,
 			*outputModelA, *outputModelB);
 	}
+	else if (mode == "topo") {
+		std::cout << "Compare models topology for equivalence" << std::endl;
+		std::cout << "  faceMapFile = " << faceMapFilename << std::endl;
+		std::cout << "  vertexMapFile = " << vertexMapFilename << std::endl;
+		res = Compare::topo(
+			*inputModelA, *inputModelB, 
+			faceMapFilename, vertexMapFilename);
+	}
 	else if (mode == "pcc") {
 		std::cout << "Compare models using MPEG PCC distortion metric" << std::endl;
-		std::cout << "  topologyFile = " << topologyFilename << std::endl;
+		std::cout << "  faceMapFile = " << faceMapFilename << std::endl;
+		std::cout << "  vertexMapFile = " << vertexMapFilename << std::endl;
 		std::cout << "  singlePass = " << params.singlePass << std::endl;
 		std::cout << "  hausdorff = " << params.hausdorff << std::endl;
 		std::cout << "  color = " << params.bColor << std::endl;
@@ -264,11 +280,12 @@ bool Compare::process(uint32_t frame) {
 		res = Compare::pcc(
 			*inputModelA, *inputModelB,
 			*textureMapA, *textureMapB, params,
-			*outputModelA, *outputModelB, topologyFilename);
+			*outputModelA, *outputModelB);
 	}
 	else if (mode == "pcqm") {
 		std::cout << "Compare models using PCQM distortion metric" << std::endl;
-		std::cout << "  topologyFile = " << topologyFilename << std::endl;
+		std::cout << "  faceMapFile = " << faceMapFilename << std::endl;
+		std::cout << "  vertexMapFile = " << vertexMapFilename << std::endl;
 		std::cout << "  radiusCurvature = " << radiusCurvature << std::endl;
 		std::cout << "  thresholdKnnSearch = " << thresholdKnnSearch << std::endl;
 		std::cout << "  radiusFactor = " << radiusFactor << std::endl;
@@ -278,7 +295,7 @@ bool Compare::process(uint32_t frame) {
 			radiusCurvature,
 			thresholdKnnSearch,
 			radiusFactor,
-			*outputModelA, *outputModelB, topologyFilename);
+			*outputModelA, *outputModelB);
 	}
 	else {
 		std::cerr << "Error: invalid --mode " << mode << std::endl;
@@ -292,10 +309,16 @@ bool Compare::process(uint32_t frame) {
 		if (!IO::saveModel(outputModelAFilename, outputModelA))
 			return false;
 	}
+	else {
+		delete outputModelA;
+	}
 	// save the result
 	if (outputModelBFilename != "") {
 		if (!IO::saveModel(outputModelBFilename, outputModelB))
 			return false;
+	}
+	else {
+		delete outputModelB;
 	}
 	// success
 	std::cout << "return " << res << std::endl;
@@ -305,18 +328,12 @@ bool Compare::process(uint32_t frame) {
 bool Compare::finalize() {
 
 	// Collect the statistics
-	if (mode == "equ") {
-		// nothing to do
-	}
-	else if (mode == "pcc") {
+	if (mode == "pcc") {
 		pccFinalize();
 	}
-	else if (mode == "pcqm") {
+	
+	if (mode == "pcqm") {
 		pcqmFinalize();
-	}
-	else {
-		std::cerr << "Error: invalid --mode " << mode << std::endl;
-		return false;
 	}
 
 	return true;
@@ -545,6 +562,163 @@ int Compare::equ(
 	}
 }
 
+int  Compare::topo(
+	const Model& modelA, const Model& modelB,
+	const std::string& faceMapFilenane,
+	const std::string& vertexMapFilenane)
+{
+	// 1 - Test if number of triangles of output matches input number of triangles
+	if (modelA.getTriangleCount() != modelB.getTriangleCount()) {
+		std::cout << "Topologies are different: number of triangles differs (A=" <<
+			modelA.getTriangleCount() << ",B=" << modelB.getTriangleCount() << ").";
+		return false;
+	}
+
+	// 2 - parse the face map and test bijection
+
+	// where to store the face map,
+	// faceMap[dest face index] = source face index
+	std::vector< size_t > faceMap(modelA.getTriangleCount(), 0);
+	// did we already set one association for the given index
+	std::vector< bool > visitedFace(modelA.getTriangleCount(), false);
+	std::ifstream faceFile;
+	faceFile.open(faceMapFilename.c_str(), std::ios::in);
+	if (!faceFile)
+	{
+		std::cerr << "Error: can't open topology face mapping file " << faceMapFilename << std::endl;
+		return false;
+	}
+	// file parsing
+	size_t lineNo = 0;
+	std::string line;
+	std::getline(faceFile, line);
+	while (faceFile) {
+		// parse the line
+		std::istringstream in(line);
+		size_t faces[2];
+		for (size_t index = 0; index < 2; ++index) {
+			if (!(in >> faces[index])) {
+				std::cerr << "Error: " << faceMapFilename << ":" << lineNo
+					<< " missing face number " << index << std::endl;
+				return false;
+			}
+			if (faces[index] >= modelA.getTriangleCount()) {
+				std::cerr << "Error: " << faceMapFilename << ":" << lineNo
+					<< " face index out of range (faces[" << index << "]=" << faces[index]
+					<< ") >= (modelA.getTriangleCount()=" << modelA.getTriangleCount() << ")" << std::endl;
+				return false;
+			}
+		}
+		if (visitedFace[faces[0]]) {
+			std::cerr << "Error: " << faceMapFilename << ":" << lineNo
+				<< " modelB face " << faces[0] << " already associated with modelA face " << faceMap[faces[0]] << std::endl;
+			return false;
+		}
+		visitedFace[faces[0]] = true;
+		faceMap[faces[0]] = faces[1];
+		// read next line
+		std::getline(faceFile, line);
+		lineNo++;
+	}
+	faceFile.close();
+
+	// we already know that modelA and modelA tri count are equal
+	// and that association map did not contain out of range indices
+	// and that each association was unique
+	// so just need to check that every entry has an association
+	bool bijective = true;
+	for (size_t index = 0; index < visitedFace.size(); ++index) {
+		bijective = bijective && visitedFace[index] == 1;
+	}
+	if (!bijective) {
+		std::cout << "Topologies are different: topology face map is not bijective." << std::endl;
+		return false;
+	}
+
+	// 3 - parse the vertex map and test bijection
+
+	// where to store the face map,
+	// faceMap[dest face index] = source face index
+	std::vector< size_t > vertexMap(modelA.getPositionCount(), 0);
+	// did we already set one association for the given index
+	std::vector< bool > visitedVertex(modelA.getPositionCount(), false);
+	std::ifstream vertexFile;
+	vertexFile.open(vertexMapFilename.c_str(), std::ios::in);
+	if (!vertexFile)
+	{
+		std::cerr << "Error: can't open topology vertex mapping file " << vertexMapFilename << std::endl;
+		return false;
+	}
+	// file parsing
+	lineNo = 0;
+	std::getline(vertexFile, line);
+	while (vertexFile) {
+		// parse the line
+		std::istringstream in(line);
+		size_t vertex[2];
+		for (size_t index = 0; index < 2; ++index) {
+			if (!(in >> vertex[index])) {
+				std::cerr << "Error: " << vertexMapFilename << ":" << lineNo
+					<< " missing vertex number " << index << std::endl;
+				return false;
+			}
+			if (vertex[index] >= modelA.getPositionCount()) {
+				std::cerr << "Error: " << vertexMapFilename << ":" << lineNo
+					<< " vertex index out of range (vertex[" << index << "]=" << vertex[index]
+					<< ") >= (modelA.getPositionCount()=" << modelA.getPositionCount() << ")" << std::endl;
+				return false;
+			}
+		}
+		if (visitedVertex[vertex[0]]) {
+			std::cerr << "Error: " << vertexMapFilename << ":" << lineNo
+				<< " modelB vertex " << vertex[0] << " already associated with modelA vertex " << vertexMap[vertex[0]] << std::endl;
+			return false;
+		}
+		visitedVertex[vertex[0]] = true;
+		vertexMap[vertex[0]] = vertex[1];
+		// read next line
+		std::getline(vertexFile, line);
+		lineNo++;
+	}
+	vertexFile.close();
+
+	// we already know that modelA and modelA tri count are equal
+	// and that association map did not contain out of range indices
+	// and that each association was unique
+	// so just need to check that every entry has an association
+	bijective = true;
+	for (size_t index = 0; index < visitedVertex.size(); ++index) {
+		bijective = bijective && visitedVertex[index] == 1;
+	}
+	if (!bijective) {
+		std::cout << "Topologies are different: topology vertex map is not bijective." << std::endl;
+		return false;
+	}
+
+	// 3 - Test if each output triangle respects the orientation of its associated input triangle
+	// recall that modelA and modelB trianglecount are equals
+	// we want the order of the vertices' indices to be the same or translated
+	// that is ABC is equivalente to BCA and CAB, but not with ACB, BAC or CBA
+	for (size_t triIdx = 0; triIdx < modelB.getTriangleCount(); ++triIdx) {
+		int A1, A2, A3, B1, B2, B3;
+		modelA.fetchTriangleIndices(faceMap[triIdx], A1, A2, A3);
+		modelB.fetchTriangleIndices(triIdx, B1, B2, B3);
+		size_t m1 = vertexMap[B1];
+		size_t m2 = vertexMap[B2];
+		size_t m3 = vertexMap[B3];
+		if (!(((A1 == m1) && (A2 == m2) && (A3 == m3)) || ((A1 == m2) && (A2 == m3) && (A3 == m1)) || ((A1 == m3) && (A2 == m1) && (A3 == m2)))) {
+			std::cout << "Topologies are different: orientations are not preserved " << std::endl;
+			std::cout << "modelA->Triangle[" << faceMap[triIdx] << "] = [" << A1 << "," << A2 << "," << A3 << ")]." << std::endl;
+			std::cout << "modelB(with mapped indices from modelA)->Triangle[" << triIdx << "] = [" << m1 << "," << m2 << "," << m3 << ")]." << std::endl;
+			return false;
+		};
+	}
+
+	std::cout << "Topologies are matching." << std::endl;
+
+	return true;
+}
+
 void sampleIfNeeded(
 	const Model& input,
 	const Image& map,
@@ -699,18 +873,8 @@ int Compare::pcc(
 	const Model& modelA, const Model& modelB,
 	const Image& mapA, const Image& mapB,
 	pcc_quality::commandPar& params,
-	Model& outputA, Model& outputB,
-	const std::string& topoMapFilenane
+	Model& outputA, Model& outputB
 ) {
-	// 0 - check topology if needed
-	if (topoMapFilenane.length() != 0) {
-		if(checkTopology(topoMapFilenane, modelA, modelB))
-		{
-			std::cout<<"Given the mapping in "<<topoMapFilenane<<" the topologies correspond to each other"<<std::endl;
-		} else {
-			std::cout<<"Given the mapping in "<<topoMapFilenane<<" the topologies DO NOT correspond to each other"<<std::endl;
-		}
-	}
 
 	// 1 - sample the models if needed
 	sampleIfNeeded(modelA, mapA, outputA);
@@ -756,13 +920,13 @@ void Compare::pccFinalize(void) {
 		Statistics::Results stats;
 
 		Statistics::compute(pccResults.size(),
-			[&](size_t i) -> double { return pccResults[i].second.c2c_mse; },
+			[&](size_t i) -> double { return pccResults[i].second.c2c_psnr; },
 			stats);
 		
 		Statistics::printToLog(stats, "mseF, PSNR(p2point) ", std::cout);
 
 		Statistics::compute(pccResults.size(),
-			[&](size_t i) -> double { return pccResults[i].second.c2p_mse; },
+			[&](size_t i) -> double { return pccResults[i].second.c2p_psnr; },
 			stats);
 
 		Statistics::printToLog(stats, "mseF, PSNR(p2plane) ", std::cout);
@@ -833,19 +997,8 @@ int Compare::pcqm(
 	const double radiusCurvature,
 	const int thresholdKnnSearch,
 	const double radiusFactor,
-	Model& outputA, Model& outputB,
-	const std::string& topoMapFilenane
+	Model& outputA, Model& outputB
 ) {
-
-	// 0 - check topology if needed
-	if (topoMapFilenane.length() != 0) {
-		if(checkTopology(topoMapFilenane, modelA, modelB))
-		{
-			std::cout<<"Given the mapping in "<<topoMapFilenane<<" the topologies correspond to each other"<<std::endl;
-		} else {
-			std::cout<<"Given the mapping in "<<topoMapFilenane<<" the topologies DO NOT correspond to each other"<<std::endl;
-		}
-	}
 
 	// 1 - sample the models if needed
 	sampleIfNeeded(modelA, mapA, outputA);
@@ -903,102 +1056,4 @@ void Compare::pcqmFinalize(void) {
 		
 	}
 
-}
-
-bool Compare::checkTopology(const std::string& topoMapFilenane, const Model& modelA, const Model& modelB) {
-	
-	// 1 - Test if number of triangles of output matches input number of triangles
-	if (modelA.getTriangleCount() != modelB.getTriangleCount()) {
-		std::cout << "Topologies are different: number of triangles differs (A=" << 
-			modelA.getTriangleCount() << ",B=" << modelB.getTriangleCount() << ").";
-		return false;
-	}
-
-	// 2 - parse the topomap and test bijection
-
-	// where to store the topo map,
-	// topoMap[dest face index] = source face index
-	std::vector< size_t > topoMap(modelA.getTriangleCount(), 0);
-	// did we already set one association for teh given index
-	std::vector< bool > visited(modelA.getTriangleCount(), false);
-
-	//
-	std::ifstream topoFile;
-	topoFile.open(topoMapFilenane.c_str(), std::ios::in);
-	if (!topoFile)
-	{
-		std::cerr << "Error: can't open topology mapping file " << topoMapFilenane << std::endl;
-		return false;
-	}
-	// file parsing
-	size_t lineNo=0;
-	std::string line;
-	std::getline(topoFile, line);
-	while (topoFile) {
-		// parse the line
-		std::istringstream in(line);
-		size_t faces[2]; 
-		for (size_t index = 0; index < 2; ++index) {
-			if (! (in >> faces[index]) ) {
-				std::cerr << "Error: " << topoMapFilenane << ":" << lineNo 
-					<< " missing face number " << index << std::endl;
-				return false;
-			}
-			if (faces[index] >= modelA.getTriangleCount()) {
-				std::cerr << "Error: " << topoMapFilenane << ":" << lineNo 
-					<< " face index out of range (faces[" << index << "]=" << faces[index]
-					<<") >= (modelA.getTriangleCount()=" << modelA.getTriangleCount() << ")" << std::endl;
-				return false;
-			}
-		}
-		if (visited[faces[0]]) {
-			std::cerr << "Error: " << topoMapFilenane << ":" << lineNo 
-				<< " modelB face " << faces[0] << " already associated with modelA face " << topoMap[faces[0]] << std::endl;
-			return false;
-		}
-		visited[faces[0]] = true;
-		topoMap[faces[0]] = faces[1];
-		// read next line
-		std::getline(topoFile, line);
-		lineNo++;
-	}
-	topoFile.close();
-
-	// we already know that modelA and modelA tri count are equal
-	// and that association map did not contain out of range indices
-	// and that each association was unique
-	// so just need to check that every entry has an association
-	bool bijective = true;
-	for (size_t index = 0; index < visited.size(); ++index) {
-		bijective = bijective && visited[index] == 1;
-	}
-	if (!bijective) {
-		std::cout << "Topologies are different: topology map is not bijective."<< std::endl;
-		return false;
-	}
-
-	// 3 - Test if each output triangle respects the orientation of its associated input triangle
-	// recall that modelA and modelB trianglecount are equals
-	// we want cosine of angle made by both normals to be positive
-	// Note:
-	// - our orientation check does not only rely on the topology indexes but also on the positions (together with their distortion)
-	// - are there cases where quantization might flip some faces ? Don't know.
-	// - this approach migh t not be fully robust, to be cross checked and discussed.
-	for (size_t triIdx = 0; triIdx < modelB.getTriangleCount(); ++triIdx) {
-		glm::vec3 av1, av2, av3, bv1, bv2, bv3;
-		modelA.fetchTriangleVertices(topoMap[triIdx], av1, av2, av3);
-		modelB.fetchTriangleVertices(triIdx, bv1, bv2, bv3);
-		glm::vec3 an, bn;
-		triangleNormal(av1, av2, av3, an);
-		triangleNormal(bv1, bv2, bv3, bn);
-		float dot = glm::dot(an, bn);
-		if ( dot < 0.0f ){
-			std::cout << "Topologies are different: orientations are not preserved ("<< dot <<" < 0.0)."<< std::endl;
-			std::cout << "Triangle["<<topoMap[triIdx]<<"] = [("<< av1[0] <<","<< av1[1] <<","<< av1[2] <<"),("<< av2[0] <<","<< av2[1] <<","<< av2[2] <<"),("<< av3[0] <<","<< av3[1] <<","<< av3[2] <<")] and normal ("<< an[0] <<","<< an[1] <<","<< an[2] <<")."<< std::endl;
-			std::cout << "Triangle["<<triIdx<<"] = [("<< bv1[0] <<","<< bv1[1] <<","<< bv1[2] <<"),("<< bv2[0] <<","<< bv2[1] <<","<< bv2[2] <<"),("<< bv3[0] <<","<< bv3[1] <<","<< bv3[2] <<")] and normal ("<< bn[0] <<","<< bn[1] <<","<< bn[2] <<")."<< std::endl;
-			return false;
-		};
-	}
-	//
-	return true;
 }

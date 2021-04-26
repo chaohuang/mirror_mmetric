@@ -5,6 +5,20 @@ Primary author Jean-Eudes Marvie (InterDigital).
 
 Additional contributors mentioned per version or item hereafter.
 
+## Version 0.1.9
+
+Add: "topo" compare mode for near-lossless metric with vertex and triangle mapping
+  - Contributor: Danillo Graziosi (Sony)
+Add: Sample outputCsv and target nbSamples
+Add: add irregular plane sampling test plus meshlab
+Add: update test suite (no more need of extdata)
+Fix: obj printer does not print trianglesuv table if any
+Fix: implement proper Image destructor
+Fix: Update cmakelists.txt for compiling on MacOS/CLang
+Fix: sequence quantization auto box not computed for other frames than first one
+Fix: pcc summary processing wrongly using MSE instead of PSNR
+Fix: statistics computation with 1 sample erroneous
+
 ## Version 0.1.8
 
 - add output details to compare --mode equ if --earlyReturn not set

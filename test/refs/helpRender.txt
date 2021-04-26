@@ -1,0 +1,43 @@
+Render a mesh (todo points)
+Usage:
+  mm.exe render [OPTION...]
+
+  -i, --inputModel arg     path to input model (obj or ply file)
+  -m, --inputMap arg       path to input texture map (png, jpeg)
+  -o, --outputImage arg    path to output image (png file) (default:
+                           output.png)
+      --outputDepth arg    path to output depth RGBA png file with 32bit
+                           float span on the four components. If empty string will
+                           not save depth (default behavior). (default: )
+      --mode arg           the rendering mode in [sw_raster,hw_raster]
+                           (default: sw_raster)
+      --hideProgress       hide progress display in console for use by robot
+  -h, --help               Print usage
+      --width arg          Output image width (default: 1980)
+      --height arg         Output image height (default: 1024)
+      --bilinear           Set --bilinear=false to disable bilinear filtering
+                           (default: true)
+      --viewDir arg        the view direction, a string of three floats
+                           (default: 0.0 0.0 1.0)
+      --viewUp arg         the view up vector, a string of three floats
+                           (default: 0.0 1.0 0.0)
+      --bboxMin arg        bbox min corner, a string of three floats. If not
+                           both bboxMin and bboxMax set, will compute
+                           automatically.
+      --bboxMax arg        bbox max corner, a string of three floats. If not
+                           both bboxMin and bboxMax set, will compute
+                           automatically.
+      --clearColor arg     background color, a string of four int8, each
+                           component in [0,255]. (default: 0 0 0 0)
+      --enableLighting     enable the lighting if model has normals.
+      --autoLightPosition  enable light position computation from bounding
+                           sphere radius and lightAutoDir parameter.
+      --lightAutoDir arg   if autoLightPosition is set, will compute light
+                           position as boundingSphereCenter + lightAutoDir *
+                           boundingSphereRadius. Default value stands for top
+                           right sector. (default: 1 1 1)
+      --enableCulling      enable back face culling.
+      --cwCulling          true sets Clock Wise (cw) orientation for face
+                           culling, Counter Clock Wise (ccw) otherwise. (default:
+                           true)
+

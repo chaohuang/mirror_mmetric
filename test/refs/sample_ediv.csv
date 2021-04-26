@@ -1,0 +1,14 @@
+model;texture;frame;mode;resolution;lengthThreshold;bilinear;nbSamplesMin;nbSamplesMax;maxIterations;computedThreshold;nbSamples
+./data/plane.obj;./data/plane.png;0;ediv;10;0;1;0;0;10;1;81
+./data/plane.obj;./data/plane.png;0;ediv;10;0;0;0;0;10;1;81
+./data/plane.obj;./data/plane_10_10.png;0;ediv;10;0;0;0;0;10;1;81
+./data/plane_irregular.obj;./data/plane_10_10.png;0;ediv;10;0;0;0;0;10;1;119
+./data/plane_irregular.obj;./data/plane_10_10.png;0;ediv;20;0;0;0;0;10;0.5;441
+./data/cpv_plane.obj;;0;ediv;10;0;0;0;0;10;1;81
+./data/sphere_qp8.obj;;0;ediv;1024;1;0;0;0;10;0;2868
+./data/sphere.obj;;0;ediv;30;0;0;0;0;10;0.0666666701;6452
+./data/degenerate.obj;;0;ediv;10;0;0;0;0;10;1;97
+./data/basketball_player_00000001.obj;./data/basketball_player_00000001.png;0;ediv;1024;2;0;0;0;10;0;1165862
+./data/basketball_player_00000001.obj;./data/basketball_player_00000001.png;0;ediv;1024;0;0;1000000;1001000;5;2.25;942942
+./data/basketball_player_00000001.obj;./data/basketball_player_00000001.png;0;ediv;1024;0;0;2000000;2001000;5;1.4375;2161087
+./tmp/data/basketball_player_00000001_qp8.obj;./data/basketball_player_00000001.png;0;ediv;1024;0;0;0;0;10;1.8311435;1245110

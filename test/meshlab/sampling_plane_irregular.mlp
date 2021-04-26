@@ -1,0 +1,69 @@
+<!DOCTYPE MeshLabDocument>
+<MeshLabProject>
+ <MeshGroup>
+  <MLMesh visible="0" filename="../tmp/sample_ediv_plane_irregular_10_nearest_10_10.ply" label="sample_ediv_plane_irregular_10_nearest_10_10.ply">
+   <MLMatrix44>
+1 0 0 0 
+0 1 0 0 
+0 0 1 0 
+0 0 0 1 
+</MLMatrix44>
+   <RenderingOption pointColor="131 149 69 255" wireColor="64 64 64 255" wireWidth="1" boxColor="234 234 234 255" pointSize="13" solidColor="192 192 192 255">000110010000000000000100000001000000001010100000000100111010110000011101</RenderingOption>
+  </MLMesh>
+  <MLMesh visible="0" filename="../tmp/sample_face_plane_irregular_10_10_10.ply" label="sample_face_plane_irregular_10_10_10.ply">
+   <MLMatrix44>
+1 0 0 0 
+0 1 0 0 
+0 0 1 0 
+0 0 0 1 
+</MLMatrix44>
+   <RenderingOption pointColor="131 149 69 255" wireColor="64 64 64 255" wireWidth="1" boxColor="234 234 234 255" pointSize="11" solidColor="192 192 192 255">000110010000000000000100000001000000001010100000000100111010110000011101</RenderingOption>
+  </MLMesh>
+  <MLMesh visible="0" filename="../tmp/sample_grid_plane_irregular_10_10_10.ply" label="sample_grid_plane_irregular_10_10_10.ply">
+   <MLMatrix44>
+1 0 0 0 
+0 1 0 0 
+0 0 1 0 
+0 0 0 1 
+</MLMatrix44>
+   <RenderingOption pointColor="131 149 69 255" wireColor="64 64 64 255" wireWidth="1" boxColor="234 234 234 255" pointSize="15" solidColor="192 192 192 255">000110010000000000000100000001000000001010100000000100111010110000011101</RenderingOption>
+  </MLMesh>
+  <MLMesh visible="1" filename="../data/plane_irregular.obj" label="plane_irregular.obj">
+   <MLMatrix44>
+1 0 0 0 
+0 1 0 0 
+0 0 1 0 
+0 0 0 1 
+</MLMatrix44>
+   <RenderingOption pointColor="131 149 69 255" wireColor="255 255 255 255" wireWidth="3" boxColor="234 234 234 255" pointSize="3" solidColor="192 192 192 255">010000010000000000000110000001000010010010100000010100111010100000011101</RenderingOption>
+  </MLMesh>
+  <MLMesh visible="0" filename="../tmp/sample_ediv_plane_irregular_20_nearest_10_10.ply" label="sample_ediv_plane_irregular_20_nearest_10_10.ply">
+   <MLMatrix44>
+1 0 0 0 
+0 1 0 0 
+0 0 1 0 
+0 0 0 1 
+</MLMatrix44>
+   <RenderingOption pointColor="131 149 69 255" wireColor="64 64 64 255" wireWidth="1" boxColor="234 234 234 255" pointSize="7" solidColor="192 192 192 255">000110010000000000000100000001000000001010100000000100111010110000011101</RenderingOption>
+  </MLMesh>
+  <MLMesh visible="0" filename="../tmp/sample_face_plane_irregular_20_10_10.ply" label="sample_face_plane_irregular_20_10_10.ply">
+   <MLMatrix44>
+1 0 0 0 
+0 1 0 0 
+0 0 1 0 
+0 0 0 1 
+</MLMatrix44>
+   <RenderingOption pointColor="131 149 69 255" wireColor="64 64 64 255" wireWidth="1" boxColor="234 234 234 255" pointSize="9" solidColor="192 192 192 255">000110010000000000000000000000000000000010100000000100111010110000011101</RenderingOption>
+  </MLMesh>
+  <MLMesh visible="1" filename="../tmp/sample_grid_plane_irregular_20_10_10.ply" label="sample_grid_plane_irregular_20_10_10.ply">
+   <MLMatrix44>
+1 0 0 0 
+0 1 0 0 
+0 0 1 0 
+0 0 0 1 
+</MLMatrix44>
+   <RenderingOption pointColor="131 149 69 255" wireColor="64 64 64 255" wireWidth="1" boxColor="234 234 234 255" pointSize="11" solidColor="192 192 192 255">000110010000000000000000000000000000000010100000000100111010110000011101</RenderingOption>
+  </MLMesh>
+ </MeshGroup>
+ <RasterGroup/>
+</MeshLabProject>

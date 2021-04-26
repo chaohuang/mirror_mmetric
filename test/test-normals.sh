@@ -7,32 +7,29 @@ if [ "$1" == "ext" ];
 then
 
 	OUT=normals_basket
+	echo $OUT
 	$CMD normals \
-		--inputModel ${EXTDATA}/basketball_player_00000001.obj \
+		--inputModel ${DATA}/basketball_player_00000001.obj \
 		--outputModel ${TMP}/${OUT}.obj \
 		> ${TMP}/${OUT}.txt 2>&1
 	grep -iF "error" ${TMP}/${OUT}.txt
 
-	OUT=normals_longdress
+	OUT=normals_basket_noseams_off
+	echo $OUT
 	$CMD normals \
-		--inputModel ${EXTDATA}/longdress_vox10_1051_poisson40k_uv_map.obj \
+		--noSeams=false \
+		--inputModel ${DATA}/basketball_player_00000001.obj \
 		--outputModel ${TMP}/${OUT}.obj \
 		> ${TMP}/${OUT}.txt 2>&1
 	grep -iF "error" ${TMP}/${OUT}.txt
 	
 	OUT=normals_basket_noseams_off_normalized_off
+	echo $OUT
 	$CMD normals \
 		--noSeams=false --normalized=false \
-		--inputModel ${EXTDATA}/basketball_player_00000001.obj \
+		--inputModel ${DATA}/basketball_player_00000001.obj \
 		--outputModel ${TMP}/${OUT}.obj \
 		> ${TMP}/${OUT}.txt 2>&1
 	grep -iF "error" ${TMP}/${OUT}.txt
 
-	OUT=normals_longdress_noseams_off
-	$CMD normals \
-		--noSeams=false \
-		--inputModel ${EXTDATA}/longdress_vox10_1051_poisson40k_uv_map.obj \
-		--outputModel ${TMP}/${OUT}.obj \
-		> ${TMP}/${OUT}.txt 2>&1
-	grep -iF "error" ${TMP}/${OUT}.txt
 fi

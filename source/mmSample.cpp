@@ -44,8 +44,10 @@ const char* Sample::brief = "Convert mesh to point cloud";
 Command* Sample::create() { return new Sample(); }
 
 // 
-bool Sample::initialize(Context* ctx, std::string app, int argc, char* argv[])
+bool Sample::initialize(Context* context, std::string app, int argc, char* argv[])
 {
+	_context = context;
+
 	// command line parameters
 	try
 	{
@@ -61,6 +63,8 @@ bool Sample::initialize(Context* ctx, std::string app, int argc, char* argv[])
 				cxxopts::value<std::string>())
 			("hideProgress", "hide progress display in console for use by robot",
 				cxxopts::value<bool>()->default_value("false"))
+			("outputCsv", "filename of the file where per frame statistics will append.",
+				cxxopts::value<std::string>()->default_value(""))
 			("h,help", "Print usage")
 			;
 		options.add_options("face mode")
@@ -90,6 +94,12 @@ bool Sample::initialize(Context* ctx, std::string app, int argc, char* argv[])
 		options.add_options("grid, face, sdiv and ediv modes.")
 			("bilinear", "if set, texture filtering will be bilinear, nearest otherwise",
 				cxxopts::value<bool>()->default_value("false"))
+			("nbSamplesMin", "if set different from 0, the system will rerun the sampling multiple times to find the best parameter producing a number of samples in [nbAmplesMin, nbSamplesMax]. This process is very time comsuming.",
+				cxxopts::value<size_t>()->default_value("0"))
+			("nbSamplesMax", "see --nbSampleMin documentation. Must be > to --nbSamleMin.",
+				cxxopts::value<size_t>()->default_value("0"))
+			("maxIterations", "Maximum number of iterations in sample count constrained sampling, i.e. when --nbSampleMin > 0.",
+				cxxopts::value<size_t>()->default_value("10"))
 			;
 
 		auto result = options.parse(argc, argv);
@@ -119,15 +129,26 @@ bool Sample::initialize(Context* ctx, std::string app, int argc, char* argv[])
 			std::cout << options.help() << std::endl;
 			return false;
 		}
+
 		//
 		if (result.count("mode"))
 			mode = result["mode"].as<std::string>();
+
+		if (mode != "face" && mode != "grid" && mode != "map" && mode != "sdiv" && mode != "ediv") {
+			std::cerr << "Error: invalid mode \"" << mode << std::endl;
+			return false;
+		}
+
+		//
+		if (result.count("outputCsv"))
+			_outputCsvFilename = result["outputCsv"].as<std::string>();
+
 		//
 		if (result.count("hideProgress"))
 			hideProgress = result["hideProgress"].as<bool>();
 		//
 		if (result.count("resolution"))
-			resolution = result["resolution"].as<size_t>();
+			_resolution = result["resolution"].as<size_t>();
 		if (result.count("thickness"))
 			thickness = result["thickness"].as<float>();
 		if (result.count("areaThreshold"))
@@ -140,6 +161,17 @@ bool Sample::initialize(Context* ctx, std::string app, int argc, char* argv[])
 			gridSize = result["gridSize"].as<int>();
 		if (result.count("bilinear"))
 			bilinear = result["bilinear"].as<bool>();
+		if (result.count("nbSamplesMin"))
+			_nbSamplesMin = result["nbSamplesMin"].as<size_t>();
+		if (result.count("nbSamplesMax")){
+			_nbSamplesMax = result["nbSamplesMax"].as<size_t>();
+			if (_nbSamplesMax <= _nbSamplesMin) {
+				std::cerr << "Error: nbSampleMax must be > to nbSampleMin" << std::endl;
+				return false;
+			}
+		}
+		if (result.count("maxIterations"))
+			_maxIterations = result["maxIterations"].as<size_t>();
 	}
 	catch (const cxxopts::OptionException& e)
 	{
@@ -175,30 +207,115 @@ bool Sample::process(uint32_t frame) {
 
 	// the output
 	Model* outputModel = new Model();
+	
+	// create or open in append mode output csv if needed
+	std::streamoff csvFileLength = 0;
+	std::ofstream csvFileOut;
+	if (_outputCsvFilename != "") {
+		// check if csv file is empty, need to open in read mode
+		std::ifstream filestr;
+		filestr.open(_outputCsvFilename, std::ios::binary);
+		if (filestr) {
+			filestr.seekg(0, std::ios::end);
+			csvFileLength = filestr.tellg();
+			filestr.close();
+		}
+		// let's open in append write mode
+		csvFileOut.open(_outputCsvFilename.c_str(), std::ios::out | std::ofstream::app);
+		// this is mandatory to print floats with full precision
+		csvFileOut.precision(std::numeric_limits< float >::max_digits10);
+	}
 
 	// Perform the processings
 	clock_t t1 = clock();
 	if (mode == "face") {
 		std::cout << "Sampling in FACE mode" << std::endl;
-		std::cout << "  Resolution = " << resolution << std::endl;
+		std::cout << "  Resolution = " << _resolution << std::endl;
 		std::cout << "  Thickness = " << thickness << std::endl;
 		std::cout << "  Bilinear = " << bilinear << std::endl;
 		std::cout << "  hideProgress = " << hideProgress << std::endl;
-		Sample::meshToPcFace(*inputModel, *outputModel,
-			*textureMap, resolution, thickness, bilinear, !hideProgress);
+		std::cout << "  nbSamplesMin = " << _nbSamplesMin << std::endl;
+		std::cout << "  nbSamplesMax = " << _nbSamplesMax << std::endl;
+		std::cout << "  maxIterations = " << _maxIterations << std::endl;
+		size_t computedResolution = 0;
+		if (_nbSamplesMin != 0) {
+			std::cout << "  using contrained mode with nbSamples (costly!)" << std::endl;
+			Sample::meshToPcFace(*inputModel, *outputModel, *textureMap, 
+				_nbSamplesMin, _nbSamplesMax, _maxIterations, 
+				thickness, bilinear, !hideProgress, computedResolution);
+		}
+		else {
+			std::cout << "  using contrained mode with resolution " << std::endl;
+			Sample::meshToPcFace(*inputModel, *outputModel, *textureMap, 
+				_resolution, thickness, bilinear, !hideProgress);
+		}
+		// print the stats
+		if (csvFileOut) {
+			// print the header if file is empty
+			if (csvFileLength==0) {
+				csvFileOut << "model;texture;frame;resolution;thickness;bilinear;nbSamplesMin;"
+					 << "nbSamplesMax;maxIterations;computedResolution;nbSamples" << std::endl;
+			}
+			// print stats
+			csvFileOut << inputModelFilename << ";" << inputTextureFilename << ";" << frame << ";" << _resolution << ";" 
+				<< thickness << ";"	<< bilinear << ";" << _nbSamplesMin
+				<< ";" << _nbSamplesMax << ";" << _maxIterations << ";" << computedResolution << ";" 
+				<< outputModel->getPositionCount() << std::endl;
+			// done
+			csvFileOut.close();
+		}
 	}
 	else if (mode == "grid") {
 		std::cout << "Sampling in GRID mode" << std::endl;
 		std::cout << "  Grid Size = " << gridSize << std::endl;
 		std::cout << "  Bilinear = " << bilinear << std::endl;
 		std::cout << "  hideProgress = " << hideProgress << std::endl;
-		Sample::meshToPcGrid(*inputModel, *outputModel,
-			*textureMap, gridSize, bilinear, !hideProgress);
+		std::cout << "  nbSamplesMin = " << _nbSamplesMin << std::endl;
+		std::cout << "  nbSamplesMax = " << _nbSamplesMax << std::endl;
+		std::cout << "  maxIterations = " << _maxIterations << std::endl;
+		size_t computedResolution = 0;
+		if (_nbSamplesMin != 0) {
+			std::cout << "  using contrained mode with nbSamples (costly!)" << std::endl;
+			Sample::meshToPcGrid(*inputModel, *outputModel, *textureMap,
+				_nbSamplesMin, _nbSamplesMax, _maxIterations,
+				bilinear, !hideProgress, computedResolution );
+		} else {
+			std::cout << "  using contrained mode with gridSize " << std::endl;
+			Sample::meshToPcGrid(*inputModel, *outputModel,
+				*textureMap, gridSize, bilinear, !hideProgress);
+		}
+		// print the stats
+		if (csvFileOut) {
+			// print the header if file is empty
+			if (csvFileLength == 0) {
+				csvFileOut << "model;texture;frame;mode;gridSize;bilinear;nbSamplesMin;"
+					<< "nbSamplesMax;maxIterations;computedResolution;nbSamples" << std::endl;
+			}
+			// print stats
+			csvFileOut << inputModelFilename << ";" << inputTextureFilename << ";" << frame << ";" << mode << ";" 
+				<< gridSize << ";" << bilinear << ";"
+				<< _nbSamplesMin << ";" << _nbSamplesMax << ";" << _maxIterations << ";" << computedResolution << ";"
+				<< outputModel->getPositionCount() << std::endl;
+			// done
+			csvFileOut.close();
+		}
 	}
 	else if (mode == "map") {
 		std::cout << "Sampling in MAP mode" << std::endl;
 		std::cout << "  hideProgress = " << hideProgress << std::endl;
 		Sample::meshToPcMap(*inputModel, *outputModel, *textureMap, !hideProgress);
+		// print the stats
+		if (csvFileOut) {
+			// print the header if file is empty
+			if (csvFileLength == 0) {
+				csvFileOut << "model;texture;frame;mode;nbSamples" << std::endl;
+			}
+			// print stats
+			csvFileOut << inputModelFilename << ";" << inputTextureFilename << ";" << frame << ";" << mode << ";"
+				<< outputModel->getPositionCount() << std::endl;
+			// done
+			csvFileOut.close();
+		}
 	}
 	else if (mode == "sdiv") {
 		std::cout << "Sampling in SDIV mode" << std::endl;
@@ -206,15 +323,69 @@ bool Sample::process(uint32_t frame) {
 		std::cout << "  Map threshold = " << mapThreshold << std::endl;
 		std::cout << "  Bilinear = " << bilinear << std::endl;
 		std::cout << "  hideProgress = " << hideProgress << std::endl;
-		Sample::meshToPcDiv(*inputModel, *outputModel, *textureMap, areaThreshold, mapThreshold, bilinear, !hideProgress);
+		std::cout << "  nbSamplesMin = " << _nbSamplesMin << std::endl;
+		std::cout << "  nbSamplesMax = " << _nbSamplesMax << std::endl;
+		std::cout << "  maxIterations = " << _maxIterations << std::endl;
+		float computedThres = 0.0f;
+		if (_nbSamplesMin != 0) {
+			std::cout << "  using contrained mode with nbSamples (costly!)" << std::endl;
+			Sample::meshToPcDiv(*inputModel, *outputModel, *textureMap, 
+				_nbSamplesMin, _nbSamplesMax, _maxIterations, 
+				bilinear, !hideProgress, computedThres);
+		} else {
+			Sample::meshToPcDiv(*inputModel, *outputModel, *textureMap, 
+				areaThreshold, mapThreshold, bilinear, !hideProgress);
+		}
+		// print the stats
+		if (csvFileOut) {
+			// print the header if file is empty
+			if (csvFileLength == 0) {
+				csvFileOut << "model;texture;frame;mode;areaThreshold;bilinear;nbSamplesMin;"
+					<< "nbSamplesMax;maxIterations;computedThreshold;nbSamples" << std::endl;
+			}
+			// print stats
+			csvFileOut << inputModelFilename << ";" << inputTextureFilename << ";" << frame << ";" << mode << ";" 
+				<< areaThreshold << ";" << bilinear << ";"
+				<< _nbSamplesMin << ";" << _nbSamplesMax << ";" << _maxIterations << ";" << computedThres << ";"
+				<< outputModel->getPositionCount() << std::endl;
+			// done
+			csvFileOut.close();
+		}
 	}
 	else if (mode == "ediv") {
 		std::cout << "Sampling in EDIV mode" << std::endl;
 		std::cout << "  Edge length threshold = " << lengthThreshold << std::endl;
-		std::cout << "  Resolution = " << resolution  << (lengthThreshold != 0 ? "(skipped)" : "") << std::endl;
+		std::cout << "  Resolution = " << _resolution  << (lengthThreshold != 0 ? "(skipped)" : "") << std::endl;
 		std::cout << "  Bilinear = " << bilinear << std::endl;
 		std::cout << "  hideProgress = " << hideProgress << std::endl;
-		Sample::meshToPcDivEdge(*inputModel, *outputModel, *textureMap, lengthThreshold, resolution, bilinear, !hideProgress);
+		std::cout << "  nbSamplesMin = " << _nbSamplesMin << std::endl;
+		std::cout << "  nbSamplesMax = " << _nbSamplesMax << std::endl;
+		std::cout << "  maxIterations = " << _maxIterations << std::endl;
+		float computedThres = 0.0f;
+		if (_nbSamplesMin != 0) {
+			std::cout << "  using contrained mode with nbSamples (costly!)" << std::endl;
+			Sample::meshToPcDivEdge(*inputModel, *outputModel, *textureMap,
+				_nbSamplesMin, _nbSamplesMax, _maxIterations, 
+				bilinear, !hideProgress, computedThres);
+		} else {
+			Sample::meshToPcDivEdge(*inputModel, *outputModel, *textureMap, 
+				lengthThreshold, _resolution, bilinear, !hideProgress, computedThres);
+		}
+		// print the stats
+		if (csvFileOut) {
+			// print the header if file is empty
+			if (csvFileLength == 0) {
+				csvFileOut << "model;texture;frame;mode;resolution;lengthThreshold;bilinear;nbSamplesMin;"
+					<< "nbSamplesMax;maxIterations;computedThreshold;nbSamples" << std::endl;
+			}
+			// print stats
+			csvFileOut << inputModelFilename << ";" << inputTextureFilename << ";" << frame << ";" << mode << ";"
+				<< _resolution << ";" << lengthThreshold << ";" << bilinear << ";"
+				<< _nbSamplesMin << ";" << _nbSamplesMax << ";" << _maxIterations << ";" << computedThres << ";"
+				<< outputModel->getPositionCount() << std::endl;
+			// done
+			csvFileOut.close();
+		}
 	}
 	clock_t t2 = clock();
 	std::cout << "Time on processing: " << ((float)(t2 - t1)) / CLOCKS_PER_SEC << " sec." << std::endl;
@@ -333,6 +504,46 @@ void Sample::meshToPcFace(
 	if (builder.foundCount != 0)
 		std::cout << "Skipped " << builder.foundCount << " duplicate vertices" << std::endl;
 	std::cout << "Generated " << output.vertices.size() / 3 << " points" << std::endl;
+}
+
+void Sample::meshToPcFace(
+	const Model& input, Model& output, const Image& tex_map,
+	size_t nbSamplesMin, size_t nbSamplesMax, size_t maxIterations,
+	float thickness, bool bilinear, bool logProgress, size_t& computedResolution)
+{
+	size_t resolution=1024;
+	meshToPcFace(input, output, tex_map, resolution, thickness, bilinear, logProgress);
+	// search to init the algo bounds
+	size_t minResolution = 0;
+	size_t maxResolution = 0;
+	//
+	size_t iter = 0;
+	while ((output.getPositionCount() < nbSamplesMin || output.getPositionCount() > nbSamplesMax) && iter < maxIterations ) {
+		iter++;
+		// let's refine
+		if (output.getPositionCount() < nbSamplesMin) { // need to add some points
+			minResolution = resolution;
+			if (maxResolution == 0) {
+				resolution = minResolution * 2;
+			}
+			else {
+				resolution = minResolution + (maxResolution - minResolution) / 2;
+			}
+		}
+		if (output.getPositionCount() > nbSamplesMax) { // need to remove some points
+			maxResolution = resolution;
+			resolution = minResolution + (maxResolution - minResolution) / 2;
+		}
+		std::cout << "  posCount=" << output.getPositionCount() << std::endl;
+		std::cout << "  minResolution=" << minResolution << std::endl;
+		std::cout << "  maxResolution=" << maxResolution << std::endl;
+		std::cout << "  resolution=" << resolution << std::endl;
+		//
+		output.reset();
+		meshToPcFace(input, output, tex_map, resolution, thickness, bilinear, logProgress);
+	}
+	computedResolution = resolution;
+	std::cout << "algorithm ended after " << iter << " iterations " << std::endl;
 }
 
 // we use ray tracing to process the result, we could also use a rasterization (might be faster)
@@ -481,6 +692,47 @@ void Sample::meshToPcGrid(
 	std::cout << "Generated " << output.vertices.size() / 3 << " points" << std::endl;
 
 }
+
+void Sample::meshToPcGrid(
+	const Model& input, Model& output, const Image& tex_map,
+	size_t nbSamplesMin, size_t nbSamplesMax, size_t maxIterations,
+	bool bilinear, bool logProgress, size_t& computedResolution)
+{
+	size_t resolution = 1024;
+	meshToPcGrid(input, output, tex_map, resolution, bilinear, logProgress);
+	// search to init the algo bounds
+	size_t minResolution = 0;
+	size_t maxResolution = 0;
+	//
+	size_t iter = 0;
+	while ((output.getPositionCount() < nbSamplesMin || output.getPositionCount() > nbSamplesMax) && iter < maxIterations) {
+		iter++;
+		// let's refine
+		if (output.getPositionCount() < nbSamplesMin) { // need to add some points
+			minResolution = resolution;
+			if (maxResolution == 0) {
+				resolution = minResolution * 2;
+			}
+			else {
+				resolution = minResolution + (maxResolution - minResolution) / 2;
+			}
+		}
+		if (output.getPositionCount() > nbSamplesMax) { // need to remove some points
+			maxResolution = resolution;
+			resolution = minResolution + (maxResolution - minResolution) / 2;
+		}
+		std::cout << "  posCount=" << output.getPositionCount() << std::endl;
+		std::cout << "  minResolution=" << minResolution << std::endl;
+		std::cout << "  maxResolution=" << maxResolution << std::endl;
+		std::cout << "  resolution=" << resolution << std::endl;
+		//
+		output.reset();
+		meshToPcGrid(input, output, tex_map, resolution, bilinear, logProgress);
+	}
+	computedResolution = resolution;
+	std::cout << "algorithm ended after " << iter << " iterations " << std::endl;
+}
+
 
 // perform a reverse sampling of the texture map to generate mesh samples
 // the color of the point is then using the texel color => no filtering
@@ -710,6 +962,48 @@ void Sample::meshToPcDiv(
 
 }
 
+void Sample::meshToPcDiv(
+	const Model& input, Model& output, const Image& tex_map,
+	size_t nbSamplesMin, size_t nbSamplesMax, size_t maxIterations,
+	bool bilinear, bool logProgress, float& computedThres)
+{
+	float value = 1.0;
+	meshToPcDiv(input, output, tex_map, value, 0, bilinear, logProgress);
+	// search to init the algo bounds
+	float minBound = 0;
+	float maxBound = 0;
+	//
+	size_t iter = 0;
+	while ((output.getPositionCount() < nbSamplesMin || output.getPositionCount() > nbSamplesMax) && iter < maxIterations) {
+		iter++;
+		// let's refine
+		if (output.getPositionCount() > nbSamplesMin) { // need to remove some points
+			minBound = value;
+			if (maxBound == 0) {
+				value = minBound * 2;
+			}
+			else {
+				value = minBound + (maxBound - minBound) / 2;
+			}
+		}
+		if (output.getPositionCount() < nbSamplesMax) { // need to add some points
+			maxBound = value;
+			value = minBound + (maxBound - minBound) / 2;
+		}
+		std::cout << "  posCount=" << output.getPositionCount() << std::endl;
+		std::cout << "  minBound=" << minBound << std::endl;
+		std::cout << "  maxBound=" << maxBound << std::endl;
+		std::cout << "  value=" << value << std::endl;
+		//
+		output.reset();
+		meshToPcDiv(input, output, tex_map, value, 0, bilinear, logProgress);
+	}
+
+	computedThres = value;
+
+	std::cout << "algorithm ended after " << iter << " iterations " << std::endl;
+}
+
 //
 //          v2
 //   		/\
@@ -824,7 +1118,8 @@ void subdivideTriangleEdge(
 // Use subdiv scheme without T-vertices, stop criterion on edge size
 void Sample::meshToPcDivEdge(
 	const Model& input, Model& output,
-	const Image& tex_map, float lengthThreshold, size_t resolution, bool bilinear, bool logProgress)
+	const Image& tex_map, float lengthThreshold, size_t resolution, 
+	bool bilinear, bool logProgress, float& computedThres)
 {
 	float length = lengthThreshold;
 
@@ -844,6 +1139,7 @@ void Sample::meshToPcDivEdge(
 		const float boxMaxSize = std::max(diag.x, std::max(diag.y, diag.z));
 		length = boxMaxSize / resolution;
 		std::cout << "  lengthThreshold = " << length << std::endl;
+		computedThres = length; // forwards to caller, only if internally computed
 	}
 
 	// to prevent storing duplicate points, we use a ModelBuilder
@@ -895,4 +1191,45 @@ void Sample::meshToPcDivEdge(
 		std::cout << "Handled " << builder.foundCount << " duplicate vertices" << std::endl;
 	std::cout << "Generated " << output.vertices.size() / 3 << " points" << std::endl;
 
+}
+
+void Sample::meshToPcDivEdge(
+	const Model& input, Model& output, const Image& tex_map,
+	size_t nbSamplesMin, size_t nbSamplesMax, size_t maxIterations,
+	bool bilinear, bool logProgress, float& computedThres)
+{
+	float value = 1.0;
+	float unused;
+	meshToPcDivEdge(input, output, tex_map, value, 0, bilinear, logProgress, unused);
+	// search to init the algo bounds
+	float minBound = 0;
+	float maxBound = 0;
+	//
+	size_t iter = 0;
+	while ((output.getPositionCount() < nbSamplesMin || output.getPositionCount() > nbSamplesMax) && iter < maxIterations) {
+		iter++;
+		// let's refine
+		if (output.getPositionCount() > nbSamplesMin) { // need to remove some points
+			minBound = value;
+			if (maxBound == 0) {
+				value = minBound * 2;
+			}
+			else {
+				value = minBound + (maxBound - minBound) / 2;
+			}
+		}
+		if (output.getPositionCount() < nbSamplesMax) { // need to add some points
+			maxBound = value;
+			value = minBound + (maxBound - minBound) / 2;
+		}
+		std::cout << "  posCount=" << output.getPositionCount() << std::endl;
+		std::cout << "  minBound=" << minBound << std::endl;
+		std::cout << "  maxBound=" << maxBound << std::endl;
+		std::cout << "  value=" << value << std::endl;
+		//
+		output.reset();
+		meshToPcDivEdge(input, output, tex_map, value, 0, bilinear, logProgress, unused);
+	}
+	computedThres = value;
+	std::cout << "algorithm ended after " << iter << " iterations " << std::endl;
 }

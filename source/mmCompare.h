@@ -42,7 +42,8 @@ private:
 	bool earlyReturn = true;
 	bool unoriented = false;
 	// PCC and PCQM common options
-	std::string topologyFilename;
+	std::string faceMapFilename;
+	std::string vertexMapFilename;
 	// Pcc options
 	pcc_quality::commandPar params;
 	// PCQM options
@@ -88,14 +89,27 @@ public:
 		float epsilon, bool earlyReturn, bool unoriented,
 		Model& outputA, Model& outputB);
 
+	// compare two meshes topology for equivalence up to face index shift
+	// check topology will use a bijective face map, associating output triangles to input triangles:
+	// - faceMap file shall contain the association dest face index -> orig face index for each face, one face per line
+	// check topology will use a bijective vartex map, associating output vertices to input vertices:
+	// - vertexMap file shall contain the association dest vertex index -> orig vertex index for each vertex, one vertex per line
+	// the function validates the following points:
+	// - Test if number of triangles of output matches input number of triangles
+	// - Test if the proposed association tables for face and vertex are bijective
+	// - Test if each output triangle respects the orientation of its associated input triangle
+	int topo(
+		const Model& modelA, const Model& modelB,
+		const std::string& faceMapFilenane = "",
+		const std::string& vertexMapFilenane = "");
+
 	// compare two meshes using MPEG pcc_distortion metric
 	// if topoFilename!="" will also check topo using Compare::checkTopology
 	int pcc(
 		const Model& modelA, const Model& modelB,
 		const Image& mapA, const Image& mapB,
 		pcc_quality::commandPar& params,
-		Model& outputA, Model& outputB,
-		const std::string& topoMapFilenane = ""
+		Model& outputA, Model& outputB
 	);
 	
 	// collect statics over sequence and compute results
@@ -109,20 +123,11 @@ public:
 		const double radiusCurvature,
 		const int thresholdKnnSearch,
 		const double radiusFactor,
-		Model& outputA, Model& outputB,
-		const std::string& topoMapFilenane=""
+		Model& outputA, Model& outputB
 	);
 
 	// collect statics over sequence and compute results
 	void pcqmFinalize(void);
-
-	// check topology will use a bijective topology map, 
-	// associating output triangles to input triangles
-	// the function validates that:
-	// - Test if number of triangles of output matches input number of triangles
-	// - Test if the proposed association table is bijective
-	// - Test if each output triangle respects the orientation of its associated input triangle
-	bool checkTopology(const std::string& topoMapFilenane, const Model& modelA, const Model& modelB);
 
 };
 

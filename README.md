@@ -115,7 +115,7 @@ mm.exe \
 # Command references
 
 ```
-3D model processing commands v0.1.8
+3D model processing commands v0.1.9
 Usage:
   mm.exe command [OPTION...]
 
@@ -165,8 +165,8 @@ Usage:
                           yuv)
       --outputModelA arg  path to output model A (obj or ply file)
       --outputModelB arg  path to output model B (obj or ply file)
-      --mode arg          the comparison mode in [equ,pcc,pcqm] (default:
-                          equ)
+      --mode arg          the comparison mode in [equ,pcc,pcqm,topo]
+                          (default: equ)
   -h, --help              Print usage
 
  equ mode options:
@@ -178,11 +178,6 @@ Usage:
                      true)
       --unoriented   If set, comparison will not consider faces orientation
                      for comparisons.
-
- pcc and pcqm modes, near lossless options:
-      --topologyFile arg  path to the topology text file matching modelB
-                          topology to modelA topology. Setting option with non
-                          empty filename will activate the test.
 
  pcc mode options:
       --singlePass          Force running a single pass, where the loop is
@@ -210,6 +205,12 @@ Usage:
                                 surface construction (default: 20)
       --radiusFactor arg        Set a radius factor for the statistic
                                 computation. (default: 2.0)
+
+ topo mode options:
+      --faceMapFile arg    path to the topology text file matching modelB
+                           topology (face) to modelA topology (face).
+      --vertexMapFile arg  path to the topology text file matching modelB
+                           topology (vertex) to modelA topology (vertex).
 
 ```
 
@@ -293,10 +294,14 @@ Usage:
   -o, --outputModel arg  path to output model (obj or ply file)
   -h, --help             Print usage
       --dequantize       set to process dequantification at the ouput
-      --qp arg           Geometry quantization bitdepth (default: 12)
-      --qt arg           UV coordinates quantization bitdepth (default: 12)
-      --qn arg           Normals quantization bitdepth (default: 12)
-      --qc arg           Colors quantization bitdepth (default: 8)
+      --qp arg           Geometry quantization bitdepth. A value < 7 means no
+                         quantization. (default: 12)
+      --qt arg           UV coordinates quantization bitdepth.  A value < 7
+                         means no quantization. (default: 12)
+      --qn arg           Normals quantization bitdepth. A value < 7 no
+                         quantization. (default: 12)
+      --qc arg           Colors quantization bitdepth. A value < 7 no
+                         quantization. (default: 8)
       --minPos arg       min corner of vertex position bbox, a string of
                          three floats. Computed of not set.
       --maxPos arg       max corner of vertex position bbox, a string of
@@ -344,6 +349,8 @@ Usage:
   -o, --outputModel arg  path to output model (obj or ply file)
       --mode arg         the sampling mode in [face,grid,map,sdiv,ediv]
       --hideProgress     hide progress display in console for use by robot
+      --outputCsv arg    filename of the file where per frame statistics will
+                         append. (default: )
   -h, --help             Print usage
 
  ediv mode options:
@@ -368,8 +375,18 @@ Usage:
                       (default: 1024)
 
  grid, face, sdiv and ediv modes. options:
-      --bilinear  if set, texture filtering will be bilinear, nearest
-                  otherwise
+      --bilinear           if set, texture filtering will be bilinear,
+                           nearest otherwise
+      --nbSamplesMin arg   if set different from 0, the system will rerun the
+                           sampling multiple times to find the best parameter
+                           producing a number of samples in [nbAmplesMin,
+                           nbSamplesMax]. This process is very time comsuming.
+                           (default: 0)
+      --nbSamplesMax arg   see --nbSampleMin documentation. Must be > to
+                           --nbSamleMin. (default: 0)
+      --maxIterations arg  Maximum number of iterations in sample count
+                           constrained sampling, i.e. when --nbSampleMin > 0.
+                           (default: 10)
 
  sdiv mode options:
       --areaThreshold arg  face area limit to stop subdivision (default: 1.0)

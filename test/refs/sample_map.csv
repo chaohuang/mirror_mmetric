@@ -1,0 +1,9 @@
+model;texture;frame;mode;nbSamples
+./data/plane.obj;./data/plane.png;0;map;4
+./data/plane_qp8.obj;./data/plane.png;0;map;4
+./data/plane_qp8.obj;./data/plane_10_10.png;0;map;105
+./data/plane_irregular.obj;./data/plane_10_10.png;0;map;102
+./data/cpv_plane.obj;;0;map;0
+./data/degenerate.obj;./data/plane_10_10.png;0;map;81
+./data/basketball_player_00000001.obj;./data/basketball_player_00000001.png;0;map;2362792
+./tmp/data/basketball_player_00000001_qp8.obj;./data/basketball_player_00000001.png;0;map;2227366

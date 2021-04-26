@@ -9,6 +9,7 @@ tests=(
 "test-help"
 "test-analyse"
 "test-compare-eq" 
+"test-compare-topo"
 "test-compare-pcc"
 "test-compare-pcqm"
 "test-composed"
@@ -24,6 +25,6 @@ tests=(
 )
 
 for test in ${tests[@]}; do
-	echo $test $@
+	echo "** "$test $@
 	./${test}.sh "$@"
 done

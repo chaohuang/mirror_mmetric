@@ -31,6 +31,10 @@ public:
 
 	Image(void):width(0),height(0),nbc(0),data(NULL){}
 
+	~Image(void) {
+		delete[] data;
+	}
+
 	// no sanity check for performance reasons
 	inline void fetchRGB(const size_t col, const size_t row,  glm::vec3& rgb) const {
 		rgb.r = data[(row * width + col) * nbc + 0];

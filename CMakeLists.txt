@@ -41,15 +41,8 @@ if ( MSVC )
     
     set(CMAKE_EXE_LINKER_FLAGS_DEBUG    "/DEBUG")
     set(CMAKE_SHARED_LINKER_FLAGS_DEBUG "/DEBUG")
-	
-# Mac
-elseif ( APPLE )
 
-	# todo
-
-# General GNU
-elseif ( UNIX ) # all others Linux, etc...
-
+else ( ) # all others GCC, CLang (Linux, MacOS), etc... 
     # Compil and link config (no-fast-math is important for portable results)
     set(CMAKE_CXX_FLAGS_RELEASE "-Wno-unused-result -O3 -DNDEBUG -D_REENTRANT -DLinux -fno-fast-math -ftree-vectorize -msse2 -msse3 -D__STDC_CONSTANT_MACROS -fpermissive")
     set(CMAKE_C_FLAGS_RELEASE   "-Wno-unused-result -O3 -DNDEBUG -D_REENTRANT -DLinux -fno-fast-math -ftree-vectorize -msse2 -msse3")

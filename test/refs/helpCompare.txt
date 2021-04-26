@@ -10,8 +10,8 @@ Usage:
                           yuv)
       --outputModelA arg  path to output model A (obj or ply file)
       --outputModelB arg  path to output model B (obj or ply file)
-      --mode arg          the comparison mode in [equ,pcc,pcqm] (default:
-                          equ)
+      --mode arg          the comparison mode in [equ,pcc,pcqm,topo]
+                          (default: equ)
   -h, --help              Print usage
 
  equ mode options:
@@ -23,11 +23,6 @@ Usage:
                      true)
       --unoriented   If set, comparison will not consider faces orientation
                      for comparisons.
-
- pcc and pcqm modes, near lossless options:
-      --topologyFile arg  path to the topology text file matching modelB
-                          topology to modelA topology. Setting option with non
-                          empty filename will activate the test.
 
  pcc mode options:
       --singlePass          Force running a single pass, where the loop is
@@ -55,4 +50,10 @@ Usage:
                                 surface construction (default: 20)
       --radiusFactor arg        Set a radius factor for the statistic
                                 computation. (default: 2.0)
+
+ topo mode options:
+      --faceMapFile arg    path to the topology text file matching modelB
+                           topology (face) to modelA topology (face).
+      --vertexMapFile arg  path to the topology text file matching modelB
+                           topology (vertex) to modelA topology (vertex).
 

@@ -95,7 +95,7 @@ bool IO::saveModel(std::string templateName, Model* model) {
 	std::string name = resolveName(_context->getFrame(), templateName);
 	std::map<std::string, Model*>::iterator it = IO::_models.find(name);
 	if (it != IO::_models.end()) {
-		std::cout << "Warning: model with id " << name << "already defined, overwriting" << std::endl;
+		std::cout << "Warning: model with id " << name << " already defined, overwriting" << std::endl;
 		delete it->second;
 		it->second = model;
 	}
@@ -409,10 +409,19 @@ bool IO::_saveObj(std::string filename, const Model& input) {
 	}
 	fout << "usemtl material0000" << std::endl;
 	for (int i = 0; i < input.triangles.size() / 3; i++) {
-		fout << "f " <<
-			input.triangles[i * 3 + 0] + 1 << "/" << input.triangles[i * 3 + 0] + 1 << " " <<
-			input.triangles[i * 3 + 1] + 1 << "/" << input.triangles[i * 3 + 1] + 1 << " " <<
-			input.triangles[i * 3 + 2] + 1 << "/" << input.triangles[i * 3 + 2] + 1 << std::endl;
+
+		if (input.trianglesuv.size() == input.triangles.size() ){
+			fout << "f " <<
+				input.triangles[i * 3 + 0] + 1 << "/" << input.trianglesuv[i * 3 + 0] + 1 << " " <<
+				input.triangles[i * 3 + 1] + 1 << "/" << input.trianglesuv[i * 3 + 1] + 1 << " " <<
+				input.triangles[i * 3 + 2] + 1 << "/" << input.trianglesuv[i * 3 + 2] + 1 << std::endl;
+		}
+		else {
+			fout << "f " <<
+				input.triangles[i * 3 + 0] + 1 << " " <<
+				input.triangles[i * 3 + 1] + 1 << " " <<
+				input.triangles[i * 3 + 2] + 1 << std::endl;
+		}
 	}
 	fout.close();
 	delete[] buf;

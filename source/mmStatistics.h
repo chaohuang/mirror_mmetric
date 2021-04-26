@@ -20,7 +20,8 @@
 #define _MM_STATISTICS_H_
 
 #include <algorithm>	// for std::min and std::max
-#include <math.h>		// for pow and sqrt
+#include <cmath>		// for pow and sqrt,
+#include <limits>		// for nan
 
 namespace Statistics {
 
@@ -39,15 +40,29 @@ namespace Statistics {
 	template <typename F>
 	inline void compute(size_t nbSamples, F&& sampler, Results& output) {
 
+		output.min = std::numeric_limits<double>::quiet_NaN();
+		output.max = std::numeric_limits<double>::quiet_NaN();
+		output.mean = std::numeric_limits<double>::quiet_NaN();
+		output.variance = std::numeric_limits<double>::quiet_NaN();
+		output.stdDev = std::numeric_limits<double>::quiet_NaN();
+		output.sum = std::numeric_limits<double>::quiet_NaN();
+		output.minkowsky = std::numeric_limits<double>::quiet_NaN();
+
+		if (nbSamples == 0) {
+			return;
+		}
+
 		double fract = 1.0 / nbSamples;
-		output.mean = 0.0;
-		output.min = std::numeric_limits<double>::max();
-		output.max = std::numeric_limits<double>::min();
-		output.sum = 0.0;
 		output.minkowsky = 0.0;
 		
+		// init mean, min and max
+		const double sample = sampler(0);
+		output.mean = fract * sample; // we do not use sum for the computation since it might be overflow
+		output.max = sample;
+		output.min = sample;
+		output.sum = sample;
 		// compute mean, min and max
-		for (size_t i = 0; i < nbSamples; ++i) {
+		for (size_t i = 1; i < nbSamples; ++i) {
 			const double sample = sampler(i);
 			output.mean += fract * sample; // we do not use sum for the computation since it might be overflow
 			output.max = std::max(output.max, sample);

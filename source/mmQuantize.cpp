@@ -57,13 +57,13 @@ bool Quantize::initialize(Context* ctx, std::string app, int argc, char* argv[])
 				cxxopts::value<std::string>())
 			("h,help", "Print usage")
 			("dequantize", "set to process dequantification at the ouput")
-			("qp", "Geometry quantization bitdepth",
+			("qp", "Geometry quantization bitdepth. A value < 7 means no quantization.",
 				cxxopts::value<uint32_t>()->default_value("12"))
-			("qt", "UV coordinates quantization bitdepth",
+			("qt", "UV coordinates quantization bitdepth.  A value < 7 means no quantization.",
 				cxxopts::value<uint32_t>()->default_value("12"))
-			("qn", "Normals quantization bitdepth",
+			("qn", "Normals quantization bitdepth. A value < 7 no quantization.",
 				cxxopts::value<uint32_t>()->default_value("12"))
-			("qc", "Colors quantization bitdepth",
+			("qc", "Colors quantization bitdepth. A value < 7 no quantization.",
 				cxxopts::value<uint32_t>()->default_value("8"))
 			("minPos", "min corner of vertex position bbox, a string of three floats. Computed of not set.",
 				cxxopts::value<std::string>())
@@ -231,22 +231,34 @@ bool Quantize::process(uint32_t frame) {
 	std::cout << "  qn = " << _qn << std::endl;
 	std::cout << "  qc = " << _qn << std::endl;
 
+	// use temp values to prevent global param erase by call to quantize at each new frame
+	glm::vec3 minPos = _minPos;
+	glm::vec3 maxPos = _maxPos;
+	glm::vec2 minUv = _minUv;
+	glm::vec2 maxUv = _maxUv;
+	glm::vec3 minNrm = _minNrm;
+	glm::vec3 maxNrm = _maxNrm;
+	glm::vec3 minCol = _minCol;
+	glm::vec3 maxCol = _maxCol;
+	
 	if (_dequantize) {
 		Model* quantizedModel = new Model();
 
 		quantize(*inputModel, *quantizedModel, _qp, _qt, _qn, _qc,
 			_outputVarFilename, _useFixedPoint,
-			_minPos, _maxPos, _minUv, _maxUv, _minNrm, _maxNrm, _minCol, _maxCol);
+			minPos, maxPos, minUv, maxUv, minNrm, maxNrm, minCol, maxCol);
 
+		// uses min/max potentially updated by previous line call to quantize
 		Dequantize::dequantize(*quantizedModel, *outputModel, _qp, _qt, _qn, _qc,
-			_minPos, _maxPos, _minUv, _maxUv, _minNrm, _maxNrm, _minCol, _maxCol, _useFixedPoint);
+			minPos, maxPos, minUv, maxUv, minNrm, maxNrm, minCol, maxCol, _useFixedPoint);
 
 		delete quantizedModel;
 	}
 	else {
+		// uses min/max potentially updated by previous frame call to quantize
 		quantize(*inputModel, *outputModel, _qp, _qt, _qn, _qc,
 			_outputVarFilename, _useFixedPoint,
-			_minPos, _maxPos, _minUv, _maxUv, _minNrm, _maxNrm, _minCol, _maxCol);
+			minPos, maxPos, minUv, maxUv, minNrm, maxNrm, minCol, maxCol);
 	}
 
 	clock_t t2 = clock();
@@ -297,33 +309,29 @@ void Quantize::quantize(
 
 	//quantize position
 	if (!input.vertices.empty() && qp >= 7) {
-		glm::vec3 minBox, maxBox;
 		if (minPos == maxPos) {
 			std::cout << "Computing positions range" << std::endl;
-			computeBBox(input.vertices, minBox, maxBox);
-			minPos = minBox;
-			maxPos = maxBox;
+			computeBBox(input.vertices, minPos, maxPos);
 		}
 		else {
 			std::cout << "Using parameter positions range" << std::endl;
-			minBox = minPos; maxBox = maxPos;
 		}
 		const int32_t fixedPoint16 = (1u << 16);
 		if (useFixedPoint) {
 			// converting the values to a fixed point representation
-			// minBox(FP16) will be used in AAPS -> shift
+			// minPos(FP16) will be used in AAPS -> shift
 			for (int i = 0; i < 3; i++) {
-				if (minBox[i] > 0)
-					minBox[i] = (std::floor(minBox[i] * fixedPoint16)) / fixedPoint16;
+				if (minPos[i] > 0)
+					minPos[i] = (std::floor(minPos[i] * fixedPoint16)) / fixedPoint16;
 				else
-					minBox[i] = (-1) * (std::ceil(std::abs(minBox[i]) * fixedPoint16)) / fixedPoint16;
-				if (maxBox[i] > 0)
-					maxBox[i] = (std::ceil(maxBox[i] * fixedPoint16)) / fixedPoint16;
+					minPos[i] = (-1) * (std::ceil(std::abs(minPos[i]) * fixedPoint16)) / fixedPoint16;
+				if (maxPos[i] > 0)
+					maxPos[i] = (std::ceil(maxPos[i] * fixedPoint16)) / fixedPoint16;
 				else
-					maxBox[i] = (-1) * (std::floor(std::abs(maxBox[i]) * fixedPoint16)) / fixedPoint16;
+					maxPos[i] = (-1) * (std::floor(std::abs(maxPos[i]) * fixedPoint16)) / fixedPoint16;
 			}
 		}
-		const glm::vec3 diag = maxBox - minBox;
+		const glm::vec3 diag = maxPos - minPos;
 		const float range = std::max(std::max(diag.x, diag.y), diag.z);
 		const int32_t maxPositionQuantizedValue = (1u << static_cast<uint32_t>(qp)) - 1;
 		double scale = (double)range / maxPositionQuantizedValue;
@@ -331,8 +339,8 @@ void Quantize::quantize(
 			scale = (std::ceil(scale * fixedPoint16)) / fixedPoint16;
 
 		for (size_t i = 0; i < out.size(); ++i) {
-			*out[i] << "  minPos=\"" << minBox.x << " " << minBox.y << " " << minBox.z << "\"" << std::endl;
-			*out[i] << "  maxPos=\"" << maxBox.x << " " << maxBox.y << " " << maxBox.z << "\"" << std::endl;
+			*out[i] << "  minPos=\"" << minPos.x << " " << minPos.y << " " << minPos.z << "\"" << std::endl;
+			*out[i] << "  maxPos=\"" << maxPos.x << " " << maxPos.y << " " << maxPos.z << "\"" << std::endl;
 			*out[i] << "  rangePos=" << range << std::endl;
 			*out[i] << "  maxPositionQuantizedValue=" << maxPositionQuantizedValue << std::endl;
 			*out[i] << "  scale=" << scale << std::endl;
@@ -340,7 +348,7 @@ void Quantize::quantize(
 
 		for (size_t i = 0; i < input.vertices.size() / 3; i++) {
 			for (glm::vec3::length_type c = 0; c < 3; ++c) {
-				uint32_t pos = static_cast<uint32_t> (std::floor(((double(input.vertices[i * 3 + c] - minBox[c])) / scale) + 0.5f));
+				uint32_t pos = static_cast<uint32_t> (std::floor(((double(input.vertices[i * 3 + c] - minPos[c])) / scale) + 0.5f));
 				output.vertices[i * 3 + c] = static_cast<float> (pos);
 			}
 		}
@@ -348,30 +356,26 @@ void Quantize::quantize(
 
 	//quantize UV coordinates 
 	if (!input.uvcoords.empty() && qt >= 7) {
-		glm::vec2 minBox, maxBox;
 		if (minUv == maxUv) {
 			std::cout << "Computing uv coordinates range" << std::endl;
-			computeBBox(input.uvcoords, minBox, maxBox);
-			minUv = minBox;
-			maxUv = maxBox;
+			computeBBox(input.uvcoords, minUv, maxUv);
 		}
 		else {
 			std::cout << "Using parameter uv coordinates range" << std::endl;
-			minBox = minUv; maxBox = maxUv;
 		}
-		const glm::vec2 diag = maxBox - minBox;
+		const glm::vec2 diag = maxUv - minUv;
 		const float range = std::max(diag.x, diag.y);
 		const int32_t maxUVcordQuantizedValue = (1u << static_cast<uint32_t>(qt)) - 1;
 
 		for (size_t i = 0; i < out.size(); ++i) {
-			*out[i] << "  minUv=\"" << minBox.x << " " << minBox.y << "\"" << std::endl;
-			*out[i] << "  maxUv=\"" << maxBox.x << " " << maxBox.y << "\"" << std::endl;
+			*out[i] << "  minUv=\"" << minUv.x << " " << minUv.y << "\"" << std::endl;
+			*out[i] << "  maxUv=\"" << maxUv.x << " " << maxUv.y << "\"" << std::endl;
 			*out[i] << "  rangeUv=" << range << std::endl;
 		}
 
 		for (size_t i = 0; i < input.uvcoords.size() / 2; i++) {
 			for (glm::vec2::length_type c = 0; c < 2; ++c) {
-				uint32_t uv = static_cast<uint32_t> (std::floor(((input.uvcoords[i * 2 + c] - minBox[c]) / range) * maxUVcordQuantizedValue + 0.5f));
+				uint32_t uv = static_cast<uint32_t> (std::floor(((input.uvcoords[i * 2 + c] - minUv[c]) / range) * maxUVcordQuantizedValue + 0.5f));
 				output.uvcoords[i * 2 + c] = static_cast<float> (uv);
 			}
 		}
@@ -379,30 +383,26 @@ void Quantize::quantize(
 
 	//quantize normals
 	if (!input.normals.empty() && qn >= 7) {
-		glm::vec3 minBox, maxBox;
 		if (minNrm == maxNrm) {
 			std::cout << "Computing normals range" << std::endl;
-			computeBBox(input.normals, minBox, maxBox);
-			minNrm = minBox;
-			maxNrm = maxBox;
+			computeBBox(input.normals, minNrm, maxNrm);
 		}
 		else {
 			std::cout << "Using parameter normals range" << std::endl;
-			minBox = minNrm; maxBox = maxNrm;
 		}
-		const glm::vec3 diag = maxBox - minBox;
+		const glm::vec3 diag = maxNrm - minNrm;
 		const float range = std::max(std::max(diag.x, diag.y), diag.z);
 		const int32_t maxNormalQuantizedValue = (1u << static_cast<uint32_t>(qn)) - 1;
 
 		for (size_t i = 0; i < out.size(); ++i) {
-			*out[i] << "  minNrm=\"" << minBox.x << " " << minBox.y << " " << minBox.z << "\"" << std::endl;
-			*out[i] << "  maxNrm=\"" << maxBox.x << " " << maxBox.y << " " << maxBox.z << "\"" << std::endl;
+			*out[i] << "  minNrm=\"" << minNrm.x << " " << minNrm.y << " " << minNrm.z << "\"" << std::endl;
+			*out[i] << "  maxNrm=\"" << maxNrm.x << " " << maxNrm.y << " " << maxNrm.z << "\"" << std::endl;
 			*out[i] << "  rangeNrm=" << range << std::endl;
 		}
 
 		for (size_t i = 0; i < input.normals.size() / 3; i++) {
 			for (glm::vec3::length_type c = 0; c < 3; ++c) {
-				uint32_t nrm = static_cast<uint32_t> (std::floor(((input.normals[i * 3 + c] - minBox[c]) / range) * maxNormalQuantizedValue + 0.5f));
+				uint32_t nrm = static_cast<uint32_t> (std::floor(((input.normals[i * 3 + c] - minNrm[c]) / range) * maxNormalQuantizedValue + 0.5f));
 				output.normals[i * 3 + c] = static_cast<float> (nrm);
 			}
 		}
@@ -410,30 +410,26 @@ void Quantize::quantize(
 
 	//quantize colors
 	if (!input.colors.empty() && qc >= 7) {
-		glm::vec3 minBox, maxBox;
 		if (minCol == maxCol) {
 			std::cout << "Computing colors range" << std::endl;
-			computeBBox(input.normals, minBox, maxBox);
-			minCol = minBox;
-			maxCol = maxBox;
+			computeBBox(input.normals, minCol, maxCol);
 		}
 		else {
 			std::cout << "Using parameter colors range" << std::endl;
-			minBox = minCol; maxBox = maxCol;
 		}
-		const glm::vec3 diag = maxBox - minBox;
+		const glm::vec3 diag = maxCol - minCol;
 		const float range = std::max(std::max(diag.x, diag.y), diag.z);
 		const int32_t maxColorQuantizedValue = (1u << static_cast<uint32_t>(qc)) - 1;
 
 		for (size_t i = 0; i < out.size(); ++i) {
-			*out[i] << "  minCol=\"" << minBox.x << " " << minBox.y << " " << minBox.z << "\"" << std::endl;
-			*out[i] << "  maxCol=\"" << maxBox.x << " " << maxBox.y << " " << maxBox.z << "\"" << std::endl;
+			*out[i] << "  minCol=\"" << minCol.x << " " << minCol.y << " " << minCol.z << "\"" << std::endl;
+			*out[i] << "  maxCol=\"" << maxCol.x << " " << maxCol.y << " " << maxCol.z << "\"" << std::endl;
 			*out[i] << "  rangeCol=" << range << std::endl;
 		}
 
 		for (size_t i = 0; i < input.colors.size() / 3; i++) {
 			for (glm::vec3::length_type c = 0; c < 3; ++c) {
-				uint32_t col = static_cast<uint32_t> (std::floor(((input.colors[i * 3 + c] - minBox[c]) / range) * maxColorQuantizedValue + 0.5f));
+				uint32_t col = static_cast<uint32_t> (std::floor(((input.colors[i * 3 + c] - minCol[c]) / range) * maxColorQuantizedValue + 0.5f));
 				output.colors[i * 3 + c] = static_cast<float> (col);
 			}
 		}

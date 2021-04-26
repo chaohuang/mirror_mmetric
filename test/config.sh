@@ -1,11 +1,13 @@
 #!/bin/bash
 
-# this file is meant to be used by source config.sh
+# this file is meant to be used by 'source config.sh'
 
 UNAME=`uname`
 
 # path to test input data
 DATA=./data
+# path to temporary data sets
+TMPDATA=./tmp/data
 # path to external data sets
 EXTDATA=./extdata
 # path to test output references
@@ -41,3 +43,33 @@ function fileHasString {
 		echo "Error: expected $3 time(s) the string \"$2\" in file $1"
 	fi
 }
+
+# prepare some test data if not exists
+# requires the quantize command to work properly
+if [ ! -d ${TMPDATA} ]; then
+
+	mkdir ${TMPDATA}
+	touch ${TMPDATA}/log.txt
+	
+	for  q in 8 10 16
+	do
+		# quantize plane
+		$CMD \
+			quantize --qp $q --qt 0 --qc 0 --qn 0 --dequantize --inputModel ${DATA}/plane.obj --outputModel ${TMPDATA}/plane_qp${q}.obj END \
+			quantize --qp 0 --qt $q --qc 0 --qn 0 --dequantize --inputModel ${DATA}/plane.obj --outputModel ${TMPDATA}/plane_qt${q}.obj \
+			>> ${TMPDATA}/log.txt 2>&1
+		
+		# quantize basket
+		$CMD \
+			sequence --firstFrame 1 --lastFrame 3 END \
+			quantize --qp $q --qt 0 --qc 0 --qn 0 --dequantize --inputModel ${DATA}/basketball_player_0000000%1d.obj \
+				--outputModel ${TMPDATA}/basketball_player_0000000%1d_qp${q}.obj END \
+			quantize --qp 0 --qt $q --qc 0 --qn 0 --dequantize --inputModel ${DATA}/basketball_player_0000000%1d.obj \
+				--outputModel ${TMPDATA}/basketball_player_0000000%1d_qt${q}.obj \
+			>> ${TMPDATA}/log.txt 2>&1
+	done
+	
+	grep -iF "error" ${TMPDATA}/log.txt
+fi
+
+# EOF
