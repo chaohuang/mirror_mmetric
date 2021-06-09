@@ -8,9 +8,9 @@ Usage:
                            output.png)
       --outputDepth arg    path to output depth RGBA png file with 32bit
                            float span on the four components. If empty string will
-                           not save depth (default behavior). (default: )
-      --mode arg           the rendering mode in [sw_raster,hw_raster]
-                           (default: sw_raster)
+                           not save depth (default behavior).
+      --renderer arg       Use software or openGL 1.2 renderer. Value in
+                           [sw_raster, gl12_raster]. (default: sw_raster)
       --hideProgress       hide progress display in console for use by robot
   -h, --help               Print usage
       --width arg          Output image width (default: 1980)

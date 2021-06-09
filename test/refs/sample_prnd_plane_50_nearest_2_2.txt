@@ -1,0 +1,20 @@
+Processing frame 0
+Input map: ./data/plane.png
+Loading file: ./data/plane.obj
+Time on loading: 0 sec.
+Input model: ./data/plane.obj
+  Vertices: 5
+  UVs: 5
+  Colors: 0
+  Normals: 0
+  Triangles: 4
+  Trianglesuv: 4
+Sampling in PRND mode
+  nbSamples = 50
+  Bilinear = 0
+  hideProgress = 1
+Handled 7 duplicate vertices
+Generated 53 points
+Time on processing: 0 sec.
+Saving file: ./tmp/sample_prnd_plane_50_nearest_2_2.ply
+Time on overall processing: 0.00499999989 sec.

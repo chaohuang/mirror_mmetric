@@ -1,4 +1,4 @@
-﻿// ************* COPYRIGHT AND CONFIDENTIALITY INFORMATION *********
+// ************* COPYRIGHT AND CONFIDENTIALITY INFORMATION *********
 // Copyright 2021 - InterDigital
 // 
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -59,7 +59,7 @@ bool Sample::initialize(Context* context, std::string app, int argc, char* argv[
 				cxxopts::value<std::string>())
 			("o,outputModel", "path to output model (obj or ply file)",
 				cxxopts::value<std::string>())
-			("mode", "the sampling mode in [face,grid,map,sdiv,ediv]",
+			("mode", "the sampling mode in [face,grid,map,sdiv,ediv,prnd]",
 				cxxopts::value<std::string>())
 			("hideProgress", "hide progress display in console for use by robot",
 				cxxopts::value<bool>()->default_value("false"))
@@ -86,17 +86,30 @@ bool Sample::initialize(Context* context, std::string app, int argc, char* argv[
 		options.add_options("grid mode")
 			("gridSize", "integer value in [1,maxint], side size of the grid",
 				cxxopts::value<int>()->default_value("1024"))
+			("useNormal", "if set will sample only in the direction with the largest dot product with the triangle normal",
+				cxxopts::value<bool>()->default_value("false"))
+			("minPos", "min corner of vertex position bbox, a string of three floats.",
+				cxxopts::value<std::string>())
+			("maxPos", "max corner of vertex position bbox, a string of three floats.",
+				cxxopts::value<std::string>())
+			("useFixedPoint", "interprets minPos and maxPos inputs as fixed point 16.",
+				cxxopts::value<bool>())
+			;
+		options.add_options("prnd mode")
+			("nbSamples", "integer value specifying the traget number of points in the output point cloud",
+				cxxopts::value<size_t>()->default_value("2000000"))
 			;
 		options.add_options("face and ediv modes")
 			("resolution", "integer value in [1,maxuint], step/edgeLength = resolution / size(largest bbox side). In ediv mode, the resolution is used only if lengthThreshold=0.",
 				cxxopts::value<size_t>()->default_value("1024"))
 			;
+
 		options.add_options("grid, face, sdiv and ediv modes.")
 			("bilinear", "if set, texture filtering will be bilinear, nearest otherwise",
 				cxxopts::value<bool>()->default_value("false"))
 			("nbSamplesMin", "if set different from 0, the system will rerun the sampling multiple times to find the best parameter producing a number of samples in [nbAmplesMin, nbSamplesMax]. This process is very time comsuming.",
 				cxxopts::value<size_t>()->default_value("0"))
-			("nbSamplesMax", "see --nbSampleMin documentation. Must be > to --nbSamleMin.",
+			("nbSamplesMax", "see --nbSamplesMin documentation. Must be > to --nbSamplesMin.",
 				cxxopts::value<size_t>()->default_value("0"))
 			("maxIterations", "Maximum number of iterations in sample count constrained sampling, i.e. when --nbSampleMin > 0.",
 				cxxopts::value<size_t>()->default_value("10"))
@@ -134,7 +147,8 @@ bool Sample::initialize(Context* context, std::string app, int argc, char* argv[
 		if (result.count("mode"))
 			mode = result["mode"].as<std::string>();
 
-		if (mode != "face" && mode != "grid" && mode != "map" && mode != "sdiv" && mode != "ediv") {
+		if (mode != "face" && mode != "grid" && mode != "map" && 
+			mode != "sdiv" && mode != "ediv" &&	mode != "prnd") {
 			std::cerr << "Error: invalid mode \"" << mode << std::endl;
 			return false;
 		}
@@ -158,12 +172,14 @@ bool Sample::initialize(Context* context, std::string app, int argc, char* argv[
 		if (result.count("mapThreshold"))
 			mapThreshold = result["mapThreshold"].as<bool>();
 		if (result.count("gridSize"))
-			gridSize = result["gridSize"].as<int>();
+			_gridSize = result["gridSize"].as<int>();
+		if (result.count("useNormal"))
+			_useNormal = result["useNormal"].as<bool>();
 		if (result.count("bilinear"))
 			bilinear = result["bilinear"].as<bool>();
 		if (result.count("nbSamplesMin"))
 			_nbSamplesMin = result["nbSamplesMin"].as<size_t>();
-		if (result.count("nbSamplesMax")){
+		if (result.count("nbSamplesMax")) {
 			_nbSamplesMax = result["nbSamplesMax"].as<size_t>();
 			if (_nbSamplesMax <= _nbSamplesMin) {
 				std::cerr << "Error: nbSampleMax must be > to nbSampleMin" << std::endl;
@@ -172,6 +188,33 @@ bool Sample::initialize(Context* context, std::string app, int argc, char* argv[
 		}
 		if (result.count("maxIterations"))
 			_maxIterations = result["maxIterations"].as<size_t>();
+
+		// prnd options
+		if (result.count("nbSamples"))
+			_nbSamples = result["nbSamples"].as<size_t>();
+			
+
+		// grid options
+		if (result.count("minPos")) {
+			_minPosStr = result["minPos"].as<std::string>();
+			if (!parseVec3(_minPosStr, _minPos)) {
+				std::cout << "Error: parsing --minPos=\"" << _minPosStr
+					<< "\" expected three floats with space separator" << std::endl;
+				return false;
+			}
+		}
+		if (result.count("maxPos")) {
+			_maxPosStr = result["maxPos"].as<std::string>();
+			if (!parseVec3(_maxPosStr, _maxPos)) {
+				std::cout << "Error: parsing --maxPos=\"" << _maxPosStr
+					<< "\" expected three floats with space separator" << std::endl;
+				return false;
+			}
+		}
+		if (result.count("useFixedPoint")) {
+			_useFixedPoint = result["useFixedPoint"].as<bool>();
+		}
+
 	}
 	catch (const cxxopts::OptionException& e)
 	{
@@ -207,7 +250,7 @@ bool Sample::process(uint32_t frame) {
 
 	// the output
 	Model* outputModel = new Model();
-	
+
 	// create or open in append mode output csv if needed
 	std::streamoff csvFileLength = 0;
 	std::ofstream csvFileOut;
@@ -240,26 +283,26 @@ bool Sample::process(uint32_t frame) {
 		size_t computedResolution = 0;
 		if (_nbSamplesMin != 0) {
 			std::cout << "  using contrained mode with nbSamples (costly!)" << std::endl;
-			Sample::meshToPcFace(*inputModel, *outputModel, *textureMap, 
-				_nbSamplesMin, _nbSamplesMax, _maxIterations, 
+			Sample::meshToPcFace(*inputModel, *outputModel, *textureMap,
+				_nbSamplesMin, _nbSamplesMax, _maxIterations,
 				thickness, bilinear, !hideProgress, computedResolution);
 		}
 		else {
 			std::cout << "  using contrained mode with resolution " << std::endl;
-			Sample::meshToPcFace(*inputModel, *outputModel, *textureMap, 
+			Sample::meshToPcFace(*inputModel, *outputModel, *textureMap,
 				_resolution, thickness, bilinear, !hideProgress);
 		}
 		// print the stats
 		if (csvFileOut) {
 			// print the header if file is empty
-			if (csvFileLength==0) {
+			if (csvFileLength == 0) {
 				csvFileOut << "model;texture;frame;resolution;thickness;bilinear;nbSamplesMin;"
-					 << "nbSamplesMax;maxIterations;computedResolution;nbSamples" << std::endl;
+					<< "nbSamplesMax;maxIterations;computedResolution;nbSamples" << std::endl;
 			}
 			// print stats
-			csvFileOut << inputModelFilename << ";" << inputTextureFilename << ";" << frame << ";" << _resolution << ";" 
-				<< thickness << ";"	<< bilinear << ";" << _nbSamplesMin
-				<< ";" << _nbSamplesMax << ";" << _maxIterations << ";" << computedResolution << ";" 
+			csvFileOut << inputModelFilename << ";" << inputTextureFilename << ";" << frame << ";" << _resolution << ";"
+				<< thickness << ";" << bilinear << ";" << _nbSamplesMin
+				<< ";" << _nbSamplesMax << ";" << _maxIterations << ";" << computedResolution << ";"
 				<< outputModel->getPositionCount() << std::endl;
 			// done
 			csvFileOut.close();
@@ -267,7 +310,8 @@ bool Sample::process(uint32_t frame) {
 	}
 	else if (mode == "grid") {
 		std::cout << "Sampling in GRID mode" << std::endl;
-		std::cout << "  Grid Size = " << gridSize << std::endl;
+		std::cout << "  Grid Size = " << _gridSize << std::endl;
+		std::cout << "  Use Normal = " << _useNormal << std::endl;
 		std::cout << "  Bilinear = " << bilinear << std::endl;
 		std::cout << "  hideProgress = " << hideProgress << std::endl;
 		std::cout << "  nbSamplesMin = " << _nbSamplesMin << std::endl;
@@ -278,22 +322,24 @@ bool Sample::process(uint32_t frame) {
 			std::cout << "  using contrained mode with nbSamples (costly!)" << std::endl;
 			Sample::meshToPcGrid(*inputModel, *outputModel, *textureMap,
 				_nbSamplesMin, _nbSamplesMax, _maxIterations,
-				bilinear, !hideProgress, computedResolution );
-		} else {
+				bilinear, !hideProgress, _useNormal, _useFixedPoint,
+				_minPos, _maxPos, computedResolution);
+		}
+		else {
 			std::cout << "  using contrained mode with gridSize " << std::endl;
 			Sample::meshToPcGrid(*inputModel, *outputModel,
-				*textureMap, gridSize, bilinear, !hideProgress);
+				*textureMap, _gridSize, bilinear, !hideProgress, _useNormal, _useFixedPoint, _minPos, _maxPos);
 		}
 		// print the stats
 		if (csvFileOut) {
 			// print the header if file is empty
 			if (csvFileLength == 0) {
-				csvFileOut << "model;texture;frame;mode;gridSize;bilinear;nbSamplesMin;"
+				csvFileOut << "model;texture;frame;mode;gridSize;useNormal;bilinear;nbSamplesMin;"
 					<< "nbSamplesMax;maxIterations;computedResolution;nbSamples" << std::endl;
 			}
 			// print stats
 			csvFileOut << inputModelFilename << ";" << inputTextureFilename << ";" << frame << ";" << mode << ";" 
-				<< gridSize << ";" << bilinear << ";"
+				<< _gridSize << ";" << _useNormal << ";" << bilinear << ";"
 				<< _nbSamplesMin << ";" << _nbSamplesMax << ";" << _maxIterations << ";" << computedResolution << ";"
 				<< outputModel->getPositionCount() << std::endl;
 			// done
@@ -329,11 +375,12 @@ bool Sample::process(uint32_t frame) {
 		float computedThres = 0.0f;
 		if (_nbSamplesMin != 0) {
 			std::cout << "  using contrained mode with nbSamples (costly!)" << std::endl;
-			Sample::meshToPcDiv(*inputModel, *outputModel, *textureMap, 
-				_nbSamplesMin, _nbSamplesMax, _maxIterations, 
+			Sample::meshToPcDiv(*inputModel, *outputModel, *textureMap,
+				_nbSamplesMin, _nbSamplesMax, _maxIterations,
 				bilinear, !hideProgress, computedThres);
-		} else {
-			Sample::meshToPcDiv(*inputModel, *outputModel, *textureMap, 
+		}
+		else {
+			Sample::meshToPcDiv(*inputModel, *outputModel, *textureMap,
 				areaThreshold, mapThreshold, bilinear, !hideProgress);
 		}
 		// print the stats
@@ -344,7 +391,7 @@ bool Sample::process(uint32_t frame) {
 					<< "nbSamplesMax;maxIterations;computedThreshold;nbSamples" << std::endl;
 			}
 			// print stats
-			csvFileOut << inputModelFilename << ";" << inputTextureFilename << ";" << frame << ";" << mode << ";" 
+			csvFileOut << inputModelFilename << ";" << inputTextureFilename << ";" << frame << ";" << mode << ";"
 				<< areaThreshold << ";" << bilinear << ";"
 				<< _nbSamplesMin << ";" << _nbSamplesMax << ";" << _maxIterations << ";" << computedThres << ";"
 				<< outputModel->getPositionCount() << std::endl;
@@ -355,7 +402,7 @@ bool Sample::process(uint32_t frame) {
 	else if (mode == "ediv") {
 		std::cout << "Sampling in EDIV mode" << std::endl;
 		std::cout << "  Edge length threshold = " << lengthThreshold << std::endl;
-		std::cout << "  Resolution = " << _resolution  << (lengthThreshold != 0 ? "(skipped)" : "") << std::endl;
+		std::cout << "  Resolution = " << _resolution << (lengthThreshold != 0 ? "(skipped)" : "") << std::endl;
 		std::cout << "  Bilinear = " << bilinear << std::endl;
 		std::cout << "  hideProgress = " << hideProgress << std::endl;
 		std::cout << "  nbSamplesMin = " << _nbSamplesMin << std::endl;
@@ -365,10 +412,11 @@ bool Sample::process(uint32_t frame) {
 		if (_nbSamplesMin != 0) {
 			std::cout << "  using contrained mode with nbSamples (costly!)" << std::endl;
 			Sample::meshToPcDivEdge(*inputModel, *outputModel, *textureMap,
-				_nbSamplesMin, _nbSamplesMax, _maxIterations, 
+				_nbSamplesMin, _nbSamplesMax, _maxIterations,
 				bilinear, !hideProgress, computedThres);
-		} else {
-			Sample::meshToPcDivEdge(*inputModel, *outputModel, *textureMap, 
+		}
+		else {
+			Sample::meshToPcDivEdge(*inputModel, *outputModel, *textureMap,
 				lengthThreshold, _resolution, bilinear, !hideProgress, computedThres);
 		}
 		// print the stats
@@ -383,6 +431,26 @@ bool Sample::process(uint32_t frame) {
 				<< _resolution << ";" << lengthThreshold << ";" << bilinear << ";"
 				<< _nbSamplesMin << ";" << _nbSamplesMax << ";" << _maxIterations << ";" << computedThres << ";"
 				<< outputModel->getPositionCount() << std::endl;
+			// done
+			csvFileOut.close();
+		}
+	}
+	else if (mode == "prnd") {
+		std::cout << "Sampling in PRND mode" << std::endl;
+		std::cout << "  nbSamples = " << _nbSamples << std::endl;
+		std::cout << "  Bilinear = " << bilinear << std::endl;
+		std::cout << "  hideProgress = " << hideProgress << std::endl;
+		Sample::meshToPcPrnd(*inputModel, *outputModel, *textureMap, _nbSamples,
+			bilinear, !hideProgress);
+		// print the stats
+		if (csvFileOut) {
+			// print the header if file is empty
+			if (csvFileLength == 0) {
+				csvFileOut << "model;texture;frame;mode;targetPointCount;bilinear;nbSamples" << std::endl;
+			}
+			// print stats
+			csvFileOut << inputModelFilename << ";" << inputTextureFilename << ";" << frame << ";" << mode << ";"
+				<< _nbSamples << ";" << bilinear << ";" << outputModel->getPositionCount() << std::endl;
 			// done
 			csvFileOut.close();
 		}
@@ -511,14 +579,14 @@ void Sample::meshToPcFace(
 	size_t nbSamplesMin, size_t nbSamplesMax, size_t maxIterations,
 	float thickness, bool bilinear, bool logProgress, size_t& computedResolution)
 {
-	size_t resolution=1024;
+	size_t resolution = 1024;
 	meshToPcFace(input, output, tex_map, resolution, thickness, bilinear, logProgress);
 	// search to init the algo bounds
 	size_t minResolution = 0;
 	size_t maxResolution = 0;
 	//
 	size_t iter = 0;
-	while ((output.getPositionCount() < nbSamplesMin || output.getPositionCount() > nbSamplesMax) && iter < maxIterations ) {
+	while ((output.getPositionCount() < nbSamplesMin || output.getPositionCount() > nbSamplesMax) && iter < maxIterations) {
 		iter++;
 		// let's refine
 		if (output.getPositionCount() < nbSamplesMin) { // need to add some points
@@ -549,19 +617,59 @@ void Sample::meshToPcFace(
 // we use ray tracing to process the result, we could also use a rasterization (might be faster)
 void Sample::meshToPcGrid(
 	const Model& input, Model& output,
-	const Image& tex_map, size_t resolution, bool bilinear, bool logProgress) {
+	const Image& tex_map, const size_t resolution, const bool bilinear, const bool logProgress, 
+	bool useNormal, bool useFixedPoint, glm::vec3& minPos, glm::vec3& maxPos) 
+{
 
 	// computes the bounding box of the vertices
-	glm::vec3 minPos, maxPos;
-	computeBBox(input.vertices, minPos, maxPos);
-	std::cout << "minbox = " << minPos[0] << "," << minPos[1] << "," << minPos[2] << std::endl;
-	std::cout << "maxbox = " << maxPos[0] << "," << maxPos[1] << "," << maxPos[2] << std::endl;
+	glm::vec3 minBox = minPos;
+	glm::vec3 maxBox = maxPos;
+	const int32_t fixedPoint16 = (1u << 16);
+	glm::vec3 stepSize;
+	if (minPos == maxPos) {
+		std::cout << "Computing positions range" << std::endl;
+		computeBBox(input.vertices, minBox, maxBox);
+		std::cout << "minBox = " << minBox[0] << "," << minBox[1] << "," << minBox[2] << std::endl;
+		std::cout << "maxBox = " << maxBox[0] << "," << maxBox[1] << "," << maxBox[2] << std::endl;
+		std::cout << "Transform bounding box to square box" << std::endl;
+		// hence sampling will be unform in the three dimensions
+		toCubicalBBox(minBox, maxBox); // this will change the origin of the coordinate system (but it is just a translation)
+		stepSize = (maxBox - minBox) * (1.0F / (float)(resolution - 1));
+	}
+	else {
+		std::cout << "Using parameter positions range" << std::endl;
+		std::cout << "minPos = " << minPos[0] << "," << minPos[1] << "," << minPos[2] << std::endl;
+		std::cout << "maxPos = " << maxPos[0] << "," << maxPos[1] << "," << maxPos[2] << std::endl;
+		if (useFixedPoint) {
+			// converting the values to a fixed point representation
+			// minBox(FP16) will be used in AAPS -> shift
+			for (int i = 0; i < 3; i++) {
+				if (minBox[i] > 0)
+					minBox[i] = (std::floor(minBox[i] * fixedPoint16)) / fixedPoint16;
+				else
+					minBox[i] = (-1) * (std::ceil(std::abs(minBox[i]) * fixedPoint16)) / fixedPoint16;
+				if (maxBox[i] > 0){
+					maxBox[i] = std::ceil(maxPos[i] * fixedPoint16) / fixedPoint16;
+				}
+				else
+					maxBox[i] = (-1) * (std::floor(std::abs(maxBox[i]) * fixedPoint16)) / fixedPoint16;
+			}
+		}
+		std::cout << "minBox = " << minBox[0] << "," << minBox[1] << "," << minBox[2] << std::endl;
+		std::cout << "maxBox = " << maxBox[0] << "," << maxBox[1] << "," << maxBox[2] << std::endl;
+		const glm::vec3 diag = maxBox - minBox;
+		float range = std::max(std::max(diag.x, diag.y), diag.z);
+		stepSize[0] = range * (1.0F / (float)(resolution - 1));
+		stepSize[1] = range * (1.0F / (float)(resolution - 1));
+		stepSize[2] = range * (1.0F / (float)(resolution - 1));
+		if (useFixedPoint){
+			stepSize[0] = (std::ceil(stepSize[0] * fixedPoint16)) / fixedPoint16;
+			stepSize[1] = (std::ceil(stepSize[1] * fixedPoint16)) / fixedPoint16;
+			stepSize[2] = (std::ceil(stepSize[2] * fixedPoint16)) / fixedPoint16;
+		}
+	}
 
-	std::cout << "Transform bounding box to square box" << std::endl;
-	// hence sampling will be unform in the three dimensions
-	toCubicalBBox(minPos, maxPos);
-	std::cout << "minbox = " << minPos[0] << "," << minPos[1] << "," << minPos[2] << std::endl;
-	std::cout << "maxbox = " << maxPos[0] << "," << maxPos[1] << "," << maxPos[2] << std::endl;
+	std::cout << "stepSize = " << stepSize[0] << "," << stepSize[1] << "," << stepSize[2] << std::endl;
 
 	// we will now sample between min and max over the three dimensions, using resolution
 	// by throwing rays from the three orthogonal faces of the box XY, XZ, YZ
@@ -596,39 +704,68 @@ void Sample::meshToPcGrid(
 		triangleNormal(v1.pos, v2.pos, v3.pos, normal);
 
 		// extract the triangle bbox
-		glm::vec3 triMinPos, triMaxPos;
-		triangleBBox(v1.pos, v2.pos, v3.pos, triMinPos, triMaxPos);
+		glm::vec3 triMinBox, triMaxBox;
+		triangleBBox(v1.pos, v2.pos, v3.pos, triMinBox, triMaxBox);
 
 		// now find the Discrete range from global box to triangle box
-		glm::vec3 stepSize = (maxPos - minPos) * (1.0F / (float)(resolution - 1));
-		glm::vec3 lmin = glm::floor((triMinPos - minPos) / stepSize); // can lead to division by zero with flat box, handled later
-		glm::vec3 lmax = glm::ceil((triMaxPos - minPos) / stepSize); // idem
+		glm::vec3 lmin = glm::floor((triMinBox - minBox) / stepSize); // can lead to division by zero with flat box, handled later
+		glm::vec3 lmax = glm::ceil((triMaxBox - minBox) / stepSize); // idem
 		glm::vec3 lcnt = lmax - lmin;
-
+		
 		// now we will send rays on this triangle from the discreet steps of this box
 		// rayTrace from the three main axis
-		for (glm::vec3::length_type mainAxis = 0; mainAxis < 3; ++mainAxis) {
 
+		// reordering the search to start with the direction closest to the triangle normal
+		glm::ivec3 mainAxisVector(0,1,2);
+		// we want to preserve invariance with existing references if useNormal is disabled
+		// so we do the following reordering only if option is enabled
+		if (useNormal) {
+			if ((abs(normal[0]) >= abs(normal[1])) && (abs(normal[0]) >= abs(normal[2]))) {
+				if (abs(normal[1]) >= abs(normal[2]))
+					mainAxisVector = glm::ivec3(0, 1, 2);
+				else
+					mainAxisVector = glm::ivec3(0, 2, 1);
+			}
+			else {
+				if ((abs(normal[1]) >= abs(normal[0])) && (abs(normal[1]) >= abs(normal[2]))) {
+					if (abs(normal[0]) >= abs(normal[2]))
+						mainAxisVector = glm::ivec3(1, 0, 2);
+					else
+						mainAxisVector = glm::ivec3(1, 2, 0);
+				}
+				else {
+					if (abs(normal[0]) >= abs(normal[1]))
+						mainAxisVector = glm::ivec3(2, 0, 1);
+					else
+						mainAxisVector = glm::ivec3(2, 1, 0);
+				}
+			}
+		}
+		int mainAxisMaxIndex = useNormal ? 1 : 3; // if useNormal is selected, we only need to check the first index
+
+		for (int mainAxisIndex = 0; mainAxisIndex < mainAxisMaxIndex; ++mainAxisIndex) {
+
+			glm::vec3::length_type mainAxis = mainAxisVector[mainAxisIndex];
 			// axis swizzling
 			glm::vec3::length_type secondAxis = 1;	glm::vec3::length_type thirdAxis = 2;
 			if (mainAxis == 1) { secondAxis = 0; thirdAxis = 2; }
 			else if (mainAxis == 2) { secondAxis = 0; thirdAxis = 1; }
 
 			// skip this axis if box is null sized on one of the two other axis
-			if (minPos[secondAxis] == maxPos[secondAxis] || minPos[thirdAxis] == maxPos[thirdAxis])
+			if (minBox[secondAxis] == maxBox[secondAxis] || minBox[thirdAxis] == maxBox[thirdAxis])
 				continue;
 
-			// let's thow from mainAxis prependicular plane
+			// let's throw from mainAxis prependicular plane
 			glm::vec3 rayOrigin = { 0.0,0.0,0.0 };
 			glm::vec3 rayDirection = { 0.0,0.0,0.0 };
 
 			// on the main axis
 			if (stepSize[mainAxis] == 0.0F) { // handle stepSize[axis]==0
 				// add small thress to be sure ray intersect in positive t
-				rayOrigin[mainAxis] = minPos[mainAxis] - 0.5F;
+				rayOrigin[mainAxis] = minBox[mainAxis] - 0.5F;
 			}
 			else {
-				rayOrigin[mainAxis] = minPos[mainAxis] + lmin[mainAxis] * stepSize[mainAxis];
+				rayOrigin[mainAxis] = minBox[mainAxis] + lmin[mainAxis] * stepSize[mainAxis];
 			}
 			// on main axis from min to max
 			rayDirection[mainAxis] = 1.0;
@@ -640,8 +777,8 @@ void Sample::meshToPcGrid(
 				for (size_t j = 0; j <= lcnt[thirdAxis]; ++j) {
 
 					// create the ray, starting from the face of the triangle bbox
-					rayOrigin[secondAxis] = minPos[secondAxis] + (lmin[secondAxis] + i) * stepSize[secondAxis];
-					rayOrigin[thirdAxis] = minPos[thirdAxis] + (lmin[thirdAxis] + j) * stepSize[thirdAxis];
+					rayOrigin[secondAxis] = minBox[secondAxis] + (lmin[secondAxis] + i) * stepSize[secondAxis];
+					rayOrigin[thirdAxis] = minBox[thirdAxis] + (lmin[thirdAxis] + j) * stepSize[thirdAxis];
 
 					//  triplet, x = t, y = u, z = v with t the parametric and (u,v) the barycentrics
 					glm::vec3 res;
@@ -668,6 +805,7 @@ void Sample::meshToPcGrid(
 								texture2D(tex_map, uv, v.col);
 
 							v.hasColor = true;
+							//v.col = v.col * rayDirection; --> for debugging, paints the color of the vertex according to the direction
 						}
 						// use color per vertex
 						else if (input.colors.size() != 0) {
@@ -696,10 +834,11 @@ void Sample::meshToPcGrid(
 void Sample::meshToPcGrid(
 	const Model& input, Model& output, const Image& tex_map,
 	size_t nbSamplesMin, size_t nbSamplesMax, size_t maxIterations,
-	bool bilinear, bool logProgress, size_t& computedResolution)
+	bool bilinear, bool logProgress, bool useNormal, 
+	bool useFixedPoint, glm::vec3& minPos, glm::vec3& maxPos, size_t& computedResolution)
 {
 	size_t resolution = 1024;
-	meshToPcGrid(input, output, tex_map, resolution, bilinear, logProgress);
+	meshToPcGrid(input, output, tex_map, resolution, bilinear, logProgress, useNormal, useFixedPoint, minPos, maxPos);
 	// search to init the algo bounds
 	size_t minResolution = 0;
 	size_t maxResolution = 0;
@@ -727,7 +866,7 @@ void Sample::meshToPcGrid(
 		std::cout << "  resolution=" << resolution << std::endl;
 		//
 		output.reset();
-		meshToPcGrid(input, output, tex_map, resolution, bilinear, logProgress);
+		meshToPcGrid(input, output, tex_map, resolution, bilinear, logProgress, useNormal, useFixedPoint, minPos, maxPos);
 	}
 	computedResolution = resolution;
 	std::cout << "algorithm ended after " << iter << " iterations " << std::endl;
@@ -1032,7 +1171,7 @@ void subdivideTriangleEdge(
 	const bool split1 = glm::length(v2.pos - v1.pos) * 0.5F >= lengthThreshold;
 	const bool split2 = glm::length(v2.pos - v3.pos) * 0.5F >= lengthThreshold;
 	const bool split3 = glm::length(v3.pos - v1.pos) * 0.5F >= lengthThreshold;
-	
+
 	// early return if threshold reached for each edge
 	if (!split1 && !split2 && !split3)
 		return;
@@ -1118,7 +1257,7 @@ void subdivideTriangleEdge(
 // Use subdiv scheme without T-vertices, stop criterion on edge size
 void Sample::meshToPcDivEdge(
 	const Model& input, Model& output,
-	const Image& tex_map, float lengthThreshold, size_t resolution, 
+	const Image& tex_map, float lengthThreshold, size_t resolution,
 	bool bilinear, bool logProgress, float& computedThres)
 {
 	float length = lengthThreshold;
@@ -1233,3 +1372,134 @@ void Sample::meshToPcDivEdge(
 	computedThres = value;
 	std::cout << "algorithm ended after " << iter << " iterations " << std::endl;
 }
+
+// Use uniform sampling algorithm
+// Stop criterion generated point count
+// Implementation of the algorithm described in
+// http://extremelearning.com.au/evenly-distributing-points-in-a-triangle/
+
+void Sample::meshToPcPrnd(
+	const Model& input, Model& output, const Image& tex_map,
+	size_t targetPointCount, bool bilinear, bool logProgress)
+{
+	// number of degenerate triangles
+	size_t skipped = 0;
+
+	// to prevent storing duplicate points, we use a ModelBuilder
+	ModelBuilder builder(output);
+	double totalArea = 0.0f;
+	for (size_t triIdx = 0; triIdx < input.triangles.size() / 3; ++triIdx) {
+		Vertex v1, v2, v3;
+
+		fetchTriangle(input, triIdx,
+			input.uvcoords.size() != 0,
+			input.colors.size() != 0,
+			input.normals.size() != 0,
+			v1, v2, v3);
+		totalArea += triangleArea(v1.pos, v2.pos, v3.pos);
+	}
+
+	const auto g = 1.0f / 1.32471795572f;
+	const auto g2 = g * g;
+
+	// For each triangle
+	for (size_t triIdx = 0; triIdx < input.triangles.size() / 3; ++triIdx) {
+
+		if (logProgress)
+			std::cout << '\r' << triIdx << "/" << input.triangles.size() / 3 << std::flush;
+
+		Vertex v1, v2, v3;
+		fetchTriangle(input, triIdx,
+			input.uvcoords.size() != 0,
+			input.colors.size() != 0,
+			input.normals.size() != 0,
+			v1, v2, v3);
+
+
+		// check if triangle is not degenerate
+		if (triangleArea(v1.pos, v2.pos, v3.pos) < DBL_EPSILON) {
+			++skipped;
+			continue;
+		}
+
+		const auto triArea = triangleArea(v1.pos, v2.pos, v3.pos);
+		const auto pointCount = std::ceil(targetPointCount * triArea / totalArea);
+
+		// compute face normal (forces) - might be better as an option
+		glm::vec3 normal;
+		triangleNormal(v1.pos, v2.pos, v3.pos, normal);
+		v1.nrm = v2.nrm = v3.nrm = normal;
+		v1.hasNormal = v2.hasNormal = v3.hasNormal = true;
+
+		// push the vertices
+		builder.pushVertex(v1, tex_map, bilinear);
+		builder.pushVertex(v2, tex_map, bilinear);
+		builder.pushVertex(v3, tex_map, bilinear);
+
+
+		const auto d12 = glm::distance(v1.pos, v2.pos);
+		const auto d23 = glm::distance(v2.pos, v3.pos);
+		const auto d31 = glm::distance(v3.pos, v1.pos);
+
+		glm::vec3 dpos0, dpos1, pos;
+		glm::vec2 duv0, duv1, uv;
+		if (d12 >= d23 && d12 >= d31) {
+			uv = v3.uv;
+			duv0 = v1.uv - v3.uv;
+			duv1 = v2.uv - v3.uv;
+
+			pos = v3.pos;
+			dpos0 = v1.pos - v3.pos;
+			dpos1 = v2.pos - v3.pos;
+		}
+		else if (d31 >= d23) {
+			uv = v2.uv;
+			duv0 = v1.uv - v2.uv;
+			duv1 = v3.uv - v2.uv;
+
+			pos = v2.pos;
+			dpos0 = v1.pos - v2.pos;
+			dpos1 = v3.pos - v2.pos;
+		}
+		else {
+			uv = v1.uv;
+			duv0 = v2.uv - v1.uv;
+			duv1 = v3.uv - v1.uv;
+
+			pos = v1.pos;
+			dpos0 = v2.pos - v1.pos;
+			dpos1 = v3.pos - v1.pos;
+		}
+
+		// the new vertices
+		Vertex vertex;
+		// we use v1 as reference in term of components to push
+		vertex.hasColor = v1.hasColor;
+		vertex.hasUVCoord = v1.hasUVCoord;
+		// forces normals, we use generated per face ones 
+		vertex.hasNormal = true;
+
+		for (int i = 1; i < pointCount; ++i) {
+			const auto r1 = i * g;
+			const auto r2 = i * g2;
+			auto x = r1 - std::floor(r1);
+			auto y = r2 - std::floor(r2);
+			if (x + y > 1.0f) {
+				x = 1.0f - x;
+				y = 1.0f - y;
+			}
+			vertex.pos = pos + x * dpos0 + y * dpos1;
+			vertex.uv = uv + x * duv0 + y * duv1;
+			vertex.nrm = normal;
+			builder.pushVertex(vertex, tex_map, bilinear);
+		}
+	}
+	if (logProgress)
+		std::cout << std::endl;
+	if (skipped != 0)
+		std::cout << "Skipped " << skipped << " degenerate triangles" << std::endl;
+	if (builder.foundCount != 0)
+		std::cout << "Handled " << builder.foundCount << " duplicate vertices" << std::endl;
+	std::cout << "Generated " << output.vertices.size() / 3 << " points" << std::endl;
+}
+

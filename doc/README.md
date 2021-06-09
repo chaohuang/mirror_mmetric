@@ -109,4 +109,5 @@ mm.exe \
 		--minPos="${globalMinPos}" --maxPos="${globalMaxPos}" \
 		--minUv="${globalMinUv}"   --maxUv="${globalMaxUv}" \
 		--minNrm="${globalMinNrm}" --maxNrm="${globalMaxNrm}"
+	
 ```

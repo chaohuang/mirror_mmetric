@@ -1,16 +1,24 @@
+Processing frame 0
 Input map: ./data/plane.png
 Loading file: ./data/plane.obj
-Time on loading: 0.008 sec.
+Time on loading: 0.00100000005 sec.
 Input model: ./data/plane.obj
   Vertices: 5
   UVs: 5
   Colors: 0
   Normals: 0
+  Triangles: 4
+  Trianglesuv: 4
 Sampling in SDIV mode
   Area threshold = 1
   Map threshold = 0
   Bilinear = 1
   hideProgress = 1
+  nbSamplesMin = 0
+  nbSamplesMax = 0
+  maxIterations = 10
+Handled 119 duplicate vertices
 Generated 145 points
-Time on processing: 0 sec.
+Time on processing: 0.00200000009 sec.
 Saving file: ./tmp/sample_sdiv_plane_1_bilinear_2_2.ply
+Time on overall processing: 0.00700000022 sec.

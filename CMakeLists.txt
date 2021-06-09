@@ -68,6 +68,7 @@ file(GLOB SLN_INC ${CMAKE_CURRENT_SOURCE_DIR}/source/*.h)
 file(GLOB SLN_SRC ${CMAKE_CURRENT_SOURCE_DIR}/source/*.cpp)
 file(GLOB SLN_TST ${CMAKE_CURRENT_SOURCE_DIR}/test/*.sh)
 
+set(GLAD_SRC ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/glad/src/glad.c )
 set(PCQM_SRC ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/pcqm/pcqm.cpp )
 set(PCQM_INC 
 	${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/pcqm/pcqm.h 
@@ -91,10 +92,19 @@ source_group("test\\" FILES ${SLN_TST})
 #
 include_directories( 
 	${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/
+	${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/glad/include
 	${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/eigen3
-	${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/nanoflann)
+	${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/nanoflann
+	${CMAKE_CURRENT_SOURCE_DIR}/deps/glfw/include)
 
 add_executable(mm ${PCQM_SRC} ${GLAD_SRC} ${PCC_SRC} ${SLN_SRC} ${SLN_INC} ${SLN_TST})
+
+# GLFW include, build and use
+set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/deps/glfw)
+target_link_libraries(mm glfw)
 
 #
 install(TARGETS mm DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/bin)

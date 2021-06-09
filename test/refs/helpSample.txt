@@ -5,7 +5,7 @@ Usage:
   -i, --inputModel arg   path to input model (obj or ply file)
   -m, --inputMap arg     path to input texture map (png, jpg, rgb, yuv)
   -o, --outputModel arg  path to output model (obj or ply file)
-      --mode arg         the sampling mode in [face,grid,map,sdiv,ediv]
+      --mode arg         the sampling mode in [face,grid,map,sdiv,ediv,prnd]
       --hideProgress     hide progress display in console for use by robot
       --outputCsv arg    filename of the file where per frame statistics will
                          append. (default: )
@@ -29,8 +29,15 @@ Usage:
                        (default: 0.0)
 
  grid mode options:
-      --gridSize arg  integer value in [1,maxint], side size of the grid
-                      (default: 1024)
+      --gridSize arg   integer value in [1,maxint], side size of the grid
+                       (default: 1024)
+      --useNormal      if set will sample only in the direction with the
+                       largest dot product with the triangle normal
+      --minPos arg     min corner of vertex position bbox, a string of three
+                       floats.
+      --maxPos arg     max corner of vertex position bbox, a string of three
+                       floats.
+      --useFixedPoint  interprets minPos and maxPos inputs as fixed point 16.
 
  grid, face, sdiv and ediv modes. options:
       --bilinear           if set, texture filtering will be bilinear,
@@ -40,11 +47,15 @@ Usage:
                            producing a number of samples in [nbAmplesMin,
                            nbSamplesMax]. This process is very time comsuming.
                            (default: 0)
-      --nbSamplesMax arg   see --nbSampleMin documentation. Must be > to
-                           --nbSamleMin. (default: 0)
+      --nbSamplesMax arg   see --nbSamplesMin documentation. Must be > to
+                           --nbSamplesMin. (default: 0)
       --maxIterations arg  Maximum number of iterations in sample count
                            constrained sampling, i.e. when --nbSampleMin > 0.
                            (default: 10)
+
+ prnd mode options:
+      --nbSamples arg  integer value specifying the traget number of points
+                       in the output point cloud (default: 2000000)
 
  sdiv mode options:
       --areaThreshold arg  face area limit to stop subdivision (default: 1.0)

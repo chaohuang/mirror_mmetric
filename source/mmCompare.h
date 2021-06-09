@@ -24,9 +24,21 @@
 #include "mmModel.h"
 // MPEG PCC metric
 #include "pcc/pcc_distortion.hpp"
+//
+#include "mmRendererHw.h"
+#include "mmRendererSw.h"
 
 class Compare : Command {
-	
+
+public:
+
+	struct IbsmResults {
+		double rgbMSE[4]  = { 0,0,0,0 }; // [R mse, G mse, B mse, mean]
+		double rgbPSNR[4] = { 0,0,0,0 }; // idem but with psnr
+		double depthMSE = 0;
+		double depthPSNR = 0;
+	};
+
 private:
 
 	// the context for frame access
@@ -35,6 +47,7 @@ private:
 	std::string inputModelAFilename, inputModelBFilename;
 	std::string inputTextureAFilename, inputTextureBFilename;
 	std::string outputModelAFilename, outputModelBFilename;
+	std::string _outputCsvFilename;
 	// the type of processing
 	std::string mode = "equ";
 	// Equ options
@@ -54,6 +67,19 @@ private:
 	std::vector < std::pair<uint32_t, pcc_quality::qMetric> > pccResults;
 	// PCQM results array of <frame, pcqm, pcqm-psnr>
 	std::vector < std::tuple<uint32_t, double, double > > pcqmResults;
+	// Raster results array of <frame, result>
+	std::vector < std::pair<uint32_t, IbsmResults> > _ibsmResults;
+
+	// Raster options
+	unsigned int _ibsmResolution = 2048;
+	unsigned int _ibsmCameraCount = 16;
+	std::string _ibsmRenderer = "sw_raster";
+	std::string _ibsmOutputPrefix = "";
+	bool _ibsmDisableCulling = false;
+
+	// Renderers for the ibsm metric
+	RendererSw _swRenderer; // the Software renderer
+	RendererHw _hwRenderer; // the Hardware renderer
 
 public:
 
@@ -104,7 +130,6 @@ public:
 		const std::string& vertexMapFilenane = "");
 
 	// compare two meshes using MPEG pcc_distortion metric
-	// if topoFilename!="" will also check topo using Compare::checkTopology
 	int pcc(
 		const Model& modelA, const Model& modelB,
 		const Image& mapA, const Image& mapB,
@@ -116,7 +141,6 @@ public:
 	void pccFinalize(void);
 
 	// compare two meshes using PCQM metric
-	// if topoFilename!="" will also check topo using Compare::checkTopology
 	int pcqm(
 		const Model& modelA, const Model& modelB,
 		const Image& mapA, const Image& mapB,
@@ -128,6 +152,15 @@ public:
 
 	// collect statics over sequence and compute results
 	void pcqmFinalize(void);
+
+	// compare two meshes using rasterization
+	int ibsm(
+		Model& modelA, Model& modelB,
+		const Image& mapA, const Image& mapB
+	);
+
+	// collect statics over sequence and compute results
+	void ibsmFinalize(void);
 
 };
 

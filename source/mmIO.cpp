@@ -111,17 +111,17 @@ bool IO::saveModel(std::string templateName, Model* model) {
 
 //
 Image* IO::loadImage(std::string templateName) {
-	
+
 	// The IO store is purged for each new frame. 
 	// So in case of video file without %d template we just use the filename (unchanged by resolveName).
 	std::string name = resolveName(_context->getFrame(), templateName);
 	std::map<std::string, Image*>::iterator it = IO::_images.find(name);
-	
+
 	// use image/frame from store
 	if (it != IO::_images.end()) {
 		return it->second;
 	}
-	
+
 	// not found in store but name is an ID => error
 	if (name.substr(0, 3) == "ID:") {
 		std::cout << "Error: image with id " << name << "not defined" << std::endl;
@@ -150,7 +150,7 @@ Image* IO::loadImage(std::string templateName) {
 	}
 	// add to the store
 	IO::_images[name] = image;
-	return image;	
+	return image;
 };
 
 /*
@@ -230,12 +230,12 @@ bool IO::_loadModel(std::string filename, Model& output) {
 
 	if (success) {
 		// print stats
-		std::cout << "Input model: "   << filename << std::endl;
-		std::cout << "  Vertices: "    << output.vertices.size() / 3 << std::endl;
-		std::cout << "  UVs: "         << output.uvcoords.size() / 2 << std::endl;
-		std::cout << "  Colors: "      << output.colors.size() / 3 << std::endl;
-		std::cout << "  Normals: "     << output.normals.size() / 3 << std::endl;
-		std::cout << "  Triangles: "   << output.triangles.size() / 3 << std::endl;
+		std::cout << "Input model: " << filename << std::endl;
+		std::cout << "  Vertices: " << output.vertices.size() / 3 << std::endl;
+		std::cout << "  UVs: " << output.uvcoords.size() / 2 << std::endl;
+		std::cout << "  Colors: " << output.colors.size() / 3 << std::endl;
+		std::cout << "  Normals: " << output.normals.size() / 3 << std::endl;
+		std::cout << "  Triangles: " << output.triangles.size() / 3 << std::endl;
 		std::cout << "  Trianglesuv: " << output.trianglesuv.size() / 3 << std::endl;
 	}
 
@@ -289,7 +289,7 @@ bool IO::_loadObj(std::string filename, Model& output) {
 
 	std::ifstream fin;
 	// use a big 4MB buffer to accelerate reads
-	char* buf = new char[4 * 1024 * 1024 + 1]; 
+	char* buf = new char[4 * 1024 * 1024 + 1];
 	fin.rdbuf()->pubsetbuf(buf, 4 * 1024 * 1024 + 1);
 	fin.open(filename.c_str(), std::ios::in);
 	if (!fin)
@@ -368,9 +368,9 @@ bool IO::_saveObj(std::string filename, const Model& input) {
 
 	std::ofstream fout;
 	// use a big 4MB buffer to accelerate writes
-	char* buf = new char[4 * 1024 * 1024 + 1]; 
+	char* buf = new char[4 * 1024 * 1024 + 1];
 	fout.rdbuf()->pubsetbuf(buf, 4 * 1024 * 1024 + 1);
-	fout.open(filename.c_str(), std::ios::out); 
+	fout.open(filename.c_str(), std::ios::out);
 	if (!fout)
 	{
 		std::cerr << "Error: can't open file " << filename << std::endl;
@@ -385,7 +385,7 @@ bool IO::_saveObj(std::string filename, const Model& input) {
 		fout << "v " <<
 			input.vertices[i * 3 + 0] << " " <<
 			input.vertices[i * 3 + 1] << " " <<
-			input.vertices[i * 3 + 2] ;
+			input.vertices[i * 3 + 2];
 		if (input.colors.size() == input.vertices.size()) {
 			fout << " " <<
 				input.colors[i * 3 + 0] / 255 << " " <<
@@ -410,7 +410,7 @@ bool IO::_saveObj(std::string filename, const Model& input) {
 	fout << "usemtl material0000" << std::endl;
 	for (int i = 0; i < input.triangles.size() / 3; i++) {
 
-		if (input.trianglesuv.size() == input.triangles.size() ){
+		if (input.trianglesuv.size() == input.triangles.size()) {
 			fout << "f " <<
 				input.triangles[i * 3 + 0] + 1 << "/" << input.trianglesuv[i * 3 + 0] + 1 << " " <<
 				input.triangles[i * 3 + 1] + 1 << "/" << input.trianglesuv[i * 3 + 1] + 1 << " " <<
@@ -519,9 +519,9 @@ bool IO::_savePly(std::string filename, const Model& input)
 {
 	std::ofstream fout;
 	// use a big 4MB buffer to accelerate writes
-	char* buf = new char[4 * 1024 * 1024 + 1]; 
+	char* buf = new char[4 * 1024 * 1024 + 1];
 	fout.rdbuf()->pubsetbuf(buf, 4 * 1024 * 1024 + 1);
-	fout.open(filename.c_str(), std::ios::out); 
+	fout.open(filename.c_str(), std::ios::out);
 	if (!fout)
 	{
 		std::cerr << "Error: can't open file " << filename << std::endl;
@@ -602,7 +602,7 @@ bool IO::_loadImage(std::string filename, Image& output) {
 	if (filename != "") {
 		std::cout << "Input map: " << filename << std::endl;
 		output.data = stbi_load(filename.c_str(), &output.width, &output.height, &output.nbc, 0);
-		if ( output.data == NULL ){
+		if (output.data == NULL) {
 			std::cout << "Error: opening file " << filename << std::endl;
 			return false;
 		}
@@ -634,75 +634,75 @@ bool IO::_loadImageFromVideo(std::string filename, Image& output) {
 		int height = std::stoi(frameDimension.substr(frameDimension.find('x') + 1));
 		int frameIndex = _context->getFrame() - _context->getFirstFrame();
 		// 
-		std::cout << "Reading video frame "<< frameIndex <<" from file: " << filename << std::endl;
-		int chromaStride = is444? width : width/2;
-		int chromaHeight = is444? height : height/2;
-		int frSize = (height*width+2*chromaStride*chromaHeight);
+		std::cout << "Reading video frame " << frameIndex << " from file: " << filename << std::endl;
+		int chromaStride = is444 ? width : width / 2;
+		int chromaHeight = is444 ? height : height / 2;
+		size_t frSize = (height * width + 2 * chromaStride * chromaHeight);
 		//open the video file and search for the frame index
-        std::ifstream in;
-        in.open(filename, std::ifstream::in | std::ios::binary);
-        if (!in.is_open()) { return false; }
-        in.seekg(frameIndex * frSize, std::ios::beg);
+		std::ifstream in;
+		in.open(filename, std::ifstream::in | std::ios::binary);
+		if (!in.is_open()) { return false; }
+		in.seekg(frameIndex * frSize, std::ios::beg);
 		//reading frame (only 8-bit data is allowed at this moment)
-        char* frame = new char[frSize];
-        in.read(frame, frSize);
-        in.close();
+		char* frame = new char[frSize];
+		in.read(frame, frSize);
+		in.close();
 		//now convert the frame
-		if(!is444){
+		if (!is444) {
 			//chroma upsampling using nearest neighbor
-			char* frameUpscaled = new char[3*width*height];
+			char* frameUpscaled = new char[3 * width * height];
 			//copy the luma channel
-			memcpy(frameUpscaled,frame,width*height);
+			memcpy(frameUpscaled, frame, width * height);
 			//copy the down-sampled chroma channel
-			for(int y=0;y<chromaHeight;y++)
-				for(int x=0;x<chromaStride;x++){
-					frameUpscaled[width*height + ((2*x) + width*(2*y))] = frame[width*height + (x + chromaStride*y)];
-					frameUpscaled[width*height + ((2*x+1) + width*(2*y))] = frame[width*height + (x + chromaStride*y)];
-					frameUpscaled[width*height + ((2*x) + width*(2*y+1))] = frame[width*height + (x + chromaStride*y)];
-					frameUpscaled[width*height + ((2*x+1) + width*(2*y+1))] = frame[width*height + (x + chromaStride*y)];
+			for (int y = 0; y < chromaHeight; y++)
+				for (int x = 0; x < chromaStride; x++) {
+					frameUpscaled[width * height + ((2 * x) + width * (2 * y))] = frame[width * height + (x + chromaStride * y)];
+					frameUpscaled[width * height + ((2 * x + 1) + width * (2 * y))] = frame[width * height + (x + chromaStride * y)];
+					frameUpscaled[width * height + ((2 * x) + width * (2 * y + 1))] = frame[width * height + (x + chromaStride * y)];
+					frameUpscaled[width * height + ((2 * x + 1) + width * (2 * y + 1))] = frame[width * height + (x + chromaStride * y)];
 				}
 
 			//copy the down-sampled chroma channel
-			for(int y=0;y<chromaHeight;y++)
-				for(int x=0;x<chromaStride;x++){
-					frameUpscaled[2*width*height + ((2*x) + width*(2*y))] = frame[width*height + chromaStride*chromaHeight + (x + chromaStride*y)];
-					frameUpscaled[2*width*height + ((2*x+1) + width*(2*y))] = frame[width*height + chromaStride*chromaHeight + (x + chromaStride*y)];
-					frameUpscaled[2*width*height + ((2*x) + width*(2*y+1))] = frame[width*height + chromaStride*chromaHeight + (x + chromaStride*y)];
-					frameUpscaled[2*width*height + ((2*x+1) + width*(2*y+1))] = frame[width*height + chromaStride*chromaHeight + (x + chromaStride*y)];
+			for (int y = 0; y < chromaHeight; y++)
+				for (int x = 0; x < chromaStride; x++) {
+					frameUpscaled[2 * width * height + ((2 * x) + width * (2 * y))] = frame[width * height + chromaStride * chromaHeight + (x + chromaStride * y)];
+					frameUpscaled[2 * width * height + ((2 * x + 1) + width * (2 * y))] = frame[width * height + chromaStride * chromaHeight + (x + chromaStride * y)];
+					frameUpscaled[2 * width * height + ((2 * x) + width * (2 * y + 1))] = frame[width * height + chromaStride * chromaHeight + (x + chromaStride * y)];
+					frameUpscaled[2 * width * height + ((2 * x + 1) + width * (2 * y + 1))] = frame[width * height + chromaStride * chromaHeight + (x + chromaStride * y)];
 				}
 			delete[] frame;
 			frame = frameUpscaled;
 		}
-		output.data = new unsigned char[3*width*height];
+		output.data = new unsigned char[3 * width * height];
 		output.height = height;
 		output.width = width;
 		output.nbc = 3;
-		if(isYUV){
+		if (isYUV) {
 			//convert to RGB
-			for(int y=0;y<height;y++){
-				for(int x=0;x<width;x++){
-					double Y = (unsigned char)frame[x + width*y];
-					Y = std::min<double>(std::max<double>(Y/255.0,0.0),1.0);
-					double Cb = (unsigned char)frame[width*height + x + width*y];
-					Cb = std::min<double>(std::max<double>((Cb-128)/255.0,-0.5),0.5);
-					double Cr = (unsigned char)frame[2*width*height + x + width*y];
-					Cr = std::min<double>(std::max<double>((Cr-128)/255.0,-0.5),0.5);
+			for (int y = 0; y < height; y++) {
+				for (int x = 0; x < width; x++) {
+					double Y = (unsigned char)frame[x + width * y];
+					Y = std::min<double>(std::max<double>(Y / 255.0, 0.0), 1.0);
+					double Cb = (unsigned char)frame[width * height + x + width * y];
+					Cb = std::min<double>(std::max<double>((Cb - 128) / 255.0, -0.5), 0.5);
+					double Cr = (unsigned char)frame[2 * width * height + x + width * y];
+					Cr = std::min<double>(std::max<double>((Cr - 128) / 255.0, -0.5), 0.5);
 					double R = Y + 1.57480 * Cr;
-					output.data[(x + width*y)*3 + 0] = (unsigned char)std::round(255*std::min<double>(std::max<double>(R, 0.0),1.0));
+					output.data[(x + width * y) * 3 + 0] = (unsigned char)std::round(255 * std::min<double>(std::max<double>(R, 0.0), 1.0));
 					double G = Y - 0.18733 * Cb - 0.46813 * Cr;
-					output.data[(x + width*y)*3 + 1] = (unsigned char)std::round(255*std::min<double>(std::max<double>(G, 0.0),1.0));
+					output.data[(x + width * y) * 3 + 1] = (unsigned char)std::round(255 * std::min<double>(std::max<double>(G, 0.0), 1.0));
 					double B = Y + 1.85563 * Cb;
-					output.data[(x + width*y)*3 + 2] = (unsigned char)std::round(255*std::min<double>(std::max<double>(B, 0.0),1.0));
+					output.data[(x + width * y) * 3 + 2] = (unsigned char)std::round(255 * std::min<double>(std::max<double>(B, 0.0), 1.0));
 				}
 			}
 		}
-		else{
+		else {
 			//is GBR, so re-order the color planes
-			for(int y=0;y<height;y++){
-				for(int x=0;x<width;x++){
-					output.data[(x + width*y)*3 + 0] = frame[(x + width*y) + 2*width*height];
-					output.data[(x + width*y)*3 + 2] = frame[(x + width*y) + width*height]; 
-					output.data[(x + width*y)*3 + 1] = frame[(x + width*y)];
+			for (int y = 0; y < height; y++) {
+				for (int x = 0; x < width; x++) {
+					output.data[(x + width * y) * 3 + 0] = frame[(x + width * y) + 2 * width * height];
+					output.data[(x + width * y) * 3 + 2] = frame[(x + width * y) + width * height];
+					output.data[(x + width * y) * 3 + 1] = frame[(x + width * y)];
 				}
 			}
 		}

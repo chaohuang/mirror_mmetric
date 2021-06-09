@@ -28,7 +28,7 @@
 #include "mmCommand.h"
 
 // software version
-#define MM_VERSION "0.1.9"
+#define MM_VERSION "0.1.10"
 
 // the name of the application binary
 // i.e argv[0] minus the eventual path
@@ -48,6 +48,8 @@
 #include "mmSample.h"
 #include "mmSequence.h"
 #include "mmNormals.h"
+// The non MPEG commands
+#include "mmRender.h"
 
 // analyse command line and run processings
 int main(int argc, char* argv[])
@@ -65,6 +67,8 @@ int main(int argc, char* argv[])
 	Command::addCreator(Sample::name, Sample::brief, Sample::create);
 	Command::addCreator(Sequence::name, Sequence::brief, Sequence::create);
 	Command::addCreator(Normals::name, Normals::brief, Normals::create);
+	// register non MPEG commands
+	Command::addCreator(Render::name, Render::brief, Render::create);
 	 
 	// execute the commands
 	if (argc > 1) {

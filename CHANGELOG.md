@@ -5,19 +5,44 @@ Primary author Jean-Eudes Marvie (InterDigital).
 
 Additional contributors mentioned per version or item hereafter.
 
+## Version 0.1.10
+
+- Add: some ibsm test output validation
+- Add: image based sampling metric (compare --mode ibsm) and tests
+- Add: software and hardware renderer
+- Add: outputCsv option to compare pcc and pcqm
+- Add: pcc hausdorff option test
+- Add: meshlab projects in test folder
+- Add: extention of grid sampling
+  - add options to use sequence bounding box,
+  - add useNormal option to filter sampling directions
+  - Contributors: Danillo Graziosi (Sony), J.E. Marvie (InterDigital)
+- Add: pseudo random sampling (sample --mode prand)
+  - Contributors: Jungsun Kim (Apple), Khaled Mammou (Apple).
+    - todo: add support for color per vertex
+  - unit tests added by jean-eudes marvie (InterDigital)
+- Fix: frSize overflow in _loadImageFromVideo
+- Fix: nearest and bilinear filtering
+- Fix: renaming renderer and compare ibsm parameters
+  - rename "compare --mode raster" as "compare --mode ibsm"
+    - ibsm: Image Based Sampling Metric
+  - rename "render --mode" into "render --renderer"
+  - realigned parameter names from on command to the other
+  - please read carefully the documentation to update your scripts
+  
 ## Version 0.1.9
 
-Add: "topo" compare mode for near-lossless metric with vertex and triangle mapping
+- Add: "topo" compare mode for near-lossless metric with vertex and triangle mapping
   - Contributor: Danillo Graziosi (Sony)
-Add: Sample outputCsv and target nbSamples
-Add: add irregular plane sampling test plus meshlab
-Add: update test suite (no more need of extdata)
-Fix: obj printer does not print trianglesuv table if any
-Fix: implement proper Image destructor
-Fix: Update cmakelists.txt for compiling on MacOS/CLang
-Fix: sequence quantization auto box not computed for other frames than first one
-Fix: pcc summary processing wrongly using MSE instead of PSNR
-Fix: statistics computation with 1 sample erroneous
+- Add: Sample outputCsv and target nbSamples
+- Add: add irregular plane sampling test plus meshlab
+- Add: update test suite (no more need of extdata)
+- Fix: obj printer does not print trianglesuv table if any
+- Fix: implement proper Image destructor
+- Fix: Update cmakelists.txt for compiling on MacOS/CLang
+- Fix: sequence quantization auto box not computed for other frames than first one
+- Fix: pcc summary processing wrongly using MSE instead of PSNR
+- Fix: statistics computation with 1 sample erroneous
 
 ## Version 0.1.8
 

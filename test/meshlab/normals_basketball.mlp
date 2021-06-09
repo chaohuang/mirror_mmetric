@@ -1,0 +1,33 @@
+<!DOCTYPE MeshLabDocument>
+<MeshLabProject>
+ <MeshGroup>
+  <MLMesh visible="1" filename="../tmp/normals_basket.obj" label="normals_basket.obj">
+   <MLMatrix44>
+1 0 0 0 
+0 1 0 0 
+0 0 1 0 
+0 0 0 1 
+</MLMatrix44>
+   <RenderingOption pointColor="131 149 69 255" wireWidth="1" boxColor="234 234 234 255" pointSize="3" solidColor="192 192 192 255" wireColor="64 64 64 255">100001000000000000000000000001010101010010100000000100111011100000001001</RenderingOption>
+  </MLMesh>
+  <MLMesh visible="1" filename="../tmp/normals_basket_noseams_off.obj" label="normals_basket_noseams_off.obj">
+   <MLMatrix44>
+1 0 0 0 
+0 1 0 0 
+0 0 1 0 
+0 0 0 1 
+</MLMatrix44>
+   <RenderingOption pointColor="131 149 69 255" wireWidth="1" boxColor="234 234 234 255" pointSize="3" solidColor="192 192 192 255" wireColor="64 64 64 255">100001000000000000000000000001010101010010100000000100111011100000001001</RenderingOption>
+  </MLMesh>
+  <MLMesh visible="1" filename="../tmp/normals_basket_noseams_off_normalized_off.obj" label="normals_basket_noseams_off_normalized_off.obj">
+   <MLMatrix44>
+1 0 0 0 
+0 1 0 0 
+0 0 1 0 
+0 0 0 1 
+</MLMatrix44>
+   <RenderingOption pointColor="131 149 69 255" wireWidth="1" boxColor="234 234 234 255" pointSize="3" solidColor="192 192 192 255" wireColor="64 64 64 255">100001000000000000000000000001010101010010100000000100111011100000001001</RenderingOption>
+  </MLMesh>
+ </MeshGroup>
+ <RasterGroup/>
+</MeshLabProject>

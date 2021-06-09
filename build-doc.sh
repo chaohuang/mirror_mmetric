@@ -67,6 +67,11 @@ echo "" >> README.md
 echo "\`\`\`" >> README.md
 ${CMD} reindex >> README.md
 echo "\`\`\`" >> README.md
+echo "## Render" >> README.md
+echo "" >> README.md
+echo "\`\`\`" >> README.md
+${CMD} render >> README.md
+echo "\`\`\`" >> README.md
 echo "## Sample" >> README.md
 echo "" >> README.md
 echo "\`\`\`" >> README.md

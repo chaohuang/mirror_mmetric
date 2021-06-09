@@ -2,3 +2,4 @@
 
 cd test
 ./test-all.sh $@
+

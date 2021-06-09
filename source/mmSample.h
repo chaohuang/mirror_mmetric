@@ -40,7 +40,13 @@ private:
 	// Face options
 	float thickness = 0.0;
 	// Grid options
-	int gridSize = 1024;
+	int _gridSize = 1024;
+	bool _useNormal = false;
+	bool _useFixedPoint = false;	
+	std::string _minPosStr;
+	std::string _maxPosStr;
+	glm::vec3 _minPos = { 0.0F,0.0F,0.0F };
+	glm::vec3 _maxPos = { 0.0F,0.0F,0.0F };
 	// Face, Grid and sdiv options
 	bool bilinear = false;
 	// Face subdiv options
@@ -54,6 +60,8 @@ private:
 	size_t _nbSamplesMin = 0;
 	size_t _nbSamplesMax = 0;
 	size_t _maxIterations = 10;
+	// Prnd options
+	size_t _nbSamples = 2000000;
 
 public:
 
@@ -80,11 +88,12 @@ public:
 	static void meshToPcFace(
 		const Model& input, Model& output, const Image& tex_map,
 		size_t nbSamplesMin, size_t nbSamplesMax, size_t maxIterations,
-		float thickness, bool bilinear, bool logProgress, size_t &computedResolution);
+		float thickness, bool bilinear, bool logProgress, size_t& computedResolution);
 
 	// will sample the mesh on a grid basis of resolution gridRes
 	static void meshToPcGrid(const Model& input, Model& output, const Image& tex_map,
-		size_t gridSize, bool bilinear, bool logProgress);
+		size_t gridSize, bool bilinear, bool logProgress, bool useNormal, 
+		bool useFixedPoint,	glm::vec3& minPos, glm::vec3& maxPos);
 
 	// will sample the mesh on a grid basis of resolution gridRes, result will be generated as float or integer
 	// system will search the resolution according to the nbSamplesMin and nbSamplesMax parameters
@@ -92,7 +101,8 @@ public:
 	static void meshToPcGrid(
 		const Model& input, Model& output, const Image& tex_map,
 		size_t nbSamplesMin, size_t nbSamplesMax, size_t maxIterations,
-		bool bilinear, bool logProgress, size_t& computedResolution);
+		bool bilinear, bool logProgress, bool useNormal,
+		bool useFixedPoint, glm::vec3& minPos, glm::vec3& maxPos, size_t& computedResolution);
 
 	// revert sampling, guided by texture map
 	static void meshToPcMap(const Model& input, Model& output, const Image& tex_map, bool logProgress);
@@ -118,6 +128,11 @@ public:
 	static void meshToPcDivEdge(const Model& input, Model& output, const Image& tex_map,
 		size_t nbSamplesMin, size_t nbSamplesMax, size_t maxIterations,
 		bool bilinear, bool logProgress, float& computedThres);
+
+	// pseudo random sampling with point targetPointCount stop criterion
+	static void meshToPcPrnd(const Model& input, Model& output, const Image& tex_map,
+		size_t targetPointCount, bool bilinear, bool logProgress);
+
 };
 
 #endif

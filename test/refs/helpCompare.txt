@@ -10,7 +10,9 @@ Usage:
                           yuv)
       --outputModelA arg  path to output model A (obj or ply file)
       --outputModelB arg  path to output model B (obj or ply file)
-      --mode arg          the comparison mode in [equ,pcc,pcqm,topo]
+      --outputCsv arg     filename of the file where per frame statistics
+                          will append. (default: )
+      --mode arg          the comparison mode in [equ,pcc,pcqm,topo,ibsm]
                           (default: equ)
   -h, --help              Print usage
 
@@ -23,6 +25,18 @@ Usage:
                      true)
       --unoriented   If set, comparison will not consider faces orientation
                      for comparisons.
+
+ ibsm mode options:
+      --ibsmResolution arg    Resolution of the image buffer. (default: 2048)
+      --ibsmCameraCount arg   Number of virtual cameras to be used per frame.
+                              (default: 16)
+      --ibsmRenderer arg      Use software or openGL 1.2 renderer. Value in
+                              [sw_raster, gl12_raster]. (default: sw_raster)
+      --ibsmDisableCulling    Set option to disables the backface culling.
+      --ibsmOutputPrefix arg  Set option with a proper prefix/path system to
+                              dump the color shots as png images (Warning, it
+                              is extremly time consuming to write the buffers,
+                              use only for debug).
 
  pcc mode options:
       --singlePass          Force running a single pass, where the loop is

@@ -1,0 +1,20 @@
+Processing frame 0
+Skipping map read, will parse use vertex color if any
+Loading file: ./data/sphere_qp8.obj
+Time on loading: 0.00200000009 sec.
+Input model: ./data/sphere_qp8.obj
+  Vertices: 482
+  UVs: 0
+  Colors: 0
+  Normals: 0
+  Triangles: 960
+  Trianglesuv: 0
+Sampling in PRND mode
+  nbSamples = 50
+  Bilinear = 0
+  hideProgress = 1
+Handled 12 duplicate vertices
+Generated 2868 points
+Time on processing: 0.00100000005 sec.
+Saving file: ./tmp/sample_prnd_sphere_50.ply
+Time on overall processing: 0.0340000018 sec.

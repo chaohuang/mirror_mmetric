@@ -19,6 +19,9 @@
 #ifndef _MM_IMAGE_H_
 #define _MM_IMAGE_H_
 
+#include <cmath>
+#include <algorithm>
+
 #include "glm/glm.hpp"
 
 //
@@ -44,13 +47,69 @@ public:
 
 };
 
-// converts the uv coordinates from uv space to image space, doing CLAMP and y flip 
-void mapCoordClamped(const glm::vec2& uv, const glm::ivec2& mapSize, glm::ivec2& mapCoord);
+// clamp the map i,j. j is flipped. mapCoord expressed in image space.
+inline void clampCoords(const glm::ivec2& mapCoord, const glm::ivec2& mapSize, glm::ivec2& clampedCoord) {
 
-// texture lookup with clamp
-void texture2D(const Image& tex_map, const glm::vec2& uv, glm::vec3& rgb);
+	// clamp
+	clampedCoord.x = std::min(std::max(mapCoord.x, 0), mapSize.x - 1);
+	// flip the image vertically and clamp
+	clampedCoord.y = mapSize.y - 1 - std::min(std::max(mapCoord.y, 0), mapSize.y - 1);
 
-// texture lookup with bilinear filtering
-void texture2D_bilinear(const Image& tex_map, const glm::vec2& uv, glm::vec3& rgb);
+}
+
+// converts the uv coordinates from uv space to image space, doing CLAMP and v flip 
+inline void mapCoordClamped(const glm::vec2& uv, const glm::ivec2& mapSize, glm::ivec2& mapCoord) {
+
+	// change from uv space to image space
+	const glm::ivec2 coords(
+		(int)(uv[0] * mapSize.x),
+		(int)(uv[1] * mapSize.y));
+
+	//
+	clampCoords(coords, mapSize, mapCoord);
+}
+
+// texture lookup using ij in image space with clamp and j flip
+inline void image2D(const Image& texMap, const glm::ivec2& ij, glm::vec3& rgb)
+{
+	const glm::ivec2 mapSize = { texMap.width, texMap.height };
+	glm::ivec2 mapCoord = { 0,0 };
+	clampCoords(ij, mapSize, mapCoord);
+	texMap.fetchRGB(mapCoord.x, mapCoord.y, rgb);
+}
+
+// texture lookup using uv (in uv space) with clamp and v flip
+inline void texture2D(const Image& texMap, const glm::vec2& uv, glm::vec3& rgb)
+{
+	const glm::ivec2 mapSize(texMap.width, texMap.height);
+	glm::ivec2 mapCoord(0, 0);
+	mapCoordClamped(uv, mapSize, mapCoord);
+	texMap.fetchRGB(mapCoord.x, mapCoord.y, rgb);
+}
+
+// texture lookup with bilinear filtering and v flip
+// rgb is the func output
+inline void texture2D_bilinear(const Image& texMap, const glm::vec2& uv, glm::vec3& rgb)
+{
+	const glm::vec2 textureSize(texMap.width, texMap.height);
+
+	// compute sliding window top left pixel pos
+	const glm::vec2 pos = uv * textureSize - glm::vec2(0.5);
+	const glm::ivec2 posTopLeft = glm::floor(pos);
+	// fractional part gives us the blending coeficients
+	const glm::vec2 f = fract(pos);
+
+	// extract the pixels
+	glm::vec3 tl, tr, bl, br;
+	image2D(texMap, posTopLeft, tl);
+	image2D(texMap, posTopLeft + glm::ivec2(1, 0), tr);
+	image2D(texMap, posTopLeft + glm::ivec2(0, 1), bl);
+	image2D(texMap, posTopLeft + glm::ivec2(1, 1), br);
+
+	// put the fruits in the blender, press start
+	const glm::vec3 tA = glm::mix(tl, tr, f.x);
+	const glm::vec3 tB = glm::mix(bl, br, f.x);
+	rgb = glm::mix(tA, tB, f.y);
+}
 
 #endif

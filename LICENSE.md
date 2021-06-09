@@ -30,3 +30,5 @@ Author: jean-eudes.marvie@interdigital.com
 |Cxxopts         | MIT     | https://github.com/jarro2783/cxxopts                          |
 |Glm             | MIT     | https://github.com/g-truc/glm/blob/master/copying.txt         |
 |mpec_pcc_derror | MIT     | http://mpegx.int-evry.fr/software/MPEG/PCC/mpeg-pcc-dmetric   |
+|glad            | MIT     | https://github.com/Dav1dde/glad                               |
+|glfw            | ZLIB    | https://github.com/glfw/glfw                                  |

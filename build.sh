@@ -18,14 +18,20 @@ USE_OPENMP=ON
 for i in "$@"
 do  
   case "$i" in
-    doc|Doc|doc\/          ) ./build-doc.sh; exit;;
-    debug|Debug|DEBUG      ) MODE=Debug;;
-    release|Release|RELEASE) MODE=Release;;
-	nojobs|NOJOBS		   ) NUMBER_OF_PROCESSORS=1;;
-	noomp|NOOMP		       ) USE_OPENMP=OFF;;
-    *                      ) echo "ERROR: arguments \"$i\" not supported: option = [doc|debug|release]"; exit -1;;
+		deps|Deps|deps\/       ) ./build-deps.sh; exit;;
+		doc|Doc|doc\/          ) ./build-doc.sh; exit;;
+		debug|Debug|DEBUG      ) MODE=Debug;;
+		release|Release|RELEASE) MODE=Release;;
+		nojobs|NOJOBS		   ) NUMBER_OF_PROCESSORS=1;;
+		noomp|NOOMP		       ) USE_OPENMP=OFF;;
+		*                      ) echo "ERROR: arguments \"$i\" not supported: option = [doc|debug|release]"; exit -1;;
   esac
 done
+
+if [[ ! -d "./deps" ]];
+then
+	./build-deps.sh
+fi
 
 CMAKE_FLAGS="$CMAKE_FLAGS -DCMAKE_BUILD_TYPE=$MODE -DUSE_OPENMP=$USE_OPENMP";
 case "${MACHINE}" in

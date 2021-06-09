@@ -1,0 +1,11 @@
+model;texture;frame;mode;targetPointCount;bilinear;nbSamples
+./data/plane.obj;./data/plane.png;0;prnd;50;1;53
+./data/plane.obj;./data/plane.png;0;prnd;50;0;53
+./data/plane.obj;./data/plane_10_10.png;0;prnd;50;0;53
+./data/plane_irregular.obj;./data/plane_10_10.png;0;prnd;50;0;54
+./data/cpv_plane.obj;;0;prnd;50;0;53
+./data/sphere_qp8.obj;;0;prnd;50;0;2868
+./data/sphere.obj;;0;prnd;50;0;2880
+./data/degenerate.obj;;0;prnd;50;0;53
+./data/basketball_player_00000001.obj;./data/basketball_player_00000001.png;0;prnd;2000000;0;2098579
+./tmp/data/basketball_player_00000001_qp8.obj;./data/basketball_player_00000001.png;0;prnd;2000000;0;2055373

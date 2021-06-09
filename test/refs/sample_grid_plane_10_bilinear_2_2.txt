@@ -1,23 +1,29 @@
 Processing frame 0
 Input map: ./data/plane.png
 Loading file: ./data/plane.obj
-Time on loading: 0 sec.
+Time on loading: 0.00100000005 sec.
 Input model: ./data/plane.obj
   Vertices: 5
   UVs: 5
   Colors: 0
   Normals: 0
+  Triangles: 4
+  Trianglesuv: 4
 Sampling in GRID mode
   Grid Size = 10
   Bilinear = 1
   hideProgress = 1
+  nbSamplesMin = 0
+  nbSamplesMax = 0
+  maxIterations = 10
+  using contrained mode with gridSize 
 minbox = -5,-5,0
 maxbox = 5,5,0
 Transform bounding box to square box
 minbox = -5,-5,-5
 maxbox = 5,5,5
-Skipped 11 duplicate vertices
-Generated 105 points
-Time on processing: 0 sec.
+Skipped 13 duplicate vertices
+Generated 103 points
+Time on processing: 0.00100000005 sec.
 Saving file: ./tmp/sample_grid_plane_10_bilinear_2_2.ply
-Time on overall processing: 0.006 sec.
+Time on overall processing: 0.00899999961 sec.

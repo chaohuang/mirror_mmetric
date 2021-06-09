@@ -111,11 +111,12 @@ mm.exe \
 		--minPos="${globalMinPos}" --maxPos="${globalMaxPos}" \
 		--minUv="${globalMinUv}"   --maxUv="${globalMaxUv}" \
 		--minNrm="${globalMinNrm}" --maxNrm="${globalMaxNrm}"
+	
 ```
 # Command references
 
 ```
-3D model processing commands v0.1.9
+3D model processing commands v0.1.10
 Usage:
   mm.exe command [OPTION...]
 
@@ -130,6 +131,7 @@ Command:
   normals	Computes the mesh normals.
   quantize	Quantize model (mesh or point cloud)
   reindex	Reindex mesh and optionaly sort vertices and face indices
+  render	Render a mesh (todo points)
   sample	Convert mesh to point cloud
   sequence	Sequence global parameters
 
@@ -165,7 +167,9 @@ Usage:
                           yuv)
       --outputModelA arg  path to output model A (obj or ply file)
       --outputModelB arg  path to output model B (obj or ply file)
-      --mode arg          the comparison mode in [equ,pcc,pcqm,topo]
+      --outputCsv arg     filename of the file where per frame statistics
+                          will append. (default: )
+      --mode arg          the comparison mode in [equ,pcc,pcqm,topo,ibsm]
                           (default: equ)
   -h, --help              Print usage
 
@@ -178,6 +182,18 @@ Usage:
                      true)
       --unoriented   If set, comparison will not consider faces orientation
                      for comparisons.
+
+ ibsm mode options:
+      --ibsmResolution arg    Resolution of the image buffer. (default: 2048)
+      --ibsmCameraCount arg   Number of virtual cameras to be used per frame.
+                              (default: 16)
+      --ibsmRenderer arg      Use software or openGL 1.2 renderer. Value in
+                              [sw_raster, gl12_raster]. (default: sw_raster)
+      --ibsmDisableCulling    Set option to disables the backface culling.
+      --ibsmOutputPrefix arg  Set option with a proper prefix/path system to
+                              dump the color shots as png images (Warning, it
+                              is extremly time consuming to write the buffers,
+                              use only for debug).
 
  pcc mode options:
       --singlePass          Force running a single pass, where the loop is
@@ -337,6 +353,53 @@ Usage:
                          (default: none)
 
 ```
+## Render
+
+```
+Render a mesh (todo points)
+Usage:
+  mm.exe render [OPTION...]
+
+  -i, --inputModel arg     path to input model (obj or ply file)
+  -m, --inputMap arg       path to input texture map (png, jpeg)
+  -o, --outputImage arg    path to output image (png file) (default:
+                           output.png)
+      --outputDepth arg    path to output depth RGBA png file with 32bit
+                           float span on the four components. If empty string will
+                           not save depth (default behavior).
+      --renderer arg       Use software or openGL 1.2 renderer. Value in
+                           [sw_raster, gl12_raster]. (default: sw_raster)
+      --hideProgress       hide progress display in console for use by robot
+  -h, --help               Print usage
+      --width arg          Output image width (default: 1980)
+      --height arg         Output image height (default: 1024)
+      --bilinear           Set --bilinear=false to disable bilinear filtering
+                           (default: true)
+      --viewDir arg        the view direction, a string of three floats
+                           (default: 0.0 0.0 1.0)
+      --viewUp arg         the view up vector, a string of three floats
+                           (default: 0.0 1.0 0.0)
+      --bboxMin arg        bbox min corner, a string of three floats. If not
+                           both bboxMin and bboxMax set, will compute
+                           automatically.
+      --bboxMax arg        bbox max corner, a string of three floats. If not
+                           both bboxMin and bboxMax set, will compute
+                           automatically.
+      --clearColor arg     background color, a string of four int8, each
+                           component in [0,255]. (default: 0 0 0 0)
+      --enableLighting     enable the lighting if model has normals.
+      --autoLightPosition  enable light position computation from bounding
+                           sphere radius and lightAutoDir parameter.
+      --lightAutoDir arg   if autoLightPosition is set, will compute light
+                           position as boundingSphereCenter + lightAutoDir *
+                           boundingSphereRadius. Default value stands for top
+                           right sector. (default: 1 1 1)
+      --enableCulling      enable back face culling.
+      --cwCulling          true sets Clock Wise (cw) orientation for face
+                           culling, Counter Clock Wise (ccw) otherwise. (default:
+                           true)
+
+```
 ## Sample
 
 ```
@@ -347,7 +410,7 @@ Usage:
   -i, --inputModel arg   path to input model (obj or ply file)
   -m, --inputMap arg     path to input texture map (png, jpg, rgb, yuv)
   -o, --outputModel arg  path to output model (obj or ply file)
-      --mode arg         the sampling mode in [face,grid,map,sdiv,ediv]
+      --mode arg         the sampling mode in [face,grid,map,sdiv,ediv,prnd]
       --hideProgress     hide progress display in console for use by robot
       --outputCsv arg    filename of the file where per frame statistics will
                          append. (default: )
@@ -371,8 +434,15 @@ Usage:
                        (default: 0.0)
 
  grid mode options:
-      --gridSize arg  integer value in [1,maxint], side size of the grid
-                      (default: 1024)
+      --gridSize arg   integer value in [1,maxint], side size of the grid
+                       (default: 1024)
+      --useNormal      if set will sample only in the direction with the
+                       largest dot product with the triangle normal
+      --minPos arg     min corner of vertex position bbox, a string of three
+                       floats.
+      --maxPos arg     max corner of vertex position bbox, a string of three
+                       floats.
+      --useFixedPoint  interprets minPos and maxPos inputs as fixed point 16.
 
  grid, face, sdiv and ediv modes. options:
       --bilinear           if set, texture filtering will be bilinear,
@@ -382,11 +452,15 @@ Usage:
                            producing a number of samples in [nbAmplesMin,
                            nbSamplesMax]. This process is very time comsuming.
                            (default: 0)
-      --nbSamplesMax arg   see --nbSampleMin documentation. Must be > to
-                           --nbSamleMin. (default: 0)
+      --nbSamplesMax arg   see --nbSamplesMin documentation. Must be > to
+                           --nbSamplesMin. (default: 0)
       --maxIterations arg  Maximum number of iterations in sample count
                            constrained sampling, i.e. when --nbSampleMin > 0.
                            (default: 10)
+
+ prnd mode options:
+      --nbSamples arg  integer value specifying the traget number of points
+                       in the output point cloud (default: 2000000)
 
  sdiv mode options:
       --areaThreshold arg  face area limit to stop subdivision (default: 1.0)

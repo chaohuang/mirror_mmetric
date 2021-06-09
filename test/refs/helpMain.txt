@@ -1,4 +1,4 @@
-3D model processing commands v0.1.9
+3D model processing commands v0.1.10
 Usage:
   mm.exe command [OPTION...]
 
@@ -13,6 +13,7 @@ Command:
   normals	Computes the mesh normals.
   quantize	Quantize model (mesh or point cloud)
   reindex	Reindex mesh and optionaly sort vertices and face indices
+  render	Render a mesh (todo points)
   sample	Convert mesh to point cloud
   sequence	Sequence global parameters
 
