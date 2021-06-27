@@ -44,29 +44,29 @@ private:
 	// the context for frame access
 	Context* _context;
 	// the command options
-	std::string inputModelAFilename, inputModelBFilename;
-	std::string inputTextureAFilename, inputTextureBFilename;
-	std::string outputModelAFilename, outputModelBFilename;
+	std::string _inputModelAFilename, _inputModelBFilename;
+	std::string _inputTextureAFilename, _inputTextureBFilename;
+	std::string _outputModelAFilename, _outputModelBFilename;
 	std::string _outputCsvFilename;
 	// the type of processing
-	std::string mode = "equ";
+	std::string _mode = "equ";
 	// Equ options
-	float epsilon = 0;
-	bool earlyReturn = true;
-	bool unoriented = false;
-	// PCC and PCQM common options
-	std::string faceMapFilename;
-	std::string vertexMapFilename;
+	float _equEpsilon = 0;
+	bool _equEarlyReturn = true;
+	bool _equUnoriented = false;
+	// Topo options
+	std::string _topoFaceMapFilename;
+	std::string _topoVertexMapFilename;
 	// Pcc options
-	pcc_quality::commandPar params;
+	pcc_quality::commandPar _pccParams;
 	// PCQM options
-	double radiusCurvature = 0.001;
-	int thresholdKnnSearch = 20;
-	double radiusFactor = 2.0;
+	double _pcqmRadiusCurvature = 0.001;
+	int _pcqmThresholdKnnSearch = 20;
+	double _pcqmRadiusFactor = 2.0;
 	// Pcc results array of <frame, result>
-	std::vector < std::pair<uint32_t, pcc_quality::qMetric> > pccResults;
+	std::vector < std::pair<uint32_t, pcc_quality::qMetric> > _pccResults;
 	// PCQM results array of <frame, pcqm, pcqm-psnr>
-	std::vector < std::tuple<uint32_t, double, double > > pcqmResults;
+	std::vector < std::tuple<uint32_t, double, double > > _pcqmResults;
 	// Raster results array of <frame, result>
 	std::vector < std::pair<uint32_t, IbsmResults> > _ibsmResults;
 
@@ -75,6 +75,7 @@ private:
 	unsigned int _ibsmCameraCount = 16;
 	std::string _ibsmRenderer = "sw_raster";
 	std::string _ibsmOutputPrefix = "";
+	bool _ibsmDisableReordering = false;
 	bool _ibsmDisableCulling = false;
 
 	// Renderers for the ibsm metric
@@ -84,14 +85,14 @@ private:
 public:
 
 	Compare() {
-		params.singlePass = false;
-		params.hausdorff = false;
-		params.bColor = true;
-		params.bLidar = false; // allways false, no option
-		params.resolution = 0.0; // auto
-		params.neighborsProc = 1;
-		params.dropDuplicates = 2;
-		params.bAverageNormals = true;
+		_pccParams.singlePass = false;
+		_pccParams.hausdorff = false;
+		_pccParams.bColor = true;
+		_pccParams.bLidar = false; // allways false, no option
+		_pccParams.resolution = 0.0; // auto
+		_pccParams.neighborsProc = 1;
+		_pccParams.dropDuplicates = 2;
+		_pccParams.bAverageNormals = true;
 	};
 
 	// Descriptions of the command
@@ -118,8 +119,10 @@ public:
 	// compare two meshes topology for equivalence up to face index shift
 	// check topology will use a bijective face map, associating output triangles to input triangles:
 	// - faceMap file shall contain the association dest face index -> orig face index for each face, one face per line
+	// - %d in filename is to be resolved before invocation
 	// check topology will use a bijective vartex map, associating output vertices to input vertices:
 	// - vertexMap file shall contain the association dest vertex index -> orig vertex index for each vertex, one vertex per line
+	// - %d in filename is to be resolved before invocation
 	// the function validates the following points:
 	// - Test if number of triangles of output matches input number of triangles
 	// - Test if the proposed association tables for face and vertex are bijective
@@ -155,8 +158,9 @@ public:
 
 	// compare two meshes using rasterization
 	int ibsm(
-		Model& modelA, Model& modelB,
-		const Image& mapA, const Image& mapB
+		const Model& modelA, const Model& modelB,
+		const Image& mapA, const Image& mapB,
+		Model& outputA, Model& outputB
 	);
 
 	// collect statics over sequence and compute results

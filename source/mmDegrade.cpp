@@ -57,6 +57,8 @@ bool Degrade::initialize(Context* ctx, std::string app, int argc, char* argv[])
 				cxxopts::value<std::string>())
 			("nthFace", "in delface mode, remove one face every nthFace.",
 				cxxopts::value<size_t>()->default_value("50"))
+			("nbFaces", "in delface mode, if nthFace==0, remove nbFaces.",
+				cxxopts::value<size_t>()->default_value("0"))
 			("h,help", "Print usage")
 			;
 
@@ -70,7 +72,7 @@ bool Degrade::initialize(Context* ctx, std::string app, int argc, char* argv[])
 		}
 		//	
 		if (result.count("inputModel"))
-			inputModelFilename = result["inputModel"].as<std::string>();
+			_inputModelFilename = result["inputModel"].as<std::string>();
 		else {
 			std::cerr << "Error: missing inputModel parameter" << std::endl;
 			std::cout << options.help() << std::endl;
@@ -78,7 +80,7 @@ bool Degrade::initialize(Context* ctx, std::string app, int argc, char* argv[])
 		}
 		//	
 		if (result.count("outputModel"))
-			outputModelFilename = result["outputModel"].as<std::string>();
+			_outputModelFilename = result["outputModel"].as<std::string>();
 		else {
 			std::cerr << "Error: missing outputModel parameter" << std::endl;
 			std::cout << options.help() << std::endl;
@@ -86,10 +88,13 @@ bool Degrade::initialize(Context* ctx, std::string app, int argc, char* argv[])
 		}
 		//
 		if (result.count("mode"))
-			mode = result["mode"].as<std::string>();
+			_mode = result["mode"].as<std::string>();
 
 		if (result.count("nthFace"))
-			nthFace = result["nthFace"].as<size_t>();
+			_nthFace = result["nthFace"].as<size_t>();
+
+		if (result.count("nbFaces"))
+			_nbFaces = result["nbFaces"].as<size_t>();
 
 	}
 	catch (const cxxopts::OptionException& e)
@@ -105,12 +110,12 @@ bool Degrade::process(uint32_t frame) {
 
 	// the input
 	Model* inputModel = NULL;
-	if ((inputModel = IO::loadModel(inputModelFilename)) == NULL) {
+	if ((inputModel = IO::loadModel(_inputModelFilename)) == NULL) {
 		return false;
 	}
 	if (inputModel->vertices.size() == 0 ||
 		inputModel->triangles.size() == 0) {
-		std::cout << "Error: invalid input model from " << inputModelFilename << std::endl;
+		std::cout << "Error: invalid input model from " << _inputModelFilename << std::endl;
 		return false;
 	}
 
@@ -119,12 +124,23 @@ bool Degrade::process(uint32_t frame) {
 	
 	// Perform the processings
 	clock_t t1 = clock();
-	if (mode == "delface")
+	if (_mode == "delface")
 	{
-		delface(*inputModel, nthFace, *outputModel);
+		size_t skipped = 0;
+		if (_nthFace != 0 ) {
+			std::cout << "Removing nth face = " << _nthFace << std::endl;
+			skipped = delNthFace(*inputModel, _nthFace, *outputModel);
+		}
+		else {
+			std::cout << "Removing nb faces = " << _nbFaces << std::endl;
+			skipped = delNbFaces(*inputModel, _nbFaces, *outputModel);
+		}
+		
+		std::cout << "Nb face deleted = " << skipped << std::endl;
+		std::cout << "Remaining nb faces = " << outputModel->getTriangleCount() << std::endl;
 	}
 	else {
-		std::cout << "Error: invalid mode " << mode << std::endl;
+		std::cout << "Error: invalid mode " << _mode << std::endl;
 		return false;
 	}
 
@@ -132,28 +148,84 @@ bool Degrade::process(uint32_t frame) {
 	std::cout << "Time on processing: " << ((float)(t2 - t1)) / CLOCKS_PER_SEC << " sec." << std::endl;
 
 	// save the result
-	if (IO::saveModel(outputModelFilename, outputModel))
+	if (IO::saveModel(_outputModelFilename, outputModel))
 		return true;
 	else
 		return false;
 }
 
-bool Degrade::delface(const Model& input, size_t nthFace, Model& output) {
+size_t Degrade::delNthFace(const Model& input, size_t nthFace, Model& output) {
 	
 	const bool hasNormals = input.hasNormals();
 	const bool hasUvCoord = input.hasUvCoords();
 	const bool hasColors = input.hasColors();
+	const size_t nbTri = input.getTriangleCount();
 
 	ModelBuilder builder(output);
+	size_t skipped = 0;
 
-	// implement the proper code to remove random faces
-	for (size_t triIdx = 0; triIdx < input.triangles.size() / 3; ++triIdx) {
-		if (triIdx % nthFace != 0) {
+	// remove one triangle every nth triangle
+	for (size_t triIdx = 0; triIdx < nbTri; ++triIdx) {
+		if ( triIdx % nthFace != 0 ) {
+			Vertex v1, v2, v3;
+			fetchTriangle(input, triIdx, hasUvCoord, hasColors, hasNormals, v1, v2, v3);
+			builder.pushTriangle(v1, v2, v3);
+		}
+		else {
+			skipped++;
+		}
+	}
+
+	return skipped;
+}
+
+size_t Degrade::delNbFaces(const Model& input, size_t nbFaces, Model& output) {
+	
+	const bool hasNormals = input.hasNormals();
+	const bool hasUvCoord = input.hasUvCoords();
+	const bool hasColors = input.hasColors();
+	const size_t nbTri = input.getTriangleCount();
+
+	ModelBuilder builder(output);
+	size_t skipped = 0;
+		
+	// case nbFaces == 0, we keep everything
+	size_t nthFace = 1;
+	size_t subSize = nbTri;
+	size_t rstSize = 0;
+
+	// else we find the subrange that can be divided by nbFaces with no rest
+	if (nbFaces != 0) {
+		nthFace = nbTri / std::min(nbFaces, nbTri);
+		subSize = nthFace * nbFaces;
+		rstSize = nbTri - subSize;
+	}
+
+	std::cout << "nthFace=" << nthFace << std::endl;
+	std::cout << "subSize=" << subSize << std::endl;
+	std::cout << "rstSize=" << rstSize << std::endl;
+
+	// first remove the multiple part
+	for (size_t triIdx = 0; triIdx < subSize; ++triIdx) {
+		if (nbFaces == 0 || (triIdx + 1) % nthFace != 0) {
+			Vertex v1, v2, v3;
+			fetchTriangle(input, triIdx, hasUvCoord, hasColors, hasNormals, v1, v2, v3);
+			builder.pushTriangle(v1, v2, v3);
+		}
+		else {
+			skipped++;
+		}
+	}
+
+	// then push all the rest if needed
+	if ( rstSize != 0 ){
+		for (size_t triIdx = subSize; triIdx < subSize + rstSize; ++triIdx) {
 			Vertex v1, v2, v3;
 			fetchTriangle(input, triIdx, hasUvCoord, hasColors, hasNormals, v1, v2, v3);
 			builder.pushTriangle(v1, v2, v3);
 		}
 	}
 
-	return true;
+	return skipped;
+
 }

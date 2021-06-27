@@ -45,7 +45,7 @@ public:
 		const uint32_t qp, const uint32_t qt, const uint32_t qn, const uint32_t qc,
 		const glm::vec3& minPos, const glm::vec3& maxPos, const glm::vec2& minUv, const glm::vec2& maxUv,
 		const glm::vec3& minNrm, const glm::vec3& maxNrm, const glm::vec3& minCol, const glm::vec3& maxCol,
-		const bool useFixedPoint);
+		const bool useFixedPoint,const bool colorSpaceConversion);
 
 private:
 
@@ -76,6 +76,8 @@ private:
 	std::string _maxColStr;
 	glm::vec3 _minCol = { 0.0F,0.0F,0.0F };
 	glm::vec3 _maxCol = { 0.0F,0.0F,0.0F };
+	//
+	bool _colorSpaceConversion = false;
 
 };
 

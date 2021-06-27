@@ -51,6 +51,11 @@ glm::vec3 materialDiffuse;
 bool isCullingEnabled;
 bool cwCulling;
 
+// vertex shader function
+typedef glm::vec4(*VertexShader)(void* data, const int iface, const int nthvert);
+// vertex shader function
+typedef bool (*FragmentShader)(void* data, const glm::vec3 bar, glm::vec4& color);
+
 struct IShader {
 
 	const Model* model;
@@ -59,10 +64,6 @@ struct IShader {
 	IShader(const Model* model, const Image* map) :
 		model(model), map(map) {}
 
-	// vertex program
-	virtual glm::vec4 vertex(const int iface, const int nthvert) = 0;
-	// fragment program
-	virtual bool fragment(const glm::vec3 bar, glm::vec4& color) = 0;
 };
 
 struct ShaderMap :IShader {
@@ -71,20 +72,22 @@ struct ShaderMap :IShader {
 
 	ShaderMap(const Model* model, const Image* map) : IShader(model, map) {}
 
-	glm::vec4 vertex(const int iface, const int nthvert) {
+	static glm::vec4 vertex(void* data, const int iface, const int nthvert) {
+		ShaderMap& _data = *static_cast<ShaderMap*> (data);
 		// fetch uv coordinates
-		varying_uv = glm::column(varying_uv, nthvert, model->fetchUv(iface, nthvert));
+		_data.varying_uv = glm::column(_data.varying_uv, nthvert, _data.model->fetchUv(iface, nthvert));
 		// fetch and transform the vertex position 
-		glm::vec4 gl_Vertex = mvp * glm::vec4(model->fetchPosition(iface, nthvert), 1.0F);
+		glm::vec4 gl_Vertex = mvp * glm::vec4(_data.model->fetchPosition(iface, nthvert), 1.0F);
 		return gl_Vertex;
 	}
-
-	bool fragment(const glm::vec3 bar, glm::vec4& color) {
+	
+	static bool fragment(void* data, const glm::vec3 bar, glm::vec4& color) {
+		ShaderMap& _data = *static_cast<ShaderMap*> (data);
 		// tex coord interpolation
-		glm::vec2 uv = varying_uv * bar;
+		glm::vec2 uv = _data.varying_uv * bar;
 		// texel fetch
 		glm::vec3 rgb;
-		texture2D_bilinear(*map, uv, rgb); // we know map != NULL
+		texture2D_bilinear(*_data.map, uv, rgb); // we know map != NULL
 		color = glm::vec4(rgb.r, rgb.g, rgb.b, 255);
 		// the pixel is not discard
 		return false;
@@ -99,27 +102,29 @@ struct ShaderMapLight :IShader {
 
 	ShaderMapLight(const Model* model, const Image* map) : IShader(model, map) {}
 
-	glm::vec4 vertex(const int iface, const int nthvert) {
+	static glm::vec4 vertex(void* data, const int iface, const int nthvert) {
+		ShaderMapLight& _data = *static_cast<ShaderMapLight*> (data);
 		// fetch uv coordinates
-		varying_uv = glm::column(varying_uv, nthvert, model->fetchUv(iface, nthvert));
-		varying_nrm = glm::column(varying_nrm, nthvert, glm::vec3(normalMatrix * glm::vec4(model->fetchNormal(iface, nthvert), 1.0)));
+		_data.varying_uv = glm::column(_data.varying_uv, nthvert, _data.model->fetchUv(iface, nthvert));
+		_data.varying_nrm = glm::column(_data.varying_nrm, nthvert, glm::vec3(normalMatrix * glm::vec4(_data.model->fetchNormal(iface, nthvert), 1.0)));
 		// fetch and transform the vertex position 
-		glm::vec4 pos(model->fetchPosition(iface, nthvert), 1.0);
-		varying_vert = glm::column(varying_vert, nthvert, glm::vec3(modelView * pos));
+		glm::vec4 pos(_data.model->fetchPosition(iface, nthvert), 1.0);
+		_data.varying_vert = glm::column(_data.varying_vert, nthvert, glm::vec3(modelView * pos));
 		glm::vec4 gl_Vertex = mvp * pos;
 		return gl_Vertex;
 	}
 
-	bool fragment(const glm::vec3 bar, glm::vec4& color) {
+	static bool fragment(void* data, const glm::vec3 bar, glm::vec4& color) {
+		ShaderMapLight& _data = *static_cast<ShaderMapLight*> (data);
 		// tex coord interpolation
-		glm::vec2 uv = varying_uv * bar;
+		glm::vec2 uv = _data.varying_uv * bar;
 		// normal interpolation
-		glm::vec3 nrm = glm::normalize(varying_nrm * bar);
+		glm::vec3 nrm = glm::normalize(_data.varying_nrm * bar);
 		// vertex coord interpolation
-		glm::vec3 vert = varying_vert * bar;
+		glm::vec3 vert = _data.varying_vert * bar;
 		// texel fetch
 		glm::vec3 rgb;
-		texture2D_bilinear(*map, uv, rgb); // we know map != NULL, rgb is in 0-255 for each component
+		texture2D_bilinear(*_data.map, uv, rgb); // we know map != NULL, rgb is in 0-255 for each component
 		// compute the lighting
 		// ambient term
 		glm::vec3 Iamb = rgb * materialAmbient;
@@ -141,17 +146,19 @@ struct ShaderCpv :IShader {
 
 	ShaderCpv(const Model* model, const Image* map) : IShader(model, map) {}
 
-	glm::vec4 vertex(const int iface, const int nthvert) {
+	static glm::vec4 vertex(void* data, const int iface, const int nthvert) {
+		ShaderCpv& _data = *static_cast<ShaderCpv*> (data);
 		// fetch per vertex colors
-		varying_color = glm::column(varying_color, nthvert, model->fetchColor(iface, nthvert));
+		_data.varying_color = glm::column(_data.varying_color, nthvert, _data.model->fetchColor(iface, nthvert));
 		// fetch and transform the vertex position 
-		glm::vec4 gl_Vertex = mvp * glm::vec4(model->fetchPosition(iface, nthvert), 1.0F);
+		glm::vec4 gl_Vertex = mvp * glm::vec4(_data.model->fetchPosition(iface, nthvert), 1.0F);
 		return gl_Vertex;
 	}
 
-	bool fragment(const glm::vec3 bar, glm::vec4& color) {
+	static bool fragment(void* data, const glm::vec3 bar, glm::vec4& color) {
+		ShaderCpv& _data = *static_cast<ShaderCpv*> (data);
 		// tex coord interpolation
-		color = glm::vec4(varying_color * bar, 255);
+		color = glm::vec4(_data.varying_color * bar, 255);
 		// the pixel is not discard
 		return false;
 	}
@@ -161,13 +168,15 @@ struct ShaderRed :IShader {
 
 	ShaderRed(const Model* model, const Image* map) : IShader(model, map) {}
 
-	glm::vec4 vertex(const int iface, const int nthvert) {
+	static glm::vec4 vertex(void* data, const int iface, const int nthvert) {
+		ShaderRed& _data = *static_cast<ShaderRed*> (data);
 		// fetch and transform the vertex position 
-		glm::vec4 gl_Vertex = mvp * glm::vec4(model->fetchPosition(iface, nthvert), 1.0F);
+		glm::vec4 gl_Vertex = mvp * glm::vec4(_data.model->fetchPosition(iface, nthvert), 1.0F);
 		return gl_Vertex;
 	}
 
-	bool fragment(const glm::vec3 bar, glm::vec4& color) {
+	static bool fragment(void* data, const glm::vec3 bar, glm::vec4& color) {
+		ShaderRed& _data = *static_cast<ShaderRed*> (data);
 		// tex coord interpolation
 		color = glm::vec4(255, 0, 0, 255);
 		// the pixel is not discard
@@ -183,17 +192,17 @@ void viewport(const int x, const int y, const int w, const int h) {
 		glm::vec4(0, 0, 0, 1));
 }
 
-void rasterize(IShader& shader, std::vector<uint8_t>& fbuffer, int width, int height, std::vector<float>& zbuffer) {
+void rasterize(void* data, VertexShader vShader, FragmentShader fShader, const Model* model, std::vector<uint8_t>& fbuffer, int width, int height, std::vector<float>& zbuffer) {
 
 	// for every triangle
-	for (int triIdx = 0; triIdx < shader.model->triangles.size() / 3; ++triIdx) {
-				
+	for (int triIdx = 0; triIdx < model->triangles.size() / 3; ++triIdx) {
+
 		// triangle coordinates (clip coordinates), written by VS, read by FS
 		glm::vec4 clip_verts[3];
 
 		// call the vertex shader for each triangle vertex
 		for (int vertIdx = 0; vertIdx < 3; ++vertIdx) {
-			clip_verts[vertIdx] = shader.vertex(triIdx, vertIdx);
+			clip_verts[vertIdx] = vShader(data, triIdx, vertIdx);
 		}
 		
 		// backface culling 
@@ -250,7 +259,7 @@ void rasterize(IShader& shader, std::vector<uint8_t>& fbuffer, int width, int he
 					continue;
 
 				glm::vec4 color;
-				bool discard = shader.fragment(bc_clip, color);
+				bool discard = fShader(data, bc_clip, color);
 				if (discard) continue;
 
 				// write fragment
@@ -284,6 +293,8 @@ bool RendererSw::render(
 	const glm::vec3& viewDir, const glm::vec3& viewUp,
 	const glm::vec3& bboxMin, const glm::vec3& bboxMax, bool useBBox
 ) {
+	clock_t t1 = clock();
+
 	// fit ortho viewpoint to model bbox
 	float ratio = (float)width / (float)height;
 	glm::vec3 minPos, maxPos;
@@ -302,6 +313,12 @@ bool RendererSw::render(
 	glm::mat4 mdl = glm::mat4(1.0);
 	viewPosition = boxCtr + viewDir * size;
 	glm::mat4 view = glm::lookAt(viewPosition, boxCtr, viewUp);
+
+	std::cout << "ViewPos=" << viewPosition.x << " " << viewPosition.y << " " << viewPosition.z << std::endl;
+	std::cout << "ViewDir=" << viewDir.x << " " << viewDir.y << " " << viewDir.z << std::endl;
+	std::cout << "ViewUp=" << viewUp.x << " " << viewUp.y << " " << viewUp.z << std::endl;
+	std::cout << "ViewCtr=" << boxCtr.x << " " << boxCtr.y << " " << boxCtr.z << std::endl;
+
 	viewPositionMV = modelView * glm::vec4(viewPosition, 1.0);
 	// glob transfo to center view and fit OpenGL HW results.
 	glm::mat4 glob =
@@ -331,6 +348,8 @@ bool RendererSw::render(
 		if (!model->hasVertexNormals()) {
 			std::cout << "Processing normals with \"noseams\" enabled..." << std::endl;
 			model->computeVertexNormals(true, true);
+			std::cout << "Time on processing normals: " << ((float)(clock() - t1)) / CLOCKS_PER_SEC << " sec." << std::endl;
+			t1 = clock();
 		}
 		else {
 			std::cout << "Using pre-defined model normals." << std::endl;
@@ -340,9 +359,11 @@ bool RendererSw::render(
 		if (!model->hasTriangleNormals()) {
 			std::cout << "Processing triangle normals " << std::endl;
 			model->computeFaceNormals(true);
+			std::cout << "Time on processing normals: " << ((float)(clock() - t1)) / CLOCKS_PER_SEC << " sec." << std::endl;
+			t1 = clock();
 		}
 	}
-
+	
 	isCullingEnabled = _isCullingEnabled;
 	cwCulling = _cwCulling;
 
@@ -353,20 +374,20 @@ bool RendererSw::render(
 	if (model->uvcoords.size() != 0 && map != NULL && map->data != NULL) {
 		if (_isLigthingEnabled && model->normals.size() != 0) {
 			ShaderMapLight shader(model, map);
-			rasterize(shader, fbuffer, width, height, zbuffer);
+			rasterize(&shader, ShaderMapLight::vertex, ShaderMapLight::fragment, shader.model, fbuffer, width, height, zbuffer);
 		}
 		else {
 			ShaderMap shader(model, map);
-			rasterize(shader, fbuffer, width, height, zbuffer);
+			rasterize(&shader, ShaderMap::vertex, ShaderMap::fragment, shader.model, fbuffer, width, height, zbuffer);
 		}
 	}
 	else if (model->colors.size()) {
 		ShaderCpv shader(model, NULL);
-		rasterize(shader, fbuffer, width, height, zbuffer);
+		rasterize(&shader, ShaderCpv::vertex, ShaderCpv::fragment, shader.model, fbuffer, width, height, zbuffer);
 	}
 	else {
 		ShaderRed shader(model, NULL);
-		rasterize(shader, fbuffer, width, height, zbuffer);
+		rasterize(&shader, ShaderRed::vertex, ShaderRed::fragment, shader.model, fbuffer, width, height, zbuffer);
 	}
 
 	// optional level
@@ -384,6 +405,8 @@ bool RendererSw::render(
 			fbuffer[c] = fbuffer[c] + (uint8_t)(255 - maxDist);
 		}
 	}
+	
+	std::cout << "Time on render: " << ((float)(clock() - t1)) / CLOCKS_PER_SEC << " sec." << std::endl;
 
 	return true;
 }
@@ -404,6 +427,8 @@ bool RendererSw::render(
 	// render the model into memory buffers
 	render( model, map,	fbuffer, zbuffer, width, height, 
 		viewDir, viewUp, bboxMin, bboxMax, useBBox);
+	
+	clock_t t1 = clock();
 
 	if ( outputImage != "" ){
 		// Write image Y-flipped because OpenGL
@@ -420,6 +445,8 @@ bool RendererSw::render(
 			(char*)zbuffer.data() + (width * 4 * (height - 1)),
 			-(int)width * 4);
 	}
+
+	std::cout << "Time on saving: " << ((float)(clock() - t1)) / CLOCKS_PER_SEC << " sec." << std::endl;
 
 	return true;
 }

@@ -116,7 +116,7 @@ mm.exe \
 # Command references
 
 ```
-3D model processing commands v0.1.10
+3D model processing commands v0.1.11
 Usage:
   mm.exe command [OPTION...]
 
@@ -184,16 +184,21 @@ Usage:
                      for comparisons.
 
  ibsm mode options:
-      --ibsmResolution arg    Resolution of the image buffer. (default: 2048)
-      --ibsmCameraCount arg   Number of virtual cameras to be used per frame.
-                              (default: 16)
-      --ibsmRenderer arg      Use software or openGL 1.2 renderer. Value in
-                              [sw_raster, gl12_raster]. (default: sw_raster)
-      --ibsmDisableCulling    Set option to disables the backface culling.
-      --ibsmOutputPrefix arg  Set option with a proper prefix/path system to
-                              dump the color shots as png images (Warning, it
-                              is extremly time consuming to write the buffers,
-                              use only for debug).
+      --ibsmResolution arg     Resolution of the image buffer. (default:
+                               2048)
+      --ibsmCameraCount arg    Number of virtual cameras to be used per
+                               frame. (default: 16)
+      --ibsmRenderer arg       Use software or openGL 1.2 renderer. Value in
+                               [sw_raster, gl12_raster]. (default: sw_raster)
+      --ibsmDisableCulling     Set option to disable the backface culling.
+      --ibsmDisableReordering  Set option to disable automatic oriented
+                               reordering of input meshes, can be usefull if
+                               already done previously to save very small execution
+                               time.
+      --ibsmOutputPrefix arg   Set option with a proper prefix/path system to
+                               dump the color shots as png images (Warning,
+                               it is extremly time consuming to write the
+                               buffers, use only for debug).
 
  pcc mode options:
       --singlePass          Force running a single pass, where the loop is
@@ -242,6 +247,8 @@ Usage:
       --mode arg         the sampling mode in [delface]
       --nthFace arg      in delface mode, remove one face every nthFace.
                          (default: 50)
+      --nbFaces arg      in delface mode, if nthFace==0, remove nbFaces.
+                         (default: 0)
   -h, --help             Print usage
 
 ```
@@ -252,35 +259,38 @@ Dequantize model (mesh or point cloud)
 Usage:
   mm.exe dequantize [OPTION...]
 
-  -i, --inputModel arg   path to input model (obj or ply file)
-  -o, --outputModel arg  path to output model (obj or ply file)
-  -h, --help             Print usage
-      --qp arg           Geometry quantization bitdepth. No dequantization of
-                         geometry if not set or < 7.
-      --qt arg           UV coordinates quantization bitdepth. No
-                         dequantization of uv coordinates if not set or < 7.
-      --qn arg           Normals quantization bitdepth. No dequantization of
-                         normals if not set or < 7.
-      --qc arg           Colors quantization bitdepth. No dequantization of
-                         colors if not set or < 7.
-      --minPos arg       min corner of vertex position bbox, a string of
-                         three floats. Mandatory if qp set and >= 7
-      --maxPos arg       max corner of vertex position bbox, a string of
-                         three floats. Mandatory if qp set and >= 7
-      --minUv arg        min corner of vertex texture coordinates bbox, a
-                         string of three floats. Mandatory if qt set and >= 7
-      --maxUv arg        max corner of vertex texture coordinates bbox, a
-                         string of three floats. Mandatory if qt set and >= 7
-      --minNrm arg       min corner of vertex normal bbox, a string of three
-                         floats. Mandatory if qn set and >= 7.
-      --maxNrm arg       max corner of vertex normal bbox, a string of three
-                         floats. Mandatory if qn set and >= 7
-      --minCol arg       min corner of vertex colors bbox, a string of three
-                         floats. Mandatory if qc set and >= 7
-      --maxCol arg       max corner of vertex colors bbox, a string of three
-                         floats. Mandatory if qc set and >= 7
-      --useFixedPoint    interprets minPos and maxPos inputs as fixed point
-                         16.
+  -i, --inputModel arg        path to input model (obj or ply file)
+  -o, --outputModel arg       path to output model (obj or ply file)
+  -h, --help                  Print usage
+      --qp arg                Geometry quantization bitdepth. No
+                              dequantization of geometry if not set or < 7.
+      --qt arg                UV coordinates quantization bitdepth. No
+                              dequantization of uv coordinates if not set or < 7.
+      --qn arg                Normals quantization bitdepth. No
+                              dequantization of normals if not set or < 7.
+      --qc arg                Colors quantization bitdepth. No dequantization
+                              of colors if not set or < 7.
+      --minPos arg            min corner of vertex position bbox, a string of
+                              three floats. Mandatory if qp set and >= 7
+      --maxPos arg            max corner of vertex position bbox, a string of
+                              three floats. Mandatory if qp set and >= 7
+      --minUv arg             min corner of vertex texture coordinates bbox,
+                              a string of three floats. Mandatory if qt set
+                              and >= 7
+      --maxUv arg             max corner of vertex texture coordinates bbox,
+                              a string of three floats. Mandatory if qt set
+                              and >= 7
+      --minNrm arg            min corner of vertex normal bbox, a string of
+                              three floats. Mandatory if qn set and >= 7.
+      --maxNrm arg            max corner of vertex normal bbox, a string of
+                              three floats. Mandatory if qn set and >= 7
+      --minCol arg            min corner of vertex colors bbox, a string of
+                              three floats. Mandatory if qc set and >= 7
+      --maxCol arg            max corner of vertex colors bbox, a string of
+                              three floats. Mandatory if qc set and >= 7
+      --useFixedPoint         interprets minPos and maxPos inputs as fixed
+                              point 16.
+      --colorSpaceConversion  Convert color space from YUV to RGB.
 
 ```
 ## Normals
@@ -306,37 +316,38 @@ Quantize model (mesh or point cloud)
 Usage:
   mm.exe quantize [OPTION...]
 
-  -i, --inputModel arg   path to input model (obj or ply file)
-  -o, --outputModel arg  path to output model (obj or ply file)
-  -h, --help             Print usage
-      --dequantize       set to process dequantification at the ouput
-      --qp arg           Geometry quantization bitdepth. A value < 7 means no
-                         quantization. (default: 12)
-      --qt arg           UV coordinates quantization bitdepth.  A value < 7
-                         means no quantization. (default: 12)
-      --qn arg           Normals quantization bitdepth. A value < 7 no
-                         quantization. (default: 12)
-      --qc arg           Colors quantization bitdepth. A value < 7 no
-                         quantization. (default: 8)
-      --minPos arg       min corner of vertex position bbox, a string of
-                         three floats. Computed of not set.
-      --maxPos arg       max corner of vertex position bbox, a string of
-                         three floats. Computed of not set.
-      --minUv arg        min corner of vertex texture coordinates bbox, a
-                         string of three floats. Computed of not set.
-      --maxUv arg        max corner of vertex texture coordinates bbox, a
-                         string of three floats. Computed of not set.
-      --minNrm arg       min corner of vertex normal bbox, a string of three
-                         floats. Computed of not set.
-      --maxNrm arg       max corner of vertex normal bbox, a string of three
-                         floats. Computed of not set.
-      --minCol arg       min corner of vertex color bbox, a string of three
-                         floats. Computed of not set.
-      --maxCol arg       max corner of vertex color bbox, a string of three
-                         floats. Computed of not set.
-      --outputVar arg    path to the output variables file.
-      --useFixedPoint    internally convert the minPos and maxPos to fixed
-                         point 16.
+  -i, --inputModel arg        path to input model (obj or ply file)
+  -o, --outputModel arg       path to output model (obj or ply file)
+  -h, --help                  Print usage
+      --dequantize            set to process dequantification at the ouput
+      --qp arg                Geometry quantization bitdepth. A value < 7
+                              means no quantization. (default: 12)
+      --qt arg                UV coordinates quantization bitdepth.  A value
+                              < 7 means no quantization. (default: 12)
+      --qn arg                Normals quantization bitdepth. A value < 7 no
+                              quantization. (default: 12)
+      --qc arg                Colors quantization bitdepth. A value < 7 no
+                              quantization. (default: 8)
+      --minPos arg            min corner of vertex position bbox, a string of
+                              three floats. Computed of not set.
+      --maxPos arg            max corner of vertex position bbox, a string of
+                              three floats. Computed of not set.
+      --minUv arg             min corner of vertex texture coordinates bbox,
+                              a string of three floats. Computed of not set.
+      --maxUv arg             max corner of vertex texture coordinates bbox,
+                              a string of three floats. Computed of not set.
+      --minNrm arg            min corner of vertex normal bbox, a string of
+                              three floats. Computed of not set.
+      --maxNrm arg            max corner of vertex normal bbox, a string of
+                              three floats. Computed of not set.
+      --minCol arg            min corner of vertex color bbox, a string of
+                              three floats. Computed of not set.
+      --maxCol arg            max corner of vertex color bbox, a string of
+                              three floats. Computed of not set.
+      --outputVar arg         path to the output variables file.
+      --useFixedPoint         internally convert the minPos and maxPos to
+                              fixed point 16.
+      --colorSpaceConversion  Convert color space from RGB to YUV.
 
 ```
 ## Reindex

@@ -5,6 +5,17 @@ Primary author Jean-Eudes Marvie (InterDigital).
 
 Additional contributors mentioned per version or item hereafter.
 
+## Version 0.1.11
+
+- Add: ibsm automatic reindex and tests update.
+- Add: Color Space Conversion for Qunatize/Dequantize functions
+	- Contributor: Danillo Graziosi (Sony)
+- Add: degrade --nbFaces option
+- Add: sw renderer/ibsm metric optimization, gains 0.4sec on 4K renders.
+- Fix: use max depth sw render value (fix frederick metric infinite issue).
+- Fix: ibsm MSE and PSNR processing use mask Size instead of image size
+- Fix: attribute names masking in compare. renamed class attributes with _ prefix.
+
 ## Version 0.1.10
 
 - Add: some ibsm test output validation

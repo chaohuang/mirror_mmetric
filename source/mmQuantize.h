@@ -76,13 +76,15 @@ private:
 	std::string _maxColStr;
 	glm::vec3 _minCol = { 0.0F,0.0F,0.0F };
 	glm::vec3 _maxCol = { 0.0F,0.0F,0.0F };
+	//color space conversion
+	bool _colorSpaceConversion = false;
 
 	// quantizes the model using parameters and range. If a range is not set (i.e. min == max) then a range is 
 	// computed internally. If quantization parameter is < 7, the related attribute is not quantized.
 	static void quantize(
 		const Model& input, Model& output,
 		const uint32_t qp, const uint32_t qt, const uint32_t qn, const uint32_t qc,
-		const std::string& outputVarFilename, bool useFixedPoint,
+		const std::string& outputVarFilename, bool useFixedPoint, bool colorSpaceConversion,
 		glm::vec3& minPos, glm::vec3& maxPos, glm::vec2& minUv, glm::vec2& maxUv,
 		glm::vec3& minNrm, glm::vec3& maxNrm, glm::vec3& minCol, glm::vec3& maxCol);
 

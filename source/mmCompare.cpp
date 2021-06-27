@@ -127,7 +127,9 @@ bool Compare::initialize(Context* context, std::string app, int argc, char* argv
 				cxxopts::value<unsigned int>()->default_value("16"))
 			("ibsmRenderer", "Use software or openGL 1.2 renderer. Value in [sw_raster, gl12_raster].",
 				cxxopts::value<std::string>()->default_value("sw_raster"))
-			("ibsmDisableCulling", "Set option to disables the backface culling.",
+			("ibsmDisableCulling", "Set option to disable the backface culling.",
+				cxxopts::value<bool>()->default_value("false"))
+			("ibsmDisableReordering", "Set option to disable automatic oriented reordering of input meshes, can be usefull if already done previously to save very small execution time.",
 				cxxopts::value<bool>()->default_value("false"))
 			("ibsmOutputPrefix", "Set option with a proper prefix/path system to dump the color shots as png images (Warning, it is extremly time consuming to write the buffers, use only for debug).",
 				cxxopts::value<std::string>())
@@ -143,7 +145,7 @@ bool Compare::initialize(Context* context, std::string app, int argc, char* argv
 		}
 		//	
 		if (result.count("inputModelA"))
-			inputModelAFilename = result["inputModelA"].as<std::string>();
+			_inputModelAFilename = result["inputModelA"].as<std::string>();
 		else {
 			std::cerr << "Error: missing inputModelA parameter" << std::endl;
 			std::cout << options.help() << std::endl;
@@ -151,7 +153,7 @@ bool Compare::initialize(Context* context, std::string app, int argc, char* argv
 		}
 		//	
 		if (result.count("inputModelB"))
-			inputModelBFilename = result["inputModelB"].as<std::string>();
+			_inputModelBFilename = result["inputModelB"].as<std::string>();
 		else {
 			std::cerr << "Error: missing inputModelB parameter" << std::endl;
 			std::cout << options.help() << std::endl;
@@ -163,57 +165,57 @@ bool Compare::initialize(Context* context, std::string app, int argc, char* argv
 
 		// mode in equ,pcc,pcqm,topo. defaults to equ
 		if (result.count("mode")){
-			mode = result["mode"].as<std::string>();
-			if (mode != "equ" && mode != "pcc" && mode != "pcqm" && mode != "topo" && mode != "ibsm") {
-				std::cerr << "Error: invalid --mode \"" << mode << "\"" << std::endl;
+			_mode = result["mode"].as<std::string>();
+			if (_mode != "equ" && _mode != "pcc" && _mode != "pcqm" && _mode != "topo" && _mode != "ibsm") {
+				std::cerr << "Error: invalid --mode \"" << _mode << "\"" << std::endl;
 				return false;
 			}
 		}
 		// Optional input texture maps
 		if (result.count("inputMapA"))
-			inputTextureAFilename = result["inputMapA"].as<std::string>();
+			_inputTextureAFilename = result["inputMapA"].as<std::string>();
 		if (result.count("inputMapB"))
-			inputTextureBFilename = result["inputMapB"].as<std::string>();
+			_inputTextureBFilename = result["inputMapB"].as<std::string>();
 
 		// Optional
 		if (result.count("outputModelA"))
-			outputModelAFilename = result["outputModelA"].as<std::string>();
+			_outputModelAFilename = result["outputModelA"].as<std::string>();
 		if (result.count("outputModelB"))
-			outputModelBFilename = result["outputModelB"].as<std::string>();
+			_outputModelBFilename = result["outputModelB"].as<std::string>();
 		// eq
 		if (result.count("epsilon"))
-			epsilon = result["epsilon"].as<float>();
+			_equEpsilon = result["epsilon"].as<float>();
 		if (result.count("earlyReturn"))
-			earlyReturn = result["earlyReturn"].as<bool>();
+			_equEarlyReturn = result["earlyReturn"].as<bool>();
 		if (result.count("unoriented"))
-			unoriented = result["unoriented"].as<bool>();
+			_equUnoriented = result["unoriented"].as<bool>();
 		// PCC
 		if (result.count("singlePass"))
-			params.singlePass = result["singlePass"].as<bool>();
+			_pccParams.singlePass = result["singlePass"].as<bool>();
 		if (result.count("hausdorff"))
-			params.hausdorff = result["hausdorff"].as<bool>();
+			_pccParams.hausdorff = result["hausdorff"].as<bool>();
 		if (result.count("color"))
-			params.bColor = result["color"].as<bool>();
+			_pccParams.bColor = result["color"].as<bool>();
 		if (result.count("resolution"))
-			params.resolution = result["resolution"].as<float>();
+			_pccParams.resolution = result["resolution"].as<float>();
 		if (result.count("dropDuplicates"))
-			params.dropDuplicates = result["dropDuplicates"].as<int>();
+			_pccParams.dropDuplicates = result["dropDuplicates"].as<int>();
 		if (result.count("neighborsProc"))
-			params.neighborsProc = result["neighborsProc"].as<int>();
+			_pccParams.neighborsProc = result["neighborsProc"].as<int>();
 		if (result.count("averageNormals"))
-			params.bAverageNormals = result["averageNormals"].as<bool>();
+			_pccParams.bAverageNormals = result["averageNormals"].as<bool>();
 		// PCQM
 		if (result.count("radiusCurvature"))
-			radiusCurvature = result["radiusCurvature"].as<double>();
+			_pcqmRadiusCurvature = result["radiusCurvature"].as<double>();
 		if (result.count("thresholdKnnSearch"))
-			thresholdKnnSearch = result["thresholdKnnSearch"].as<int>();
+			_pcqmThresholdKnnSearch = result["thresholdKnnSearch"].as<int>();
 		if (result.count("radiusFactor"))
-			radiusFactor = result["radiusFactor"].as<double>();
+			_pcqmRadiusFactor = result["radiusFactor"].as<double>();
 		// topo
 		if (result.count("faceMapFile"))
-			faceMapFilename = result["faceMapFile"].as<string>();
+			_topoFaceMapFilename = result["faceMapFile"].as<string>();
 		if (result.count("vertexMapFile"))
-			vertexMapFilename = result["vertexMapFile"].as<string>();
+			_topoVertexMapFilename = result["vertexMapFile"].as<string>();
 		// Raster
 		if (result.count("ibsmResolution"))
 			_ibsmResolution = result["ibsmResolution"].as<unsigned int>();
@@ -221,12 +223,15 @@ bool Compare::initialize(Context* context, std::string app, int argc, char* argv
 			_ibsmCameraCount = result["ibsmCameraCount"].as<unsigned int>();
 		if (result.count("ibsmRenderer"))
 			_ibsmRenderer = result["ibsmRenderer"].as<std::string>();
-		if (mode != "ibsm" && _ibsmRenderer != "sw_raster" && _ibsmRenderer != "gl12_raster") {
+		if (_mode != "ibsm" && _ibsmRenderer != "sw_raster" && _ibsmRenderer != "gl12_raster") {
 			std::cout << "error invalid renderer choice: " << _ibsmRenderer << std::endl;
 			return false;
 		}
 		if (result.count("ibsmDisableCulling"))
 			_ibsmDisableCulling = result["ibsmDisableCulling"].as<bool>();
+		if (result.count("ibsmDisableReordering"))
+			_ibsmDisableReordering = result["ibsmDisableReordering"].as<bool>();
+		
 		if (result.count("ibsmOutputPrefix"))
 			_ibsmOutputPrefix = result["ibsmOutputPrefix"].as<std::string>();
 	}
@@ -238,7 +243,7 @@ bool Compare::initialize(Context* context, std::string app, int argc, char* argv
 
 	// now initialize OpenGL contexts if needed
 	// this part is valid for all the frames
-	if (mode == "ibsm" && _ibsmRenderer == "gl12_raster") {
+	if (_mode == "ibsm" && _ibsmRenderer == "gl12_raster") {
 		if (!_hwRenderer.initialize(_ibsmResolution, _ibsmResolution)) {
 			return false;
 		}
@@ -284,16 +289,16 @@ bool Compare::process(uint32_t frame) {
 	// Reading map if needed
 	Image* textureMapA, * textureMapB;
 	bool perVertexColor = false;
-	if (inputTextureAFilename != "") {
-		textureMapA = IO::loadImage(inputTextureAFilename);
+	if (_inputTextureAFilename != "") {
+		textureMapA = IO::loadImage(_inputTextureAFilename);
 	}
 	else {
 		std::cout << "Skipping map read, will parse use vertex color if any" << std::endl;
 		textureMapA = new Image();
 		perVertexColor = true;
 	}
-	if (inputTextureBFilename != "") {
-		textureMapB = IO::loadImage(inputTextureBFilename);
+	if (_inputTextureBFilename != "") {
+		textureMapB = IO::loadImage(_inputTextureBFilename);
 		if (perVertexColor) {
 			std::cout << "Error: inputs model colors are not homogeneous " << std::endl;
 			return false;
@@ -307,18 +312,18 @@ bool Compare::process(uint32_t frame) {
 
 	// the input
 	Model* inputModelA, * inputModelB;
-	if ((inputModelA = IO::loadModel(inputModelAFilename)) == NULL) {
+	if ((inputModelA = IO::loadModel(_inputModelAFilename)) == NULL) {
 		return false;
 	}
 	if (inputModelA->vertices.size() == 0) {
-		std::cout << "Error: input model from " << inputModelAFilename << " has no vertices" << std::endl;
+		std::cout << "Error: input model from " << _inputModelAFilename << " has no vertices" << std::endl;
 		return false;
 	}
-	if ((inputModelB = IO::loadModel(inputModelBFilename)) == NULL) {
+	if ((inputModelB = IO::loadModel(_inputModelBFilename)) == NULL) {
 		return false;
 	}
 	if (inputModelB->vertices.size() == 0) {
-		std::cout << "Error: input model from " << inputModelBFilename << " has no vertices" << std::endl;
+		std::cout << "Error: input model from " << _inputModelBFilename << " has no vertices" << std::endl;
 		return false;
 	}
 
@@ -334,13 +339,13 @@ bool Compare::process(uint32_t frame) {
 
 	// Perform the processings
 	clock_t t1 = clock();
-	if (mode == "equ") {
+	if (_mode == "equ") {
 		std::cout << "Compare models for equality" << std::endl;
-		std::cout << "  Epsilon = " << epsilon << std::endl;
+		std::cout << "  Epsilon = " << _equEpsilon << std::endl;
 		res = Compare::equ(
 			*inputModelA, *inputModelB,
 			*textureMapA, *textureMapB,
-			epsilon, earlyReturn, unoriented,
+			_equEpsilon, _equEarlyReturn, _equUnoriented,
 			*outputModelA, *outputModelB);
 		
 		// print the stats
@@ -351,21 +356,23 @@ bool Compare::process(uint32_t frame) {
 			}
 			// print stats
 			csvFileOut 
-				<< inputModelAFilename << ";" << inputTextureAFilename << ";" 
-				<< inputModelBFilename << ";" << inputTextureBFilename << ";" 
-				<< frame << ";" << epsilon << ";" << earlyReturn << ";" << unoriented << ";" 
+				<< _inputModelAFilename << ";" << _inputTextureAFilename << ";" 
+				<< _inputModelBFilename << ";" << _inputTextureBFilename << ";" 
+				<< frame << ";" << _equEpsilon << ";" << _equEarlyReturn << ";" << _equUnoriented << ";"
 				<< "TODO" << "TODO" << std::endl;
 			// done
 			csvFileOut.close();
 		}
 	}
-	else if (mode == "topo") {
+	else if (_mode == "topo") {
 		std::cout << "Compare models topology for equivalence" << std::endl;
-		std::cout << "  faceMapFile = " << faceMapFilename << std::endl;
-		std::cout << "  vertexMapFile = " << vertexMapFilename << std::endl;
+		std::cout << "  faceMapFile = " << _topoFaceMapFilename << std::endl;
+		std::string faceMapFilenameResolved = IO::resolveName(_context->getFrame(), _topoFaceMapFilename);
+		std::cout << "  vertexMapFile = " << _topoVertexMapFilename << std::endl;
+		std::string vertexMapFilenameResolved = IO::resolveName(_context->getFrame(), _topoVertexMapFilename);
 		res = Compare::topo(
 			*inputModelA, *inputModelB, 
-			faceMapFilename, vertexMapFilename);
+			faceMapFilenameResolved, vertexMapFilenameResolved);
 		
 		// print the stats
 		if (csvFileOut) {
@@ -375,35 +382,35 @@ bool Compare::process(uint32_t frame) {
 			}
 			// print stats
 			csvFileOut
-				<< inputModelAFilename << ";" << inputTextureAFilename << ";"
-				<< inputModelBFilename << ";" << inputTextureBFilename << ";"
-				<< faceMapFilename << ";" << vertexMapFilename << ";"
+				<< _inputModelAFilename << ";" << _inputTextureAFilename << ";"
+				<< _inputModelBFilename << ";" << _inputTextureBFilename << ";"
+				<< faceMapFilenameResolved << ";" << vertexMapFilenameResolved << ";"
 				<< frame << ";" << "TODO" << std::endl;
 			// done
 			csvFileOut.close();
 		}
 	}
-	else if (mode == "pcc") {
+	else if (_mode == "pcc") {
 		std::cout << "Compare models using MPEG PCC distortion metric" << std::endl;
-		std::cout << "  singlePass = " << params.singlePass << std::endl;
-		std::cout << "  hausdorff = " << params.hausdorff << std::endl;
-		std::cout << "  color = " << params.bColor << std::endl;
-		std::cout << "  resolution = " << params.resolution << std::endl;
-		std::cout << "  neighborsProc = " << params.neighborsProc << std::endl;
-		std::cout << "  dropDuplicates = " << params.dropDuplicates << std::endl;
-		std::cout << "  averageNormals = " << params.bAverageNormals << std::endl;
+		std::cout << "  singlePass = " << _pccParams.singlePass << std::endl;
+		std::cout << "  hausdorff = " << _pccParams.hausdorff << std::endl;
+		std::cout << "  color = " << _pccParams.bColor << std::endl;
+		std::cout << "  resolution = " << _pccParams.resolution << std::endl;
+		std::cout << "  neighborsProc = " << _pccParams.neighborsProc << std::endl;
+		std::cout << "  dropDuplicates = " << _pccParams.dropDuplicates << std::endl;
+		std::cout << "  averageNormals = " << _pccParams.bAverageNormals << std::endl;
 		// just backup for logging because it might be modified by pcc function call if auto mode
-		float paramsResolution = params.resolution;
+		float paramsResolution = _pccParams.resolution;
 		res = Compare::pcc(
 			*inputModelA, *inputModelB,
-			*textureMapA, *textureMapB, params,
+			*textureMapA, *textureMapB, _pccParams,
 			*outputModelA, *outputModelB);
 		
 		// print the stats
 		// TODO add all parameters in the output
 		if (csvFileOut) {
 			// retrieve  metric results
-			std::pair<uint32_t, pcc_quality::qMetric>& frameResults = pccResults[pccResults.size()-1];
+			std::pair<uint32_t, pcc_quality::qMetric>& frameResults = _pccResults[_pccResults.size()-1];
 			// print the header if file is empty
 			if (csvFileLength == 0) {
 				csvFileOut 
@@ -416,11 +423,11 @@ bool Compare::process(uint32_t frame) {
 			}
 			// print stats
 			csvFileOut
-				<< inputModelAFilename << ";" << inputModelBFilename  << ";"
-				<< inputTextureAFilename << ";" << inputTextureBFilename << ";"
-				<< params.singlePass << ";" << params.hausdorff << ";" << params.bColor << ";"
-				<< paramsResolution << ";" << params.neighborsProc << ";" << params.dropDuplicates << ";" << params.bAverageNormals << ";"
-				<< frame << ";" << params.resolution << ";"
+				<< _inputModelAFilename << ";" << _inputModelBFilename  << ";"
+				<< _inputTextureAFilename << ";" << _inputTextureBFilename << ";"
+				<< _pccParams.singlePass << ";" << _pccParams.hausdorff << ";" << _pccParams.bColor << ";"
+				<< paramsResolution << ";" << _pccParams.neighborsProc << ";" << _pccParams.dropDuplicates << ";" << _pccParams.bAverageNormals << ";"
+				<< frame << ";" << _pccParams.resolution << ";"
 				<< frameResults.second.c2c_psnr << ";" << frameResults.second.c2c_hausdorff_psnr << ";"
 				<< frameResults.second.c2p_psnr << ";" << frameResults.second.c2p_hausdorff_psnr << ";"
 				<< frameResults.second.color_psnr[0] << ";"
@@ -433,23 +440,23 @@ bool Compare::process(uint32_t frame) {
 			csvFileOut.close();
 		}
 	}
-	else if (mode == "pcqm") {
+	else if (_mode == "pcqm") {
 		std::cout << "Compare models using PCQM distortion metric" << std::endl;
-		std::cout << "  radiusCurvature = " << radiusCurvature << std::endl;
-		std::cout << "  thresholdKnnSearch = " << thresholdKnnSearch << std::endl;
-		std::cout << "  radiusFactor = " << radiusFactor << std::endl;
+		std::cout << "  radiusCurvature = " << _pcqmRadiusCurvature << std::endl;
+		std::cout << "  thresholdKnnSearch = " << _pcqmThresholdKnnSearch << std::endl;
+		std::cout << "  radiusFactor = " << _pcqmRadiusFactor << std::endl;
 		res = Compare::pcqm(
 			*inputModelA, *inputModelB,
 			*textureMapA, *textureMapB,
-			radiusCurvature,
-			thresholdKnnSearch,
-			radiusFactor,
+			_pcqmRadiusCurvature,
+			_pcqmThresholdKnnSearch,
+			_pcqmRadiusFactor,
 			*outputModelA, *outputModelB);
 		// print the stats
 		// TODO add all parameters in the output
 		if (csvFileOut) {
 			// retrieve  metric results
-			std::tuple<uint32_t, double, double >& frameResults = pcqmResults[pcqmResults.size() - 1];
+			std::tuple<uint32_t, double, double >& frameResults = _pcqmResults[_pcqmResults.size() - 1];
 			// print the header if file is empty
 			if (csvFileLength == 0) {
 				csvFileOut 
@@ -459,9 +466,9 @@ bool Compare::process(uint32_t frame) {
 			}
 			// print stats
 			csvFileOut
-				<< inputModelAFilename << ";" << inputModelBFilename << ";"
-				<< inputTextureAFilename << ";" << inputTextureBFilename << ";"
-				<< radiusCurvature << ";" << thresholdKnnSearch << ";" << radiusFactor << ";"
+				<< _inputModelAFilename << ";" << _inputModelBFilename << ";"
+				<< _inputTextureAFilename << ";" << _inputTextureBFilename << ";"
+				<< _pcqmRadiusCurvature << ";" << _pcqmThresholdKnnSearch << ";" << _pcqmRadiusFactor << ";"
 				<< frame << ";" 
 				<< (double)std::get<1>(frameResults) << ";"
 				<< (double)std::get<2>(frameResults) << std::endl;
@@ -469,7 +476,7 @@ bool Compare::process(uint32_t frame) {
 			csvFileOut.close();
 		}
 	}
-	else if (mode == "ibsm") {
+	else if (_mode == "ibsm") {
 		std::cout << "Compare models using IBSM distortion metric" << std::endl;
 		std::cout << "  ibsmRenderer = " << _ibsmRenderer << std::endl;
 		std::cout << "  ibsmCameraCount = " << _ibsmCameraCount << std::endl;
@@ -479,7 +486,8 @@ bool Compare::process(uint32_t frame) {
 
 		res = Compare::ibsm(
 			*inputModelA, *inputModelB,
-			*textureMapA, *textureMapB);
+			*textureMapA, *textureMapB,
+			*outputModelA, *outputModelB);
 
 		// print the stats
 		if (csvFileOut) {
@@ -495,8 +503,8 @@ bool Compare::process(uint32_t frame) {
 			}
 			// print stats
 			csvFileOut
-				<< inputModelAFilename << ";" << inputModelBFilename << ";"
-				<< inputTextureAFilename << ";" << inputTextureBFilename << ";"
+				<< _inputModelAFilename << ";" << _inputModelBFilename << ";"
+				<< _inputTextureAFilename << ";" << _inputTextureBFilename << ";"
 				<< _ibsmRenderer << ";" << _ibsmCameraCount << ";" << _ibsmResolution << ";"
 				<< _ibsmDisableCulling << ";" << _ibsmOutputPrefix << ";" 
 				<< frame << ";"
@@ -511,23 +519,23 @@ bool Compare::process(uint32_t frame) {
 		}
 	}
 	else {
-		std::cerr << "Error: invalid --mode " << mode << std::endl;
+		std::cerr << "Error: invalid --mode " << _mode << std::endl;
 		return false;
 	}
 	clock_t t2 = clock();
 	std::cout << "Time on processing: " << ((float)(t2 - t1)) / CLOCKS_PER_SEC << " sec." << std::endl;
 
 	// save the result
-	if (outputModelAFilename != "") {
-		if (!IO::saveModel(outputModelAFilename, outputModelA))
+	if (_outputModelAFilename != "") {
+		if (!IO::saveModel(_outputModelAFilename, outputModelA))
 			return false;
 	}
 	else {
 		delete outputModelA;
 	}
 	// save the result
-	if (outputModelBFilename != "") {
-		if (!IO::saveModel(outputModelBFilename, outputModelB))
+	if (_outputModelBFilename != "") {
+		if (!IO::saveModel(_outputModelBFilename, outputModelB))
 			return false;
 	}
 	else {
@@ -541,15 +549,15 @@ bool Compare::process(uint32_t frame) {
 bool Compare::finalize() {
 
 	// Collect the statistics
-	if (mode == "pcc") {
+	if (_mode == "pcc") {
 		pccFinalize();
 	}
 	
-	if (mode == "pcqm") {
+	if (_mode == "pcqm") {
 		pcqmFinalize();
 	}
 
-	if (mode == "ibsm") {
+	if (_mode == "ibsm") {
 		
 		ibsmFinalize();
 
@@ -786,8 +794,8 @@ int Compare::equ(
 
 int  Compare::topo(
 	const Model& modelA, const Model& modelB,
-	const std::string& faceMapFilenane,
-	const std::string& vertexMapFilenane)
+	const std::string& faceMapFilename,
+	const std::string& vertexMapFilename)
 {
 	// 1 - Test if number of triangles of output matches input number of triangles
 	if (modelA.getTriangleCount() != modelB.getTriangleCount()) {
@@ -1128,7 +1136,7 @@ int Compare::pcc(
 	computeQualityMetric(inCloud1, inCloud1, inCloud2, params, qm);
 	
 	// store results to compute statistics in finalize step
-	pccResults.push_back(std::make_pair(_context->getFrame(), qm));
+	_pccResults.push_back(std::make_pair(_context->getFrame(), qm));
 
 	// 
 	return 0;
@@ -1137,36 +1145,36 @@ int Compare::pcc(
 // collect multi-frame statistics
 void Compare::pccFinalize(void) {
 
-	if (pccResults.size() > 1) {
+	if (_pccResults.size() > 1) {
 
 		Statistics::Results stats;
 
-		Statistics::compute(pccResults.size(),
-			[&](size_t i) -> double { return pccResults[i].second.c2c_psnr; },
+		Statistics::compute(_pccResults.size(),
+			[&](size_t i) -> double { return _pccResults[i].second.c2c_psnr; },
 			stats);
 		
 		Statistics::printToLog(stats, "mseF, PSNR(p2point) ", std::cout);
 
-		Statistics::compute(pccResults.size(),
-			[&](size_t i) -> double { return pccResults[i].second.c2p_psnr; },
+		Statistics::compute(_pccResults.size(),
+			[&](size_t i) -> double { return _pccResults[i].second.c2p_psnr; },
 			stats);
 
 		Statistics::printToLog(stats, "mseF, PSNR(p2plane) ", std::cout);
 
-		Statistics::compute(pccResults.size(),
-			[&](size_t i) -> double { return pccResults[i].second.color_psnr[0]; },
+		Statistics::compute(_pccResults.size(),
+			[&](size_t i) -> double { return _pccResults[i].second.color_psnr[0]; },
 			stats);
 
 		Statistics::printToLog(stats, "c[0],PSNRF          ", std::cout);
 
-		Statistics::compute(pccResults.size(),
-			[&](size_t i) -> double { return pccResults[i].second.color_psnr[1]; },
+		Statistics::compute(_pccResults.size(),
+			[&](size_t i) -> double { return _pccResults[i].second.color_psnr[1]; },
 			stats);
 
 		Statistics::printToLog(stats, "c[1],PSNRF          ", std::cout);
 
-		Statistics::compute(pccResults.size(),
-			[&](size_t i) -> double { return pccResults[i].second.color_psnr[2]; },
+		Statistics::compute(_pccResults.size(),
+			[&](size_t i) -> double { return _pccResults[i].second.color_psnr[2]; },
 			stats);
 
 		Statistics::printToLog(stats, "c[2],PSNRF          ", std::cout);
@@ -1251,7 +1259,7 @@ int Compare::pcqm(
 	std::cout << "PCQM-PSNR=" << pcqmPsnr << std::endl;
 
 	// store results to compute statistics
-	pcqmResults.push_back(std::make_tuple(_context->getFrame(), pcqm, pcqmPsnr));
+	_pcqmResults.push_back(std::make_tuple(_context->getFrame(), pcqm, pcqmPsnr));
 
 	// 
 	return 0;
@@ -1260,18 +1268,18 @@ int Compare::pcqm(
 // 
 void Compare::pcqmFinalize(void) {
 
-	if (pcqmResults.size() > 1) {
+	if (_pcqmResults.size() > 1) {
 
 		Statistics::Results stats;
 
-		Statistics::compute(pcqmResults.size(),
-			[&](size_t i) -> double { return std::get<1>(pcqmResults[i]); },
+		Statistics::compute(_pcqmResults.size(),
+			[&](size_t i) -> double { return std::get<1>(_pcqmResults[i]); },
 			stats);
 
 		Statistics::printToLog(stats, "PCQM ", std::cout);
 
-		Statistics::compute(pcqmResults.size(),
-			[&](size_t i) -> double { return std::get<2>(pcqmResults[i]); },
+		Statistics::compute(_pcqmResults.size(),
+			[&](size_t i) -> double { return std::get<2>(_pcqmResults[i]); },
 			stats);
 
 		Statistics::printToLog(stats, "PCQM-PSNR ", std::cout);
@@ -1304,11 +1312,29 @@ void fibonacciSphere(std::vector<glm::vec3>& points, int samples = 1) {
 
 // compare two meshes using rasterization
 int Compare::ibsm(
-	Model& modelA, Model& modelB,
-	const Image& mapA, const Image& mapB
+	const Model& modelA, const Model& modelB,
+	const Image& mapA, const Image& mapB,
+	Model& outputA, Model& outputB
 ) {
-		
-	const unsigned int width  = _ibsmResolution;
+	
+	clock_t t1 = clock();
+
+	if (!_ibsmDisableReordering) {
+		// reorder the faces if needed, reordering is important for metric stability and 
+		// to get Infinite PSNR on equal meshes even with shuffled faces.
+		reorder(modelA, "oriented", outputA);
+		reorder(modelB, "oriented", outputB);
+		std::cout << "Time on mesh reordering = " << ((float)(clock() - t1)) / CLOCKS_PER_SEC << " sec." << std::endl;
+	}
+	else {
+		// just replicate the input
+		// outputs may have updated normals hereafter
+		outputA = modelA;
+		outputB = modelB;
+		std::cout << "Skipped reordering, time on mesh recopy = " << ((float)(clock() - t1)) / CLOCKS_PER_SEC << " sec." << std::endl;
+	}
+
+	const unsigned int width = _ibsmResolution;
 	const unsigned int height = _ibsmResolution;
 	glm::vec3 viewDir = { 0.0F, 0.0F, 1.0F };
 	glm::vec3 viewUp = { 0.0F, 1.0F, 0.0F };
@@ -1322,18 +1348,18 @@ int Compare::ibsm(
 	std::vector<float> zbufferRef(width * height);
 	std::vector<float> zbufferDis(width * height);
 	// computes the overall bbox
-	computeBBox(modelA.vertices, bboxMin, bboxMax, true);
-	computeBBox(modelB.vertices, bboxMin, bboxMax, false);
-	const float sigDynamic = _ibsmRenderer == "gl33" ? 1.0F : glm::length(bboxMax - bboxMin);
+	computeBBox(outputA.vertices, bboxMin, bboxMax, true);
+	computeBBox(outputB.vertices, bboxMin, bboxMax, false);
+	const float sigDynamic = _ibsmRenderer == "gl12_raster" ? 1.0F : glm::length(bboxMax - bboxMin);
 	std::cout << "signal Dynamic = " << sigDynamic << std::endl;
 
 	// prepare some camera directions
 	std::vector<glm::vec3> camDir;
-	fibonacciSphere(camDir, _ibsmCameraCount); 
+	fibonacciSphere(camDir, _ibsmCameraCount);
 
 	// place where we store per camera results
 	std::vector< IbsmResults > perCamRes;
-	
+
 	// just for Debug, to be removed
 	size_t depthNanCount = 0;
 	size_t colorNanCount = 0;
@@ -1342,39 +1368,37 @@ int Compare::ibsm(
 	for (size_t camIdx = 0; camIdx < camDir.size(); ++camIdx) {
 
 		viewDir = camDir[camIdx];
-		if ( glm::abs(viewDir) == glm::vec3(0,1,0) )
+		if (glm::abs(viewDir) == glm::vec3(0, 1, 0))
 			viewUp = glm::vec3(0, 0, 1);
 		else
 			viewUp = glm::vec3(0, 1, 0);
-		
+
 		std::cout << "render viewDir= " << viewDir[0] << " " << viewDir[1] << " " << viewDir[2] << std::endl;
 		std::cout << "render viewUp= " << viewUp[0] << " " << viewUp[1] << " " << viewUp[2] << std::endl;
-		
+
 		clock_t t1 = clock();
 
-		if (_ibsmRenderer == "gl33") {
+		if (_ibsmRenderer == "gl12_raster") {
 
-			// renderer.setClearDepth(-sigDynamic); // this statement might be useless since we use the mask.
 			if (_ibsmDisableCulling) _hwRenderer.disableCulling(); else _hwRenderer.enableCulling();
 
-			_hwRenderer.render( &modelA, &mapA, fbufferRef, zbufferRef, width, height, viewDir, viewUp, bboxMin, bboxMax, true);
-			_hwRenderer.render( &modelB, &mapB, fbufferDis, zbufferDis, width, height,	viewDir, viewUp, bboxMin, bboxMax, true);
+			_hwRenderer.render(&outputA, &mapA, fbufferRef, zbufferRef, width, height, viewDir, viewUp, bboxMin, bboxMax, true);
+			_hwRenderer.render(&outputB, &mapB, fbufferDis, zbufferDis, width, height, viewDir, viewUp, bboxMin, bboxMax, true);
 		}
 		else {
-	
-			_swRenderer.setClearDepth(-sigDynamic); // this statement might be useless since we use the mask.
-			if ( _ibsmDisableCulling ) _swRenderer.disableCulling(); else	_swRenderer.enableCulling();
 
-			_swRenderer.render(	&modelA, &mapA,	fbufferRef, zbufferRef,	width, height, viewDir, viewUp,	bboxMin, bboxMax, true);
-			_swRenderer.render(	&modelB, &mapB,	fbufferDis, zbufferDis,	width, height, viewDir, viewUp, bboxMin, bboxMax, true);
+			if (_ibsmDisableCulling) _swRenderer.disableCulling(); else	_swRenderer.enableCulling();
+
+			_swRenderer.render(&outputA, &mapA, fbufferRef, zbufferRef, width, height, viewDir, viewUp, bboxMin, bboxMax, true);
+			_swRenderer.render(&outputB, &mapB, fbufferDis, zbufferDis, width, height, viewDir, viewUp, bboxMin, bboxMax, true);
 		}
 
 		clock_t t2 = clock();
 		std::cout << "Time on buffers rendering: " << ((float)(t2 - t1)) / CLOCKS_PER_SEC << " sec." << std::endl;
 
-		if (_ibsmOutputPrefix!="") { 
-			
-			const std::string fullPrefix = _ibsmOutputPrefix + "_" + 
+		if (_ibsmOutputPrefix != "") {
+
+			const std::string fullPrefix = _ibsmOutputPrefix + "_" +
 				std::to_string(_context->getFrame()) + "_" + std::to_string(camIdx) + "_";
 
 			// Write image Y-flipped because OpenGL
@@ -1393,54 +1417,64 @@ int Compare::ibsm(
 		// place for the results
 		IbsmResults res;
 
-		// A - now compute the Color PSNR over the ref and dist images
+		// 0 - compute the amount of pixels where there is a projection of Ref or Dist
+		bool useMaskSize = true;
+		size_t maskSize = 0;
+		if (useMaskSize) {
+			for (size_t i = 0; i < fbufferRef.size() / 4; ++i) {
+				const uint8_t maskRef = fbufferRef[i * 4 + 3];
+				const uint8_t maskDis = fbufferDis[i * 4 + 3];
+				if (maskRef != 0 || maskDis != 0) {
+					maskSize += 1;
+				}
+			}
+		}
+		else {
+			maskSize = fbufferRef.size() / 4;
+		}
+
+		// A - now compute the Color MSE over the ref and dist images
 		for (size_t i = 0; i < fbufferRef.size() / 4; ++i) {
 			const uint8_t maskRef = fbufferRef[i * 4 + 3];
 			const uint8_t maskDis = fbufferDis[i * 4 + 3];
 			// we are on non matching projection, we use full dynamic to emphasis the artefact
 			if ((maskRef == 0 && maskDis != 0) || (maskRef != 0 && maskDis == 0)) {
 				for (size_t c = 0; c < 3; ++c) { // we skip the alpha channel
-					res.rgbMSE[c] = res.rgbMSE[c] + (double)(255 * 255) / (float)(fbufferRef.size() / 4);
+					res.rgbMSE[c] = res.rgbMSE[c] + (double)(255 * 255) / (double)(maskSize);
 				}
 			}
 			// both object are projected on this pixel
 			else if (maskRef != 0 && maskDis != 0) {
 				for (size_t c = 0; c < 3; ++c) { // we skip the alpha channel
-					float pixel_cmp_sse = 0.0;
+					double pixel_cmp_sse = 0.0;
 					// |I1 - I2|
-					pixel_cmp_sse = std::abs((float)fbufferRef[i * 4 + c] - (float)fbufferDis[i * 4 + c]);
+					pixel_cmp_sse = std::abs((double)fbufferRef[i * 4 + c] - (double)fbufferDis[i * 4 + c]);
 					// |I1 - I2|^2
 					pixel_cmp_sse = pixel_cmp_sse * pixel_cmp_sse;
-					// TODO: check if we have some NaN in the color buffer in some cases,
-					// fix in renderer then remove this statement
+					// ensures color values are valid, otherwise skip the sample
 					if (std::isnan(pixel_cmp_sse)) {
 						pixel_cmp_sse = 0.0;
 						colorNanCount++;
 					}
 					// Sum mean
-					res.rgbMSE[c] = res.rgbMSE[c] + pixel_cmp_sse / (float)(fbufferRef.size() / 4);
+					res.rgbMSE[c] = res.rgbMSE[c] + pixel_cmp_sse / (double)(maskSize);
 				}
 			}
 			// else we skip ~ add 0, because no pixel exist in both buffers (faster processing)
 		}
 
 		// compute the mean MSE as fourth component
-		res.rgbMSE[3] = (res.rgbMSE[0] + res.rgbMSE[1] + res.rgbMSE[2]) / 3.0F;
+		res.rgbMSE[3] = (res.rgbMSE[0] + res.rgbMSE[1] + res.rgbMSE[2]) / 3.0;
 
-		// compute the psnr (can be infinite)
-		for (size_t c = 0; c <= 3; ++c) {
-			res.rgbPSNR[c] = 10.0 * log10((double)(255 * 255) / res.rgbMSE[c]);
-		}
-
-		// B - now compute the Geometric PSNR over the ref and dist depth buffers
+		// B - now compute the Geometric MSE over the ref and dist depth buffers
 		// allways renormalize on an energy range of 255x255 to be coherent with rgb PSNR
-	
+
 		for (size_t i = 0; i < zbufferRef.size(); ++i) {
 			const uint8_t maskRef = fbufferRef[i * 4 + 3];
 			const uint8_t maskDis = fbufferDis[i * 4 + 3];
 			// we are on non matching projection, we use rescaled full dynamic to emphasis the artefact
 			if ((maskRef == 0 && maskDis != 0) || (maskRef != 0 && maskDis == 0)) {
-				res.depthMSE = res.depthMSE + (double)(255 * 255) / (float)(fbufferRef.size() / 4);
+				res.depthMSE = res.depthMSE + (double)(255 * 255) / (double)(maskSize);
 			}
 			// both object are projected on this pixel
 			else if (maskRef != 0 && maskDis != 0) {
@@ -1449,25 +1483,21 @@ int Compare::ibsm(
 				double pixel_depth_sse = std::fabs(zbufferRef[i] - zbufferDis[i]) * rescale;
 				// |I1 - I2|^2
 				pixel_depth_sse = pixel_depth_sse * pixel_depth_sse;
-				// TODO: check why we have some NaN in the depth buffer in some cases,
-				// fix in renderer then remove this statement
+				// ensures depth values are valid, otherwise skip the sample
 				if (std::isnan(pixel_depth_sse)) {
 					pixel_depth_sse = 0.0;
 					depthNanCount++;
 				}
 				// Sum mean
-				res.depthMSE = res.depthMSE + pixel_depth_sse / (double)(zbufferRef.size());
+				res.depthMSE = res.depthMSE + pixel_depth_sse / (double)(maskSize);
 			}
 			// else we skip ~ add 0, because no depth exist in both buffers (faster processing)
 		}
 
-		// compute the geometric psnr, 
-		res.depthPSNR = 10.0 * log10((double)(255 * 255) / res.depthMSE);
-
 		perCamRes.push_back(res);
-		
+
 		clock_t t3 = clock();
-		std::cout << "Time on psnr computing: " << ((float)(t3 - t2)) / CLOCKS_PER_SEC << " sec." << std::endl;
+		std::cout << "Time on MSE computing: " << ((float)(t3 - t2)) / CLOCKS_PER_SEC << " sec." << std::endl;
 	}
 
 	// mean the results
@@ -1475,12 +1505,17 @@ int Compare::ibsm(
 
 	for (size_t camIdx = 0; camIdx < camDir.size(); ++camIdx) {
 		for (size_t c = 0; c <= 3; ++c) {
-			res.rgbMSE[c]  = res.rgbMSE[c]  + perCamRes[camIdx].rgbMSE[c]  / camDir.size();
-			res.rgbPSNR[c] = res.rgbPSNR[c] + perCamRes[camIdx].rgbPSNR[c] / camDir.size();
+			res.rgbMSE[c] = res.rgbMSE[c] + perCamRes[camIdx].rgbMSE[c] / (double)camDir.size();
 		}
-		res.depthMSE  = res.depthMSE  + perCamRes[camIdx].depthMSE / camDir.size();
-		res.depthPSNR = res.depthPSNR + perCamRes[camIdx].depthPSNR / camDir.size();
+		res.depthMSE = res.depthMSE + perCamRes[camIdx].depthMSE / (double)camDir.size();
 	}
+
+	// compute the PSNRs (can be infinite)
+	for (size_t c = 0; c <= 3; ++c) {
+		res.rgbPSNR[c] = 10.0 * log10((long double)(255 * 255) / (long double)res.rgbMSE[c]);
+	}
+
+	res.depthPSNR = 10.0 * log10((long double)(255 * 255) / (long double)res.depthMSE);
 
 	// Debug
 	if (depthNanCount != 0) {

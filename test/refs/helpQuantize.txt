@@ -2,35 +2,36 @@ Quantize model (mesh or point cloud)
 Usage:
   mm.exe quantize [OPTION...]
 
-  -i, --inputModel arg   path to input model (obj or ply file)
-  -o, --outputModel arg  path to output model (obj or ply file)
-  -h, --help             Print usage
-      --dequantize       set to process dequantification at the ouput
-      --qp arg           Geometry quantization bitdepth. A value < 7 means no
-                         quantization. (default: 12)
-      --qt arg           UV coordinates quantization bitdepth.  A value < 7
-                         means no quantization. (default: 12)
-      --qn arg           Normals quantization bitdepth. A value < 7 no
-                         quantization. (default: 12)
-      --qc arg           Colors quantization bitdepth. A value < 7 no
-                         quantization. (default: 8)
-      --minPos arg       min corner of vertex position bbox, a string of
-                         three floats. Computed of not set.
-      --maxPos arg       max corner of vertex position bbox, a string of
-                         three floats. Computed of not set.
-      --minUv arg        min corner of vertex texture coordinates bbox, a
-                         string of three floats. Computed of not set.
-      --maxUv arg        max corner of vertex texture coordinates bbox, a
-                         string of three floats. Computed of not set.
-      --minNrm arg       min corner of vertex normal bbox, a string of three
-                         floats. Computed of not set.
-      --maxNrm arg       max corner of vertex normal bbox, a string of three
-                         floats. Computed of not set.
-      --minCol arg       min corner of vertex color bbox, a string of three
-                         floats. Computed of not set.
-      --maxCol arg       max corner of vertex color bbox, a string of three
-                         floats. Computed of not set.
-      --outputVar arg    path to the output variables file.
-      --useFixedPoint    internally convert the minPos and maxPos to fixed
-                         point 16.
+  -i, --inputModel arg        path to input model (obj or ply file)
+  -o, --outputModel arg       path to output model (obj or ply file)
+  -h, --help                  Print usage
+      --dequantize            set to process dequantification at the ouput
+      --qp arg                Geometry quantization bitdepth. A value < 7
+                              means no quantization. (default: 12)
+      --qt arg                UV coordinates quantization bitdepth.  A value
+                              < 7 means no quantization. (default: 12)
+      --qn arg                Normals quantization bitdepth. A value < 7 no
+                              quantization. (default: 12)
+      --qc arg                Colors quantization bitdepth. A value < 7 no
+                              quantization. (default: 8)
+      --minPos arg            min corner of vertex position bbox, a string of
+                              three floats. Computed of not set.
+      --maxPos arg            max corner of vertex position bbox, a string of
+                              three floats. Computed of not set.
+      --minUv arg             min corner of vertex texture coordinates bbox,
+                              a string of three floats. Computed of not set.
+      --maxUv arg             max corner of vertex texture coordinates bbox,
+                              a string of three floats. Computed of not set.
+      --minNrm arg            min corner of vertex normal bbox, a string of
+                              three floats. Computed of not set.
+      --maxNrm arg            max corner of vertex normal bbox, a string of
+                              three floats. Computed of not set.
+      --minCol arg            min corner of vertex color bbox, a string of
+                              three floats. Computed of not set.
+      --maxCol arg            max corner of vertex color bbox, a string of
+                              three floats. Computed of not set.
+      --outputVar arg         path to the output variables file.
+      --useFixedPoint         internally convert the minPos and maxPos to
+                              fixed point 16.
+      --colorSpaceConversion  Convert color space from RGB to YUV.
 

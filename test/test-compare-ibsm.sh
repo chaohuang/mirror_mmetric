@@ -34,8 +34,8 @@ do
 		grep -iF "error" ${TMP}/${OUT}.txt
 		fileHasString ${TMP}/${OUT}.txt "  ibsmRenderer = ${renderer}" 1
 		if [ $renderer == "sw_raster" ]; then
-			fileHasString ${TMP}/${OUT}.txt "RGB PSNR = 29.6178983" 1
-			fileHasString ${TMP}/${OUT}.txt "GEO PSNR = 29.6169116" 1
+			fileHasString ${TMP}/${OUT}.txt "RGB PSNR = 23.6635543" 1
+			fileHasString ${TMP}/${OUT}.txt "GEO PSNR = 23.6625692" 1
 		fi
 	fi
 
@@ -56,7 +56,43 @@ do
 			fileHasString ${TMP}/${OUT}.txt "GEO PSNR = inf" 1
 		fi
 	fi
-		
+
+	# internal reordering of model A shall lead to identical meshes
+	OUT=compare_ibsm_${renderer}_basket_reordered
+	if [ "$1" == "ext" ] || [ "$1" == "$OUT" ]; then
+		echo $OUT
+		$CMD \
+			reindex --sort oriented --inputModel ${DATA}/basketball_player_00000001.obj --outputModel ID:reordered END \
+			compare --mode ibsm --ibsmRenderer ${renderer} \
+			--inputModelA ${DATA}/basketball_player_00000001.obj --inputMapA  ${DATA}/basketball_player_00000001.png \
+			--inputModelB ID:reordered --inputMapB  ${DATA}/basketball_player_00000001.png \
+			--outputCsv ${STATS} > ${TMP}/${OUT}.txt 2>&1
+		grep -iF "error" ${TMP}/${OUT}.txt
+		fileHasString ${TMP}/${OUT}.txt "  ibsmRenderer = ${renderer}" 1
+		if [ $renderer == "sw_raster" ]; then
+			fileHasString ${TMP}/${OUT}.txt "RGB PSNR = inf" 1
+			fileHasString ${TMP}/${OUT}.txt "GEO PSNR = inf" 1
+		fi
+	fi
+	
+	# internal reordering disabled shall lead to numerical differences
+	OUT=compare_ibsm_${renderer}_basket_reordering_disabled
+	if [ "$1" == "ext" ] || [ "$1" == "$OUT" ]; then
+		echo $OUT
+		$CMD \
+			reindex --sort oriented --inputModel ${DATA}/basketball_player_00000001.obj --outputModel ID:reordered END \
+			compare --mode ibsm --ibsmDisableReordering --ibsmRenderer ${renderer} \
+			--inputModelA ${DATA}/basketball_player_00000001.obj --inputMapA  ${DATA}/basketball_player_00000001.png \
+			--inputModelB ID:reordered --inputMapB  ${DATA}/basketball_player_00000001.png \
+			--outputCsv ${STATS} > ${TMP}/${OUT}.txt 2>&1
+		grep -iF "error" ${TMP}/${OUT}.txt
+		fileHasString ${TMP}/${OUT}.txt "  ibsmRenderer = ${renderer}" 1
+		if [ $renderer == "sw_raster" ]; then
+			fileHasString ${TMP}/${OUT}.txt "RGB PSNR = 69.6421002" 1
+			fileHasString ${TMP}/${OUT}.txt "GEO PSNR = 69.7193162" 1
+		fi
+	fi
+	
 	OUT=compare_ibsm_${renderer}_basket_qp8_self
 	if [ "$1" == "ext" ] || [ "$1" == "$OUT" ]; then
 		echo $OUT
@@ -82,8 +118,8 @@ do
 		grep -iF "error" ${TMP}/${OUT}.txt
 		fileHasString ${TMP}/${OUT}.txt "  ibsmRenderer = ${renderer}" 1
 		if [ $renderer == "sw_raster" ]; then
-			fileHasString ${TMP}/${OUT}.txt "RGB PSNR = 27.2497506" 1
-			fileHasString ${TMP}/${OUT}.txt "GEO PSNR = 27.5957658" 1
+			fileHasString ${TMP}/${OUT}.txt "RGB PSNR = 17.4003864" 1
+			fileHasString ${TMP}/${OUT}.txt "GEO PSNR = 17.7530944" 1
 		fi
 	fi
 
@@ -97,8 +133,8 @@ do
 		grep -iF "error" ${TMP}/${OUT}.txt
 		fileHasString ${TMP}/${OUT}.txt "  ibsmRenderer = ${renderer}" 1
 		if [ $renderer == "sw_raster" ]; then
-			fileHasString ${TMP}/${OUT}.txt "RGB PSNR = 27.2320758" 1
-			fileHasString ${TMP}/${OUT}.txt "GEO PSNR = 27.5849626" 1
+			fileHasString ${TMP}/${OUT}.txt "RGB PSNR = 17.3845909" 1
+			fileHasString ${TMP}/${OUT}.txt "GEO PSNR = 17.743721" 1
 		fi
 	fi
 
@@ -112,8 +148,8 @@ do
 		grep -iF "error" ${TMP}/${OUT}.txt
 		fileHasString ${TMP}/${OUT}.txt "  ibsmRenderer = ${renderer}" 1
 		if [ $renderer == "sw_raster" ]; then
-			fileHasString ${TMP}/${OUT}.txt "RGB PSNR = 51.8963922" 1
-			fileHasString ${TMP}/${OUT}.txt "GEO PSNR = 51.8963921" 1
+			fileHasString ${TMP}/${OUT}.txt "RGB PSNR = 41.9216362" 1
+			fileHasString ${TMP}/${OUT}.txt "GEO PSNR = 41.9216361" 1
 		fi
 	fi
 
@@ -135,8 +171,8 @@ do
 		grep -iF "error" ${TMP}/${OUT}.txt
 		fileHasString ${TMP}/${OUT}.txt "  ibsmRenderer = ${renderer}" 3
 		if [ $renderer == "sw_raster" ]; then
-			fileHasString ${TMP}/${OUT}.txt "RGB PSNR Mean=51.3068012" 1
-			fileHasString ${TMP}/${OUT}.txt "GEO PSNR Mean=51.4473063" 1
+			fileHasString ${TMP}/${OUT}.txt "RGB PSNR Mean=41.3133443" 1
+			fileHasString ${TMP}/${OUT}.txt "GEO PSNR Mean=41.4674024" 1
 		fi
 	fi
 done

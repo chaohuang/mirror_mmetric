@@ -81,6 +81,8 @@ bool Dequantize::initialize(Context* ctx, std::string app, int argc, char* argv[
 				cxxopts::value<std::string>())
 			("useFixedPoint", "interprets minPos and maxPos inputs as fixed point 16.",
 				cxxopts::value<bool>())
+			("colorSpaceConversion", "Convert color space from YUV to RGB.",
+				cxxopts::value<bool>())
 			;
 
 		auto result = options.parse(argc, argv);
@@ -202,7 +204,10 @@ bool Dequantize::initialize(Context* ctx, std::string app, int argc, char* argv[
 				return false;
 			}
 		}
-		if (_qc >= 7) {
+		if (result.count("colorSpaceConversion")) {
+			_colorSpaceConversion = result["colorSpaceConversion"].as<bool>();
+		}
+		if ((_qc >= 7) && (!_colorSpaceConversion)) {
 			if (_minColStr == "" || _maxColStr == "") {
 				std::cout << "Error: qc >= 7 but minCol and/or maxCol not set." << std::endl;
 				return false;
@@ -243,10 +248,10 @@ bool Dequantize::process(uint32_t frame) {
 	std::cout << "  qp = " << _qp << std::endl;
 	std::cout << "  qt = " << _qt << std::endl;
 	std::cout << "  qn = " << _qn << std::endl;
-	std::cout << "  qc = " << _qn << std::endl;
+	std::cout << "  qc = " << _qc << std::endl;
 
 	Dequantize::dequantize(*inputModel, *outputModel, _qp, _qt, _qn, _qc,
-		_minPos, _maxPos, _minUv, _maxUv, _minNrm, _maxNrm, _minCol, _maxCol, _useFixedPoint);
+		_minPos, _maxPos, _minUv, _maxUv, _minNrm, _maxNrm, _minCol, _maxCol, _useFixedPoint,_colorSpaceConversion);
 
 	clock_t t2 = clock();
 	std::cout << "Time on processing: " << ((float)(t2 - t1)) / CLOCKS_PER_SEC << " sec." << std::endl;
@@ -268,7 +273,7 @@ void Dequantize::dequantize(
 	const uint32_t qp, const uint32_t qt, const uint32_t qn, const uint32_t qc,
 	const glm::vec3& minPos, const glm::vec3& maxPos, const glm::vec2& minUv, const glm::vec2& maxUv,
 	const glm::vec3& minNrm, const glm::vec3& maxNrm, const glm::vec3& minCol, const glm::vec3& maxCol,
-	const bool useFixedPoint)
+	const bool useFixedPoint,const bool colorSpaceConversion)
 {
 
 	// copy input
@@ -354,7 +359,7 @@ void Dequantize::dequantize(
 	}
 
 	// dequantize colors
-	if (!input.colors.empty() && qc >= 7) {
+	if (!input.colors.empty() && ((qc >= 7) || (colorSpaceConversion) )) {
 		const glm::vec3 minBox = minCol;
 		const glm::vec3 maxBox = maxCol;
 		const glm::vec3 diag = maxBox - minBox;
@@ -366,8 +371,19 @@ void Dequantize::dequantize(
 		std::cout << "  rangeCol=" << range << std::endl;
 
 		for (size_t i = 0; i < input.colors.size() / 3; i++) {
-			for (glm::vec3::length_type c = 0; c < 3; ++c) {
-				output.colors[i * 3 + c] = (input.colors[i * 3 + c] * range / maxQuantizedValue) + minBox[c];
+			if(colorSpaceConversion){
+				glm::vec3 inYUV;
+				for (glm::vec3::length_type c = 0; c < 3; ++c) {
+					inYUV[c] = (input.colors[i * 3 + c] / maxQuantizedValue);
+				}
+				output.colors[i * 3 + 0] = 255*(inYUV[0] + 1.57480 * (inYUV[2]-0.5));
+				output.colors[i * 3 + 1] = 255*(inYUV[0] - 0.18733 * (inYUV[1]-0.5) - 0.46813 * (inYUV[2]-0.5));
+				output.colors[i * 3 + 2] = 255*(inYUV[0] + 1.85563 * (inYUV[1]-0.5));
+			}
+			else{
+				for (glm::vec3::length_type c = 0; c < 3; ++c) {
+					output.colors[i * 3 + c] = (input.colors[i * 3 + c] * range / maxQuantizedValue) + minBox[c];
+				}
 			}
 		}
 	}

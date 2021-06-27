@@ -85,6 +85,8 @@ bool Quantize::initialize(Context* ctx, std::string app, int argc, char* argv[])
 				cxxopts::value<std::string>())
 			("useFixedPoint", "internally convert the minPos and maxPos to fixed point 16.",
 				cxxopts::value<bool>())
+			("colorSpaceConversion", "Convert color space from RGB to YUV.",
+				cxxopts::value<bool>())
 			;
 
 		auto result = options.parse(argc, argv);
@@ -117,6 +119,7 @@ bool Quantize::initialize(Context* ctx, std::string app, int argc, char* argv[])
 
 		if (result.count("dequantize"))
 			_dequantize = result["dequantize"].as<bool>();
+
 
 		if (result.count("qp"))
 			_qp = result["qp"].as<uint32_t>();
@@ -197,6 +200,8 @@ bool Quantize::initialize(Context* ctx, std::string app, int argc, char* argv[])
 		if (result.count("useFixedPoint")) {
 			_useFixedPoint = result["useFixedPoint"].as<bool>();
 		}
+		if (result.count("colorSpaceConversion"))
+			_colorSpaceConversion = result["colorSpaceConversion"].as<bool>();
 	}
 	catch (const cxxopts::OptionException& e)
 	{
@@ -229,7 +234,7 @@ bool Quantize::process(uint32_t frame) {
 	std::cout << "  qp = " << _qp << std::endl;
 	std::cout << "  qt = " << _qt << std::endl;
 	std::cout << "  qn = " << _qn << std::endl;
-	std::cout << "  qc = " << _qn << std::endl;
+	std::cout << "  qc = " << _qc << std::endl;
 
 	// use temp values to prevent global param erase by call to quantize at each new frame
 	glm::vec3 minPos = _minPos;
@@ -245,19 +250,19 @@ bool Quantize::process(uint32_t frame) {
 		Model* quantizedModel = new Model();
 
 		quantize(*inputModel, *quantizedModel, _qp, _qt, _qn, _qc,
-			_outputVarFilename, _useFixedPoint,
+			_outputVarFilename, _useFixedPoint, _colorSpaceConversion,
 			minPos, maxPos, minUv, maxUv, minNrm, maxNrm, minCol, maxCol);
 
 		// uses min/max potentially updated by previous line call to quantize
 		Dequantize::dequantize(*quantizedModel, *outputModel, _qp, _qt, _qn, _qc,
-			minPos, maxPos, minUv, maxUv, minNrm, maxNrm, minCol, maxCol, _useFixedPoint);
+			minPos, maxPos, minUv, maxUv, minNrm, maxNrm, minCol, maxCol, _useFixedPoint,_colorSpaceConversion);
 
 		delete quantizedModel;
 	}
 	else {
 		// uses min/max potentially updated by previous frame call to quantize
 		quantize(*inputModel, *outputModel, _qp, _qt, _qn, _qc,
-			_outputVarFilename, _useFixedPoint,
+			_outputVarFilename, _useFixedPoint, _colorSpaceConversion,
 			minPos, maxPos, minUv, maxUv, minNrm, maxNrm, minCol, maxCol);
 	}
 
@@ -281,7 +286,7 @@ bool Quantize::process(uint32_t frame) {
 void Quantize::quantize(
 	const Model& input, Model& output,
 	const uint32_t qp, const uint32_t qt, const uint32_t qn, const uint32_t qc,
-	const std::string& outputVarFilename, const bool useFixedPoint,
+	const std::string& outputVarFilename, const bool useFixedPoint, const bool colorSpaceConversion,
 	glm::vec3& minPos, glm::vec3& maxPos, glm::vec2& minUv, glm::vec2& maxUv,
 	glm::vec3& minNrm, glm::vec3& maxNrm, glm::vec3& minCol, glm::vec3& maxCol
 )
@@ -409,10 +414,10 @@ void Quantize::quantize(
 	}
 
 	//quantize colors
-	if (!input.colors.empty() && qc >= 7) {
+	if (!input.colors.empty() && ((qc >= 7) || (colorSpaceConversion) )) {
 		if (minCol == maxCol) {
 			std::cout << "Computing colors range" << std::endl;
-			computeBBox(input.normals, minCol, maxCol);
+			computeBBox(input.colors, minCol, maxCol);
 		}
 		else {
 			std::cout << "Using parameter colors range" << std::endl;
@@ -428,9 +433,20 @@ void Quantize::quantize(
 		}
 
 		for (size_t i = 0; i < input.colors.size() / 3; i++) {
-			for (glm::vec3::length_type c = 0; c < 3; ++c) {
-				uint32_t col = static_cast<uint32_t> (std::floor(((input.colors[i * 3 + c] - minCol[c]) / range) * maxColorQuantizedValue + 0.5f));
-				output.colors[i * 3 + c] = static_cast<float> (col);
+			if(colorSpaceConversion){
+			  glm::vec3 inYUV;
+			  inYUV[0] = ( 0.2126 * input.colors[i * 3] + 0.7152 * input.colors[i * 3 + 1] + 0.0722 * input.colors[i * 3 + 2]) / 255.0 ;
+              inYUV[1] = (-0.1146 * input.colors[i * 3] - 0.3854 * input.colors[i * 3 + 1] + 0.5000 * input.colors[i * 3 + 2]) / 255.0 + 0.5000 ;
+              inYUV[2] = ( 0.5000 * input.colors[i * 3] - 0.4542 * input.colors[i * 3 + 1] - 0.0458 * input.colors[i * 3 + 2]) / 255.0 + 0.5000 ;
+			  for (glm::vec3::length_type c = 0; c < 3; ++c) {
+				   uint32_t col = static_cast<uint32_t> (std::floor(inYUV[c] * maxColorQuantizedValue + 0.5f));
+				   output.colors[i * 3 + c] = static_cast<float> (col);
+			   }
+			} else {
+			    for (glm::vec3::length_type c = 0; c < 3; ++c) {
+				    uint32_t col = static_cast<uint32_t> (std::floor(((input.colors[i * 3 + c] - minCol[c]) / range) * maxColorQuantizedValue + 0.5f));
+  				    output.colors[i * 3 + c] = static_cast<float> (col);
+			    }
 			}
 		}
 	}

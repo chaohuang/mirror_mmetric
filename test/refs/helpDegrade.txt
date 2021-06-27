@@ -7,5 +7,7 @@ Usage:
       --mode arg         the sampling mode in [delface]
       --nthFace arg      in delface mode, remove one face every nthFace.
                          (default: 50)
+      --nbFaces arg      in delface mode, if nthFace==0, remove nbFaces.
+                         (default: 0)
   -h, --help             Print usage
 

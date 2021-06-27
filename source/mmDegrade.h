@@ -25,10 +25,11 @@ class Degrade : Command {
 private:
 
 	// the command options
-	std::string inputModelFilename;
-	std::string outputModelFilename;
-	std::string mode="delface";
-	size_t nthFace=50;
+	std::string _inputModelFilename;
+	std::string _outputModelFilename;
+	std::string _mode="delface";
+	size_t _nthFace=50; // skip every nth face
+	size_t _nbFaces=0;  // if nthFace==0, skip number of faces
 
 public:
 
@@ -47,7 +48,8 @@ public:
 
 private:
 
-	bool delface(const Model& input, size_t nthFace, Model& output);
+	size_t delNthFace(const Model& input, size_t nthFace, Model& output);
+	size_t delNbFaces(const Model& input, size_t nthFace, Model& output);
 
 };
 
