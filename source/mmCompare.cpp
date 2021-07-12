@@ -28,6 +28,7 @@
 #include <glm/vec3.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/string_cast.hpp>
+#include <glm/gtx/transform.hpp>
 // argument parsing
 #include <cxxopts.hpp>
 
@@ -126,6 +127,8 @@ bool Compare::initialize(Context* context, std::string app, int argc, char* argv
 				cxxopts::value<unsigned int>()->default_value("2048"))
 			("ibsmCameraCount", "Number of virtual cameras to be used per frame.",
 				cxxopts::value<unsigned int>()->default_value("16"))
+			("ibsmCameraRotation", "Three parameters of rotating the virtual camera positions: the polar angle, the azimuthal angle and the rotation magnitude",
+                cxxopts::value<std::string>()->default_value("0.0 0.0 0.0"))
 			("ibsmRenderer", "Use software or openGL 1.2 renderer. Value in [sw_raster, gl12_raster].",
 				cxxopts::value<std::string>()->default_value("sw_raster"))
 			("ibsmDisableCulling", "Set option to disable the backface culling.",
@@ -222,6 +225,13 @@ bool Compare::initialize(Context* context, std::string app, int argc, char* argv
 			_ibsmResolution = result["ibsmResolution"].as<unsigned int>();
 		if (result.count("ibsmCameraCount"))
 			_ibsmCameraCount = result["ibsmCameraCount"].as<unsigned int>();
+		if (result.count("ibsmCameraRotation")) {
+            _ibsmCameraRotation = result["ibsmCameraRotation"].as<std::string>();
+            if (!parseVec3(_ibsmCameraRotation, CamRotParams)) {
+                std::cout << "Error: parsing --ibsmCameraRotation=\"" << _ibsmCameraRotation << "\" expected three floats with space separator" << std::endl;
+                return false;
+            }
+        }
 		if (result.count("ibsmRenderer"))
 			_ibsmRenderer = result["ibsmRenderer"].as<std::string>();
 		if (_mode != "ibsm" && _ibsmRenderer != "sw_raster" && _ibsmRenderer != "gl12_raster") {
@@ -481,6 +491,7 @@ bool Compare::process(uint32_t frame) {
 		std::cout << "Compare models using IBSM distortion metric" << std::endl;
 		std::cout << "  ibsmRenderer = " << _ibsmRenderer << std::endl;
 		std::cout << "  ibsmCameraCount = " << _ibsmCameraCount << std::endl;
+		std::cout << "  ibsmCameraRotation = " << _ibsmCameraRotation << std::endl;
 		std::cout << "  ibsmResolution = " << _ibsmResolution << std::endl;
 		std::cout << "  ibsmDisableCulling = " << _ibsmDisableCulling << std::endl;
 		std::cout << "  ibsmOutputPrefix = " << _ibsmOutputPrefix << std::endl;
@@ -498,7 +509,7 @@ bool Compare::process(uint32_t frame) {
 			if (csvFileLength == 0) {
 				csvFileOut
 					<< "p_inputModelA;p_inputModelB;p_inputMapA;p_inputMapB;"
-					<< "p_ibsmRenderer;p_ibsmCameraCount;p_ibsmResolution;"
+					<< "p_ibsmRenderer;p_ibsmCameraCount;p_ibsmCameraRotation;p_ibsmResolution;"
 					<< "p_ibsmDisableCulling;p_ibsmOutputPrefix;"
 					<< "frame;geo_psnr;rgb_psnr;r_psnr;g_psnr;b_psnr;"
 					<< "yuv_psnr;y_psnr;u_psnr;v_psnr;processingTime" << std::endl;
@@ -507,7 +518,7 @@ bool Compare::process(uint32_t frame) {
 			csvFileOut
 				<< _inputModelAFilename << ";" << _inputModelBFilename << ";"
 				<< _inputTextureAFilename << ";" << _inputTextureBFilename << ";"
-				<< _ibsmRenderer << ";" << _ibsmCameraCount << ";" << _ibsmResolution << ";"
+				<< _ibsmRenderer << ";" << _ibsmCameraCount << ";" << _ibsmCameraRotation << ";" << _ibsmResolution << ";"
 				<< _ibsmDisableCulling << ";" << _ibsmOutputPrefix << ";" 
 				<< frame << ";"
 				<< frameResults.second.depthPSNR << ";" 
@@ -1296,8 +1307,22 @@ void Compare::pcqmFinalize(void) {
 
 // utility function to generate sample on a sphere
 // used by the ibsm method
-void fibonacciSphere(std::vector<glm::vec3>& points, int samples = 1) {
+void fibonacciSphere(std::vector<glm::vec3>& points, int samples = 1, glm::vec3 rotParams = { 0.0F, 0.0F, 0.0F }) {
 
+	bool rot = rotParams[2] ? true : false;
+    glm::mat4 rotMatrix;
+
+    if (rot) {
+        float inclination = glm::radians(rotParams[0]);
+        float azimuth = glm::radians(rotParams[1]);
+        float intrinsic = glm::radians(rotParams[2]);
+        float rotVec_r = std::abs(std::sin(inclination));
+        float rotVec_y = std::cos(inclination);
+        float rotVec_x = std::cos(azimuth) * rotVec_r;
+        float rotVec_z = std::sin(azimuth) * rotVec_r;
+        rotMatrix = glm::rotate(intrinsic, glm::vec3(rotVec_x, rotVec_y, rotVec_z));
+    }
+	
 	const double pi = std::atan(1.0) * 4;
 
 	// golden angle in radians
@@ -1312,7 +1337,11 @@ void fibonacciSphere(std::vector<glm::vec3>& points, int samples = 1) {
 		float x = std::cos(theta) * radius;
 		float z = std::sin(theta) * radius;
 
-		points.push_back(glm::vec3(x, y, z));
+		glm::vec3 pos = {x, y, z};
+		if (rot)
+			pos = glm::vec3(rotMatrix * glm::vec4(pos, 1.0));
+
+		points.push_back(pos);
 	}
 }
 
@@ -1361,7 +1390,7 @@ int Compare::ibsm(
 
 	// prepare some camera directions
 	std::vector<glm::vec3> camDir;
-	fibonacciSphere(camDir, _ibsmCameraCount);
+	fibonacciSphere(camDir, _ibsmCameraCount, CamRotParams);
 
 	// place for the results
 	IbsmResults res;
@@ -1375,7 +1404,7 @@ int Compare::ibsm(
 	for (size_t camIdx = 0; camIdx < camDir.size(); ++camIdx) {
 
 		viewDir = camDir[camIdx];
-		if (glm::abs(viewDir) == glm::vec3(0, 1, 0))
+		if (glm::distance(glm::abs(viewDir), glm::vec3(0,1,0)) < 1e-6)
 			viewUp = glm::vec3(0, 0, 1);
 		else
 			viewUp = glm::vec3(0, 1, 0);

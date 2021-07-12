@@ -75,6 +75,8 @@ private:
 	// Raster options
 	unsigned int _ibsmResolution = 2048;
 	unsigned int _ibsmCameraCount = 16;
+	std::string _ibsmCameraRotation = "0.0 0.0 0.0";
+	glm::vec3 CamRotParams = { 0.0F, 0.0F, 0.0F };
 	std::string _ibsmRenderer = "sw_raster";
 	std::string _ibsmOutputPrefix = "";
 	bool _ibsmDisableReordering = false;
