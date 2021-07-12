@@ -242,6 +242,9 @@ bool Render::process(uint32_t frame) {
 	std::string outImage = IO::resolveName(frame, outputImageFilename);
 	std::string outDepth = IO::resolveName(frame, outputDepthFilename);
 
+	if ( glm::distance(glm::abs(viewDir), glm::vec3(0,1,0)) < 1e-6 )
+		viewUp = glm::vec3(0, 0, 1);
+
 	// Perform the processings
 	clock_t t1 = clock();
 	bool res;
