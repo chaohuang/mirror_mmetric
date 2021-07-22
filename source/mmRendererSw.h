@@ -75,6 +75,10 @@ struct RendererSw {
 	inline void enableAutoLevel() { _isAutoLevelEnabled = true; }
 	inline void disableAutoLevel() { _isAutoLevelEnabled = false; }
 
+public:
+	// after each render this values are updated and can be read
+	float depthRange; // represents the maximum depth for the render bbox in the depthBuffer
+
 private:
 
 	glm::vec4 _clearColor{ 0, 0, 0, 0 };

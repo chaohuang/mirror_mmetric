@@ -40,8 +40,6 @@ glm::mat4 mvp;			 // Model View Projection
 glm::mat4 normalMatrix;  // invert_transpose( modelView )
 glm::mat4 vp;			 // viewport
 glm::vec3 viewPosition;  // viewpoint
-glm::vec3 viewPositionMV; 
-glm::vec3 viewPositionMVP;
 glm::vec3 lightPosition;
 glm::vec3 lightPositionMV;
 glm::vec3 lightColor;
@@ -244,8 +242,8 @@ void rasterize(void* data, VertexShader vShader, FragmentShader fShader, const M
 
 				// to clip space
 				glm::vec3 bc_clip = glm::vec3(bc_screen.x / pts[0][3], bc_screen.y / pts[1][3], bc_screen.z / pts[2][3]);
-				// perspective deformation
-				bc_clip = bc_clip / (bc_clip.x + bc_clip.y + bc_clip.z);
+				// perspective deformation, we do not need this, we use orthogonal projection
+				// bc_clip = bc_clip / (bc_clip.x + bc_clip.y + bc_clip.z);
 
 				double frag_depth = glm::dot(glm::vec3(clip_verts[0][2], clip_verts[1][2], clip_verts[2][2]), bc_clip);
 
@@ -291,9 +289,12 @@ bool RendererSw::render(
 	std::vector<float>& zbuffer,
 	const unsigned int width, const unsigned int height,
 	const glm::vec3& viewDir, const glm::vec3& viewUp,
-	const glm::vec3& bboxMin, const glm::vec3& bboxMax, bool useBBox
-) {
+	const glm::vec3& bboxMin, const glm::vec3& bboxMax, bool useBBox) 
+{
 	clock_t t1 = clock();
+
+	glm::vec3 viewDirUnit = glm::normalize(viewDir);
+	glm::vec3 viewUpUnit = glm::normalize(viewUp);
 
 	// fit ortho viewpoint to model bbox
 	float ratio = (float)width / (float)height;
@@ -307,34 +308,39 @@ bool RendererSw::render(
 	}
 	glm::vec3 halfBox = (maxPos - minPos) * glm::vec3(0.5);
 	glm::vec3 boxCtr = minPos + halfBox;
-	float size = glm::length(halfBox);
-	size = size + size / 100.0F; // add 1% so the model does not touch the image borders
-
+	float radius = glm::length(halfBox);
+	radius = radius + radius / 100.0F; // add 1% so the model does not touch the image borders
+	
 	glm::mat4 mdl = glm::mat4(1.0);
-	viewPosition = boxCtr + viewDir * size;
-	glm::mat4 view = glm::lookAt(viewPosition, boxCtr, viewUp);
+	viewPosition = boxCtr + viewDirUnit * radius;
+	glm::mat4 view = glm::lookAt(viewPosition, boxCtr, viewUpUnit);
 
 	std::cout << "ViewPos=" << viewPosition.x << " " << viewPosition.y << " " << viewPosition.z << std::endl;
-	std::cout << "ViewDir=" << viewDir.x << " " << viewDir.y << " " << viewDir.z << std::endl;
-	std::cout << "ViewUp=" << viewUp.x << " " << viewUp.y << " " << viewUp.z << std::endl;
-	std::cout << "ViewCtr=" << boxCtr.x << " " << boxCtr.y << " " << boxCtr.z << std::endl;
+	std::cout << "ViewDir=" << viewDirUnit.x << " " << viewDirUnit.y << " " << viewDirUnit.z << std::endl;
+	std::cout << "ViewUp=" << viewUpUnit.x << " " << viewUpUnit.y << " " << viewUpUnit.z << std::endl;
+	std::cout << "BSphereCtr=" << boxCtr.x << " " << boxCtr.y << " " << boxCtr.z << std::endl;
+	std::cout << "BSphereRad=" << radius << std::endl;
 
-	viewPositionMV = modelView * glm::vec4(viewPosition, 1.0);
 	// glob transfo to center view and fit OpenGL HW results.
 	glm::mat4 glob =
-		glm::translate(glm::mat4(1.0), glm::vec3(ratio * size, size, 0)) *
+		glm::translate(glm::mat4(1.0), glm::vec3(ratio * radius, radius, 0)) *
 		glm::scale(glm::mat4(1.0), glm::vec3(1.0F, 1.0F, -1.0F));
-	glm::mat4 proj = glm::ortho(-ratio * size, ratio * size, -size, size, 0.0F, 2.0F * size);
+	glm::mat4 proj = glm::ortho(-ratio * radius, ratio * radius, -radius, radius, 0.0F, 2.0F * radius);
 
 	modelView = view * mdl;
 	mvp = proj * glob * modelView;
 	normalMatrix = glm::inverseTranspose(modelView);
-	viewPositionMVP = glm::vec3(proj * glob * glm::vec4(viewPositionMV, 1.0));
 
+	// compute depthRange attribute, for user feedback
+	// represent the length of the diagonal of the bounding sphere transformed into screen space, 
+	// it also represents the max possible depth value in the depth buffer for pixels where a projection exists
+	depthRange = std::abs((mvp * glm::vec4(viewPosition - viewDirUnit * radius * 2.0F, 1.0F)).z);
+
+	//
 	if (_isLigthingEnabled) {
 		lightColor = _lightColor;
 		if (_isAutoLightPositionEnabled) {
-			lightPosition = boxCtr + _lightAutoDir * size;
+			lightPosition = boxCtr + _lightAutoDir * radius;
 		}
 		else {
 			lightPosition = _lightPosition;
@@ -426,7 +432,7 @@ bool RendererSw::render(
 
 	// render the model into memory buffers
 	render( model, map,	fbuffer, zbuffer, width, height, 
-		viewDir, viewUp, bboxMin, bboxMax, useBBox);
+		viewDir, viewUp, bboxMin, bboxMax, useBBox );
 	
 	clock_t t1 = clock();
 

@@ -341,7 +341,7 @@ public:
 		hasNormal(false)
 	{}
 
-	inline bool operator==(Vertex& v) {
+	inline bool operator==(const Vertex& v) const {
 		if (pos != v.pos) return false;
 		if (hasUVCoord && uv != v.uv) return false;
 		if (hasColor && col != v.col) return false;

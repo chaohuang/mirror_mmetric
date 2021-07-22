@@ -582,9 +582,9 @@ bool Compare::finalize() {
 //    / /
 //   2 1 3 
 
-bool areTrianglesEqual(bool unoriented,
-	Vertex& vA1, Vertex& vA2, Vertex& vA3,
-	Vertex& vB1, Vertex& vB2, Vertex& vB3) 
+inline bool areTrianglesEqual(bool unoriented,
+	const Vertex& vA1, const Vertex& vA2, const Vertex& vA3,
+	const Vertex& vB1, const Vertex& vB2, const Vertex& vB3)
 {
 	return 
 		(vA1 == vB1 && vA2 == vB2 && vA3 == vB3) ||
@@ -1350,8 +1350,8 @@ int Compare::ibsm(
 	// computes the overall bbox
 	computeBBox(outputA.vertices, bboxMin, bboxMax, true);
 	computeBBox(outputB.vertices, bboxMin, bboxMax, false);
-	const float sigDynamic = _ibsmRenderer == "gl12_raster" ? 1.0F : glm::length(bboxMax - bboxMin);
-	std::cout << "signal Dynamic = " << sigDynamic << std::endl;
+	// default dynamic for Gl_raster, will be updated by sw_raster
+	float sigDynamic = 1.0F;
 
 	// prepare some camera directions
 	std::vector<glm::vec3> camDir;
@@ -1390,7 +1390,17 @@ int Compare::ibsm(
 			if (_ibsmDisableCulling) _swRenderer.disableCulling(); else	_swRenderer.enableCulling();
 
 			_swRenderer.render(&outputA, &mapA, fbufferRef, zbufferRef, width, height, viewDir, viewUp, bboxMin, bboxMax, true);
+			float depthRangeRef = _swRenderer.depthRange;
+
 			_swRenderer.render(&outputB, &mapB, fbufferDis, zbufferDis, width, height, viewDir, viewUp, bboxMin, bboxMax, true);
+			float depthRangeDis = _swRenderer.depthRange;
+
+			if (depthRangeRef != depthRangeDis) { // should never occur
+				std::cout << "Warning: reference and distorted signal dynamics are different, " 
+					<< depthRangeRef << " vs " << depthRangeDis << std::endl;
+			}
+			sigDynamic = depthRangeDis;
+			std::cout << "Signal Dynamic = " << depthRangeRef << std::endl;
 		}
 
 		clock_t t2 = clock();
@@ -1408,10 +1418,35 @@ int Compare::ibsm(
 				-(int)width * 4);
 
 			// Write image Y-flipped because OpenGL
-			stbi_write_png((fullPrefix + "dist.png").c_str(),
+			stbi_write_png((fullPrefix + "dis.png").c_str(),
 				width, height, 4,
 				fbufferDis.data() + (width * 4 * (height - 1)),
 				-(int)width * 4);
+			
+			// converts depth to positive 8 bit for visualization
+			std::vector<uint8_t> zbufferRef_8bits(zbufferRef.size(), 255);
+			std::vector<uint8_t> zbufferDis_8bits(zbufferRef.size(), 255);
+
+			for (size_t i = 0; i < zbufferRef.size(); ++i) {
+				if ( fbufferRef[i * 4 + 3] != 0 ){
+					zbufferRef_8bits[i] = 255 - (uint8_t)(255 * (sigDynamic + zbufferRef[i]) / sigDynamic);
+				}
+				if (fbufferDis[i * 4 + 3] != 0) {
+					zbufferDis_8bits[i] = 255 - (uint8_t)(255 * (sigDynamic + zbufferDis[i]) / sigDynamic);
+				}
+			}
+
+			// Write image Y-flipped because OpenGL
+			stbi_write_png((fullPrefix + "ref_depth.png").c_str(),
+				width, height, 1,
+				zbufferRef_8bits.data() + (width * 1 * (height - 1)),
+				-(int)width * 1);
+
+			// Write image Y-flipped because OpenGL
+			stbi_write_png((fullPrefix + "dis_depth.png").c_str(),
+				width, height, 1,
+				zbufferDis_8bits.data() + (width * 1 * (height - 1)),
+				-(int)width * 1);
 		}
 
 		// place for the results
