@@ -35,6 +35,7 @@
 #include "mmImage.h"
 #include "mmDequantize.h"
 #include "mmGeometry.h"
+#include "mmColor.h"
 
 const char* Dequantize::name = "dequantize";
 const char* Dequantize::brief = "Dequantize model (mesh or point cloud) ";
@@ -372,13 +373,18 @@ void Dequantize::dequantize(
 
 		for (size_t i = 0; i < input.colors.size() / 3; i++) {
 			if(colorSpaceConversion){
-				glm::vec3 inYUV;
+				glm::vec3 inYUV, inYUV_256, inRGB_256;
+				// vectorized by compiler
 				for (glm::vec3::length_type c = 0; c < 3; ++c) {
 					inYUV[c] = (input.colors[i * 3 + c] / maxQuantizedValue);
 				}
-				output.colors[i * 3 + 0] = 255*(inYUV[0] + 1.57480 * (inYUV[2]-0.5));
-				output.colors[i * 3 + 1] = 255*(inYUV[0] - 0.18733 * (inYUV[1]-0.5) - 0.46813 * (inYUV[2]-0.5));
-				output.colors[i * 3 + 2] = 255*(inYUV[0] + 1.85563 * (inYUV[1]-0.5));
+				colorUnitTo256(inYUV, inYUV_256);
+				yuvBt709ToRgb_256(inYUV, inRGB_256);
+				
+				// vectorized by compiler
+				for (glm::vec3::length_type c = 0; c < 3; ++c) {
+					output.colors[i * 3 + c] = inRGB_256[c];
+				}
 			}
 			else{
 				for (glm::vec3::length_type c = 0; c < 3; ++c) {

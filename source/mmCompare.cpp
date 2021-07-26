@@ -41,6 +41,7 @@
 #include "mmCompare.h"
 #include "mmSample.h"
 #include "mmGeometry.h"
+#include "mmColor.h"
 #include "mmStatistics.h"
 #include "mmRendererSw.h"
 #include "mmRendererHw.h"
@@ -499,7 +500,8 @@ bool Compare::process(uint32_t frame) {
 					<< "p_inputModelA;p_inputModelB;p_inputMapA;p_inputMapB;"
 					<< "p_ibsmRenderer;p_ibsmCameraCount;p_ibsmResolution;"
 					<< "p_ibsmDisableCulling;p_ibsmOutputPrefix;"
-					<< "frame;geo_psnr;rgb_psnr;r_psnr;g_psnr;b_psnr;processingTime" << std::endl;
+					<< "frame;geo_psnr;rgb_psnr;r_psnr;g_psnr;b_psnr;"
+					<< "yuv_psnr;y_psnr;u_psnr;v_psnr;processingTime" << std::endl;
 			}
 			// print stats
 			csvFileOut
@@ -513,6 +515,10 @@ bool Compare::process(uint32_t frame) {
 				<< frameResults.second.rgbPSNR[0] << ";"
 				<< frameResults.second.rgbPSNR[1] << ";"
 				<< frameResults.second.rgbPSNR[2] << ";"
+				<< frameResults.second.yuvPSNR[3] << ";"
+				<< frameResults.second.yuvPSNR[0] << ";"
+				<< frameResults.second.yuvPSNR[1] << ";"
+				<< frameResults.second.yuvPSNR[2] << ";"
 				<< ((float)(clock() - t1)) / CLOCKS_PER_SEC << std::endl;
 			// done
 			csvFileOut.close();
@@ -1357,10 +1363,11 @@ int Compare::ibsm(
 	std::vector<glm::vec3> camDir;
 	fibonacciSphere(camDir, _ibsmCameraCount);
 
-	// place where we store per camera results
-	std::vector< IbsmResults > perCamRes;
+	// place for the results
+	IbsmResults res;
+	size_t maskSizeSum = 0; // store the sum for final computation of the mean
 
-	// just for Debug, to be removed
+	// for validation
 	size_t depthNanCount = 0;
 	size_t colorNanCount = 0;
 
@@ -1449,73 +1456,74 @@ int Compare::ibsm(
 				-(int)width * 1);
 		}
 
-		// place for the results
-		IbsmResults res;
-
 		// 0 - compute the amount of pixels where there is a projection of Ref or Dist
-		bool useMaskSize = true;
-		size_t maskSize = 0;
-		if (useMaskSize) {
-			for (size_t i = 0; i < fbufferRef.size() / 4; ++i) {
-				const uint8_t maskRef = fbufferRef[i * 4 + 3];
-				const uint8_t maskDis = fbufferDis[i * 4 + 3];
-				if (maskRef != 0 || maskDis != 0) {
-					maskSize += 1;
-				}
+		for (size_t i = 0; i < fbufferRef.size() / 4; ++i) {
+			const uint8_t maskRef = fbufferRef[i * 4 + 3];
+			const uint8_t maskDis = fbufferDis[i * 4 + 3];
+			if (maskRef != 0 || maskDis != 0) {
+				maskSizeSum += 1;
 			}
 		}
-		else {
-			maskSize = fbufferRef.size() / 4;
-		}
 
-		// A - now compute the Color MSE over the ref and dist images
+		// A - now compute the Color Squared Error over the ref and dist images
+		// store result in IbsmResults structures for convenience
+		// but note that we store Squared Error into fields noted MSE
 		for (size_t i = 0; i < fbufferRef.size() / 4; ++i) {
 			const uint8_t maskRef = fbufferRef[i * 4 + 3];
 			const uint8_t maskDis = fbufferDis[i * 4 + 3];
 			// we are on non matching projection, we use full dynamic to emphasis the artefact
 			if ((maskRef == 0 && maskDis != 0) || (maskRef != 0 && maskDis == 0)) {
+				const double sse = (double)(255 * 255);
 				for (size_t c = 0; c < 3; ++c) { // we skip the alpha channel
-					res.rgbMSE[c] = res.rgbMSE[c] + (double)(255 * 255) / (double)(maskSize);
+					res.rgbMSE[c] = res.rgbMSE[c] + sse;
+					res.yuvMSE[c] = res.yuvMSE[c] + sse;
 				}
 			}
 			// both object are projected on this pixel
 			else if (maskRef != 0 && maskDis != 0) {
-				for (size_t c = 0; c < 3; ++c) { // we skip the alpha channel
-					double pixel_cmp_sse = 0.0;
+				// store YUV on vector of floats
+				const glm::vec3 rgbRef(fbufferRef[i * 4 + 0], fbufferRef[i * 4 + 1], fbufferRef[i * 4 + 1]);
+				const glm::vec3 rgbDis(fbufferDis[i * 4 + 0], fbufferDis[i * 4 + 1], fbufferDis[i * 4 + 1]);
+				const glm::vec3 yuvRef = rgbToYuvBt709_256(rgbRef);
+				const glm::vec3 yuvDis = rgbToYuvBt709_256(rgbDis);		
+				// 
+				for (glm::vec3::length_type c = 0; c < 3; ++c) { // we skip the alpha channel
 					// |I1 - I2|
-					pixel_cmp_sse = std::abs((double)fbufferRef[i * 4 + c] - (double)fbufferDis[i * 4 + c]);
+					double pixel_cmp_sse_rgb = (double)rgbRef[c] - (double)rgbDis[c];
+					double pixel_cmp_sse_yuv = (double)yuvRef[c] - (double)yuvDis[c];
 					// |I1 - I2|^2
-					pixel_cmp_sse = pixel_cmp_sse * pixel_cmp_sse;
+					pixel_cmp_sse_rgb = pixel_cmp_sse_rgb * pixel_cmp_sse_rgb;
+					pixel_cmp_sse_yuv = pixel_cmp_sse_yuv * pixel_cmp_sse_yuv;
 					// ensures color values are valid, otherwise skip the sample
-					if (std::isnan(pixel_cmp_sse)) {
-						pixel_cmp_sse = 0.0;
+					if (std::isnan(pixel_cmp_sse_rgb) || std::isnan(pixel_cmp_sse_yuv)) {
+						pixel_cmp_sse_rgb = 0.0;
+						pixel_cmp_sse_yuv = 0.0;
 						colorNanCount++;
 					}
 					// Sum mean
-					res.rgbMSE[c] = res.rgbMSE[c] + pixel_cmp_sse / (double)(maskSize);
+					res.rgbMSE[c] = res.rgbMSE[c] + pixel_cmp_sse_rgb;
+					res.yuvMSE[c] = res.yuvMSE[c] + pixel_cmp_sse_yuv;
 				}
 			}
 			// else we skip ~ add 0, because no pixel exist in both buffers (faster processing)
 		}
 
-		// compute the mean MSE as fourth component
-		res.rgbMSE[3] = (res.rgbMSE[0] + res.rgbMSE[1] + res.rgbMSE[2]) / 3.0;
-
 		// B - now compute the Geometric MSE over the ref and dist depth buffers
 		// allways renormalize on an energy range of 255x255 to be coherent with rgb PSNR
+		// store result in IbsmResults structures for convenience
+		// but note that we store Squared Error into fields noted MSE
 
 		for (size_t i = 0; i < zbufferRef.size(); ++i) {
 			const uint8_t maskRef = fbufferRef[i * 4 + 3];
 			const uint8_t maskDis = fbufferDis[i * 4 + 3];
 			// we are on non matching projection, we use rescaled full dynamic to emphasis the artefact
 			if ((maskRef == 0 && maskDis != 0) || (maskRef != 0 && maskDis == 0)) {
-				res.depthMSE = res.depthMSE + (double)(255 * 255) / (double)(maskSize);
+				res.depthMSE = res.depthMSE + (double)(255 * 255);
 			}
 			// both object are projected on this pixel
 			else if (maskRef != 0 && maskDis != 0) {
-				const double rescale = 255.0 / sigDynamic;
 				// |I1 - I2|
-				double pixel_depth_sse = std::fabs(zbufferRef[i] - zbufferDis[i]) * rescale;
+				double pixel_depth_sse = ((double)zbufferRef[i] - (double)zbufferDis[i]) * 255.0 / sigDynamic;
 				// |I1 - I2|^2
 				pixel_depth_sse = pixel_depth_sse * pixel_depth_sse;
 				// ensures depth values are valid, otherwise skip the sample
@@ -1524,40 +1532,37 @@ int Compare::ibsm(
 					depthNanCount++;
 				}
 				// Sum mean
-				res.depthMSE = res.depthMSE + pixel_depth_sse / (double)(maskSize);
+				res.depthMSE = res.depthMSE + pixel_depth_sse;
 			}
 			// else we skip ~ add 0, because no depth exist in both buffers (faster processing)
 		}
-
-		perCamRes.push_back(res);
-
+		
 		clock_t t3 = clock();
 		std::cout << "Time on MSE computing: " << ((float)(t3 - t2)) / CLOCKS_PER_SEC << " sec." << std::endl;
 	}
 
-	// mean the results
-	IbsmResults res;
-
-	for (size_t camIdx = 0; camIdx < camDir.size(); ++camIdx) {
-		for (size_t c = 0; c <= 3; ++c) {
-			res.rgbMSE[c] = res.rgbMSE[c] + perCamRes[camIdx].rgbMSE[c] / (double)camDir.size();
-		}
-		res.depthMSE = res.depthMSE + perCamRes[camIdx].depthMSE / (double)camDir.size();
+	// finally computes the MSE by dividing over total number of projected pixels
+	for (size_t c = 0; c < 3; ++c) {
+		res.rgbMSE[c] = res.rgbMSE[c] / (double)maskSizeSum;
+		res.yuvMSE[c] = res.yuvMSE[c] / (double)maskSizeSum;
 	}
+	res.rgbMSE[3] = (res.rgbMSE[0] + res.rgbMSE[1] + res.rgbMSE[2]) / 3.0;
+	res.yuvMSE[3] = (res.yuvMSE[0] * 6.0 + res.rgbMSE[1] + res.rgbMSE[2]) / 8.0; 
+	res.depthMSE  = res.depthMSE / (double)maskSizeSum;
 
 	// compute the PSNRs (can be infinite)
 	for (size_t c = 0; c <= 3; ++c) {
 		res.rgbPSNR[c] = 10.0 * log10((long double)(255 * 255) / (long double)res.rgbMSE[c]);
+		res.yuvPSNR[c] = 10.0 * log10((long double)(255 * 255) / (long double)res.yuvMSE[c]);
 	}
-
 	res.depthPSNR = 10.0 * log10((long double)(255 * 255) / (long double)res.depthMSE);
 
 	// Debug
 	if (depthNanCount != 0) {
-		std::cout << "Warning: skiped " << depthNanCount << " NaN in depth buffer" << std::endl;
+		std::cout << "Warning: skipped " << depthNanCount << " NaN in depth buffer" << std::endl;
 	}
 	if (colorNanCount != 0) {
-		std::cout << "Warning: skiped " << colorNanCount << " NaN in color buffer" << std::endl;
+		std::cout << "Warning: skipped " << colorNanCount << " NaN in color buffer" << std::endl;
 	}
 
 	// output the results
@@ -1565,11 +1570,19 @@ int Compare::ibsm(
 	std::cout << "G   MSE  = " << res.rgbMSE[1] << std::endl;
 	std::cout << "B   MSE  = " << res.rgbMSE[2] << std::endl;
 	std::cout << "RGB MSE  = " << res.rgbMSE[3] << std::endl;
+	std::cout << "Y   MSE  = " << res.yuvMSE[0] << std::endl;
+	std::cout << "U   MSE  = " << res.yuvMSE[1] << std::endl;
+	std::cout << "V   MSE  = " << res.yuvMSE[2] << std::endl;
+	std::cout << "YUV MSE  = " << res.yuvMSE[3] << std::endl;
 	std::cout << "GEO MSE  = " << res.depthMSE << std::endl;
 	std::cout << "R   PSNR = " << res.rgbPSNR[0] << std::endl;
 	std::cout << "G   PSNR = " << res.rgbPSNR[1] << std::endl;
 	std::cout << "B   PSNR = " << res.rgbPSNR[2] << std::endl;
 	std::cout << "RGB PSNR = " << res.rgbPSNR[3] << std::endl;
+	std::cout << "Y   PSNR = " << res.yuvPSNR[0] << std::endl;
+	std::cout << "U   PSNR = " << res.yuvPSNR[1] << std::endl;
+	std::cout << "V   PSNR = " << res.yuvPSNR[2] << std::endl;
+	std::cout << "YUV PSNR = " << res.yuvPSNR[3] << std::endl;
 	std::cout << "GEO PSNR = " << res.depthPSNR << std::endl;
 
 	// store results to compute statistics
@@ -1587,13 +1600,31 @@ void Compare::ibsmFinalize(void) {
 		Statistics::compute(_ibsmResults.size(),
 			[&](size_t i) -> double { return _ibsmResults[i].second.rgbPSNR[3]; },
 			stats);
-
 		Statistics::printToLog(stats, "RGB PSNR ", std::cout);
 		
 		Statistics::compute(_ibsmResults.size(),
+			[&](size_t i) -> double { return _ibsmResults[i].second.yuvPSNR[0]; },
+			stats);
+		Statistics::printToLog(stats, "Y   PSNR ", std::cout);
+
+		Statistics::compute(_ibsmResults.size(),
+			[&](size_t i) -> double { return _ibsmResults[i].second.yuvPSNR[1]; },
+			stats);
+		Statistics::printToLog(stats, "U   PSNR ", std::cout);
+
+		Statistics::compute(_ibsmResults.size(),
+			[&](size_t i) -> double { return _ibsmResults[i].second.yuvPSNR[2]; },
+			stats);
+		Statistics::printToLog(stats, "V   PSNR ", std::cout);
+
+		Statistics::compute(_ibsmResults.size(),
+			[&](size_t i) -> double { return _ibsmResults[i].second.yuvPSNR[3]; },
+			stats);
+		Statistics::printToLog(stats, "YUV PSNR ", std::cout);
+
+		Statistics::compute(_ibsmResults.size(),
 			[&](size_t i) -> double { return _ibsmResults[i].second.depthPSNR; },
 			stats);
-
 		Statistics::printToLog(stats, "GEO PSNR ", std::cout);
 		
 	}

@@ -33,8 +33,10 @@ class Compare : Command {
 public:
 
 	struct IbsmResults {
-		double rgbMSE[4]  = { 0,0,0,0 }; // [R mse, G mse, B mse, mean]
+		double rgbMSE[4]  = { 0,0,0,0 }; // [R mse, G mse, B mse, components mean]
 		double rgbPSNR[4] = { 0,0,0,0 }; // idem but with psnr
+		double yuvMSE[4]  = { 0,0,0 };   // [Y mse, U mse, V mse, 6/1/1 mean ]
+		double yuvPSNR[4] = { 0,0,0 };   // idem but with psnr
 		double depthMSE = 0;
 		double depthPSNR = 0;
 	};

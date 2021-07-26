@@ -36,6 +36,7 @@
 #include "mmDequantize.h"
 #include "mmQuantize.h"
 #include "mmGeometry.h"
+#include "mmColor.h"
 
 const char* Quantize::name = "quantize";
 const char* Quantize::brief = "Quantize model (mesh or point cloud)";
@@ -433,22 +434,22 @@ void Quantize::quantize(
 		}
 
 		for (size_t i = 0; i < input.colors.size() / 3; i++) {
-			if(colorSpaceConversion){
-			  glm::vec3 inYUV;
-			  inYUV[0] = ( 0.2126 * input.colors[i * 3] + 0.7152 * input.colors[i * 3 + 1] + 0.0722 * input.colors[i * 3 + 2]) / 255.0 ;
-              inYUV[1] = (-0.1146 * input.colors[i * 3] - 0.3854 * input.colors[i * 3 + 1] + 0.5000 * input.colors[i * 3 + 2]) / 255.0 + 0.5000 ;
-              inYUV[2] = ( 0.5000 * input.colors[i * 3] - 0.4542 * input.colors[i * 3 + 1] - 0.0458 * input.colors[i * 3 + 2]) / 255.0 + 0.5000 ;
-			  for (glm::vec3::length_type c = 0; c < 3; ++c) {
-				   uint32_t col = static_cast<uint32_t> (std::floor(inYUV[c] * maxColorQuantizedValue + 0.5f));
-				   output.colors[i * 3 + c] = static_cast<float> (col);
-			   }
-			} else {
-			    for (glm::vec3::length_type c = 0; c < 3; ++c) {
-				    uint32_t col = static_cast<uint32_t> (std::floor(((input.colors[i * 3 + c] - minCol[c]) / range) * maxColorQuantizedValue + 0.5f));
-  				    output.colors[i * 3 + c] = static_cast<float> (col);
-			    }
+			if (colorSpaceConversion) {
+				glm::vec3 inYUV_256, inYUV;
+				rgbToYuvBt709_256(glm::vec3(input.colors[i * 3], input.colors[i * 3 + 1], input.colors[i * 3 + 2]), inYUV_256);
+				color256ToUnit(inYUV_256, inYUV);
+				for (glm::vec3::length_type c = 0; c < 3; ++c) {
+					uint32_t col = static_cast<uint32_t> (std::floor(inYUV[c] * maxColorQuantizedValue + 0.5f));
+					output.colors[i * 3 + c] = static_cast<float> (col);
+				}
+			}
+			else {
+				for (glm::vec3::length_type c = 0; c < 3; ++c) {
+					uint32_t col = static_cast<uint32_t> (std::floor(((input.colors[i * 3 + c] - minCol[c]) / range) * maxColorQuantizedValue + 0.5f));
+					output.colors[i * 3 + c] = static_cast<float> (col);
+				}
 			}
 		}
 	}
-	
+
 }
