@@ -1511,8 +1511,8 @@ int Compare::ibsm(
 			// both object are projected on this pixel
 			else if (maskRef != 0 && maskDis != 0) {
 				// store YUV on vector of floats
-				const glm::vec3 rgbRef(fbufferRef[i * 4 + 0], fbufferRef[i * 4 + 1], fbufferRef[i * 4 + 1]);
-				const glm::vec3 rgbDis(fbufferDis[i * 4 + 0], fbufferDis[i * 4 + 1], fbufferDis[i * 4 + 1]);
+				const glm::vec3 rgbRef(fbufferRef[i * 4 + 0], fbufferRef[i * 4 + 1], fbufferRef[i * 4 + 2]);
+				const glm::vec3 rgbDis(fbufferDis[i * 4 + 0], fbufferDis[i * 4 + 1], fbufferDis[i * 4 + 2]);
 				const glm::vec3 yuvRef = rgbToYuvBt709_256(rgbRef);
 				const glm::vec3 yuvDis = rgbToYuvBt709_256(rgbDis);		
 				// 
