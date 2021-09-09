@@ -89,8 +89,8 @@ do
 		grep -iF "error" ${TMP}/${OUT}.txt
 		fileHasString ${TMP}/${OUT}.txt "  ibsmRenderer = ${renderer}" 1
 		if [ $renderer == "sw_raster" ]; then
-			fileHasString ${TMP}/${OUT}.txt "RGB PSNR = 68.5539723" 1
-			fileHasString ${TMP}/${OUT}.txt "YUV PSNR = 68.5669411" 1
+			fileHasString ${TMP}/${OUT}.txt "RGB PSNR = 68.5458488" 1
+			fileHasString ${TMP}/${OUT}.txt "YUV PSNR = 68.5677003" 1
 			fileHasString ${TMP}/${OUT}.txt "GEO PSNR = 68.610331" 1
 		fi
 	fi
@@ -120,8 +120,8 @@ do
 		grep -iF "error" ${TMP}/${OUT}.txt
 		fileHasString ${TMP}/${OUT}.txt "  ibsmRenderer = ${renderer}" 1
 		if [ $renderer == "sw_raster" ]; then
-			fileHasString ${TMP}/${OUT}.txt "RGB PSNR = 17.6131681" 1
-			fileHasString ${TMP}/${OUT}.txt "YUV PSNR = 17.6163361" 1
+			fileHasString ${TMP}/${OUT}.txt "RGB PSNR = 17.586507" 1
+			fileHasString ${TMP}/${OUT}.txt "YUV PSNR = 17.6038568" 1
 			fileHasString ${TMP}/${OUT}.txt "GEO PSNR = 17.8969953" 1
 		fi
 	fi
@@ -136,8 +136,8 @@ do
 		grep -iF "error" ${TMP}/${OUT}.txt
 		fileHasString ${TMP}/${OUT}.txt "  ibsmRenderer = ${renderer}" 1
 		if [ $renderer == "sw_raster" ]; then
-			fileHasString ${TMP}/${OUT}.txt "RGB PSNR = 17.5950707" 1
-			fileHasString ${TMP}/${OUT}.txt "YUV PSNR = 17.5981576" 1
+			fileHasString ${TMP}/${OUT}.txt "RGB PSNR = 17.5679349" 1
+			fileHasString ${TMP}/${OUT}.txt "YUV PSNR = 17.5854385" 1
 			fileHasString ${TMP}/${OUT}.txt "GEO PSNR = 17.8859371" 1
 		fi
 	fi
@@ -176,12 +176,14 @@ do
 		grep -iF "error" ${TMP}/${OUT}.txt
 		fileHasString ${TMP}/${OUT}.txt "  ibsmRenderer = ${renderer}" 3
 		if [ $renderer == "sw_raster" ]; then
-			fileHasString ${TMP}/${OUT}.txt "RGB PSNR Mean=41.5748371" 1
+			fileHasString ${TMP}/${OUT}.txt "BoxRatio Min=99.9997664"  1
+			fileHasString ${TMP}/${OUT}.txt "BoxRatio Max=100"         1 
+			fileHasString ${TMP}/${OUT}.txt "RGB PSNR Mean=41.5663609" 1
 			fileHasString ${TMP}/${OUT}.txt "GEO PSNR Mean=41.6754508" 1
-			fileHasString ${TMP}/${OUT}.txt "Y   PSNR Mean=41.5802332" 1
-			fileHasString ${TMP}/${OUT}.txt "U   PSNR Mean=41.6908137" 1
-			fileHasString ${TMP}/${OUT}.txt "V   PSNR Mean=41.6825611" 1
-			fileHasString ${TMP}/${OUT}.txt "YUV PSNR Mean=41.5786822" 1
+			fileHasString ${TMP}/${OUT}.txt "Y   PSNR Mean=41.5809029" 1
+			fileHasString ${TMP}/${OUT}.txt "U   PSNR Mean=41.6812173" 1
+			fileHasString ${TMP}/${OUT}.txt "V   PSNR Mean=41.6831532" 1
+			fileHasString ${TMP}/${OUT}.txt "YUV PSNR Mean=41.5760006" 1
 		fi
 	fi
 done

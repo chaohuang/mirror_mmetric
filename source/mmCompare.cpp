@@ -1352,6 +1352,10 @@ int Compare::ibsm(
 	Model& outputA, Model& outputB
 ) {
 	
+	// place for the results
+	IbsmResults res;
+	size_t maskSizeSum = 0; // store the sum for final computation of the mean
+
 	clock_t t1 = clock();
 
 	if (!_ibsmDisableReordering) {
@@ -1383,18 +1387,20 @@ int Compare::ibsm(
 	std::vector<float> zbufferRef(width * height);
 	std::vector<float> zbufferDis(width * height);
 	// computes the overall bbox
-	computeBBox(outputA.vertices, bboxMin, bboxMax, true);
-	computeBBox(outputB.vertices, bboxMin, bboxMax, false);
+	glm::vec3 refBboxMin, refBboxMax;
+	glm::vec3 disBboxMin, disBboxMax;
+	computeBBox(outputA.vertices, refBboxMin, refBboxMax, true);
+	computeBBox(outputB.vertices, disBboxMin, disBboxMax, true);
+	computeBBox(refBboxMin, refBboxMax, disBboxMin, disBboxMax, bboxMin, bboxMax);
+	double refDiagLength = glm::length(refBboxMax - refBboxMin);
+	double disDiagLength = glm::length(disBboxMax - disBboxMin);
+	res.boxRatio = 100.0 * disDiagLength / refDiagLength;
 	// default dynamic for Gl_raster, will be updated by sw_raster
 	float sigDynamic = 1.0F;
 
 	// prepare some camera directions
 	std::vector<glm::vec3> camDir;
 	fibonacciSphere(camDir, _ibsmCameraCount, CamRotParams);
-
-	// place for the results
-	IbsmResults res;
-	size_t maskSizeSum = 0; // store the sum for final computation of the mean
 
 	// for validation
 	size_t depthNanCount = 0;
@@ -1593,8 +1599,15 @@ int Compare::ibsm(
 	if (colorNanCount != 0) {
 		std::cout << "Warning: skipped " << colorNanCount << " NaN in color buffer" << std::endl;
 	}
+	
+	if (res.boxRatio < 99.5F || res.boxRatio > 100.5F ) {
+		std::cout 
+			<< "Warning: the size of the bounding box of reference and distorted models are quite different (see BoxRatio)."
+			<< "  IBSM results might not be accurate. Please perform a visual check of your models." << std::endl;
+	}
 
 	// output the results
+	std::cout << "BoxRatio = " << res.boxRatio << std::endl;
 	std::cout << "R   MSE  = " << res.rgbMSE[0] << std::endl;
 	std::cout << "G   MSE  = " << res.rgbMSE[1] << std::endl;
 	std::cout << "B   MSE  = " << res.rgbMSE[2] << std::endl;
@@ -1613,7 +1626,7 @@ int Compare::ibsm(
 	std::cout << "V   PSNR = " << res.yuvPSNR[2] << std::endl;
 	std::cout << "YUV PSNR = " << res.yuvPSNR[3] << std::endl;
 	std::cout << "GEO PSNR = " << res.depthPSNR << std::endl;
-
+	
 	// store results to compute statistics
 	_ibsmResults.push_back(std::make_pair(_context->getFrame(), res));
 
@@ -1625,6 +1638,11 @@ void Compare::ibsmFinalize(void) {
 	if (_ibsmResults.size() > 1) {
 
 		Statistics::Results stats;
+		
+		Statistics::compute(_ibsmResults.size(),
+			[&](size_t i) -> double { return _ibsmResults[i].second.boxRatio; },
+			stats);
+		Statistics::printToLog(stats, "BoxRatio ", std::cout);
 
 		Statistics::compute(_ibsmResults.size(),
 			[&](size_t i) -> double { return _ibsmResults[i].second.rgbPSNR[3]; },

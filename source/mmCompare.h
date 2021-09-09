@@ -39,6 +39,7 @@ public:
 		double yuvPSNR[4] = { 0,0,0 };   // idem but with psnr
 		double depthMSE = 0;
 		double depthPSNR = 0;
+		double boxRatio;				 // ( dis box size / ref box size ) * 100.0
 	};
 
 private:
