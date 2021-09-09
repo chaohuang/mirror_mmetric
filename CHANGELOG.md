@@ -5,6 +5,20 @@ Primary author Jean-Eudes Marvie (InterDigital).
 
 Additional contributors mentioned per version or item hereafter.
 
+## Version 0.1.12
+
+- Add: boxRatio confidence in IBSM results
+	- the nearest to 100% the more accurate.
+	- also update the test suite that was not updated in previous commits
+- Fix: color index issue in compare ibsm
+	- Contributor: Danillo Graziosi (Sony)
+- Fix: color index issue in compare ibsm
+	- Contributor: Chao Huang et al. (Tencent)
+- Fix: renderer use (0, 0, 1) as viewUp when the camera is located at north/south pole 
+	- Contributor: Chao Huang et al. (Tencent)
+- Add: ibsm yuv and color utilities
+- Fix: signal dynamic calculus in IBSM
+
 ## Version 0.1.11
 
 - Add: ibsm automatic reindex and tests update.
