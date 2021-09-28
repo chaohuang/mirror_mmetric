@@ -116,7 +116,7 @@ mm.exe \
 # Command references
 
 ```
-3D model processing commands v0.1.12
+3D model processing commands v0.1.13
 Usage:
   mm.exe command [OPTION...]
 

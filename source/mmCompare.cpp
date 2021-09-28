@@ -1587,10 +1587,10 @@ int Compare::ibsm(
 
 	// compute the PSNRs (can be infinite)
 	for (size_t c = 0; c <= 3; ++c) {
-		res.rgbPSNR[c] = 10.0 * log10((long double)(255 * 255) / (long double)res.rgbMSE[c]);
-		res.yuvPSNR[c] = 10.0 * log10((long double)(255 * 255) / (long double)res.yuvMSE[c]);
+		res.rgbPSNR[c] = std::min(999.99, 10.0 * log10((double)(255 * 255) / res.rgbMSE[c]));
+		res.yuvPSNR[c] = std::min(999.99, 10.0 * log10((double)(255 * 255) / res.yuvMSE[c]));
 	}
-	res.depthPSNR = 10.0 * log10((long double)(255 * 255) / (long double)res.depthMSE);
+	res.depthPSNR = std::min(999.99, 10.0 * log10((double)(255 * 255) / res.depthMSE));
 
 	// Debug
 	if (depthNanCount != 0) {

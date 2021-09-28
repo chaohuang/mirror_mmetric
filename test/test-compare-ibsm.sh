@@ -21,8 +21,8 @@ do
 		grep -iF "error" ${TMP}/${OUT}.txt
 		fileHasString ${TMP}/${OUT}.txt "  ibsmRenderer = ${renderer}" 1
 		if [ $renderer == "sw_raster" ]; then
-			fileHasString ${TMP}/${OUT}.txt "RGB PSNR = inf" 1
-			fileHasString ${TMP}/${OUT}.txt "GEO PSNR = inf" 1
+			fileHasString ${TMP}/${OUT}.txt "RGB PSNR = 999.99" 1
+			fileHasString ${TMP}/${OUT}.txt "GEO PSNR = 999.99" 1
 		fi
 	fi
 
@@ -53,8 +53,8 @@ do
 		grep -iF "error" ${TMP}/${OUT}.txt
 		fileHasString ${TMP}/${OUT}.txt "  ibsmRenderer = ${renderer}" 1
 		if [ $renderer == "sw_raster" ]; then
-			fileHasString ${TMP}/${OUT}.txt "RGB PSNR = inf" 1
-			fileHasString ${TMP}/${OUT}.txt "GEO PSNR = inf" 1
+			fileHasString ${TMP}/${OUT}.txt "RGB PSNR = 999.99" 1
+			fileHasString ${TMP}/${OUT}.txt "GEO PSNR = 999.99" 1
 		fi
 	fi
 
@@ -71,8 +71,8 @@ do
 		grep -iF "error" ${TMP}/${OUT}.txt
 		fileHasString ${TMP}/${OUT}.txt "  ibsmRenderer = ${renderer}" 1
 		if [ $renderer == "sw_raster" ]; then
-			fileHasString ${TMP}/${OUT}.txt "RGB PSNR = inf" 1
-			fileHasString ${TMP}/${OUT}.txt "GEO PSNR = inf" 1
+			fileHasString ${TMP}/${OUT}.txt "RGB PSNR = 999.99" 1
+			fileHasString ${TMP}/${OUT}.txt "GEO PSNR = 999.99" 1
 		fi
 	fi
 	
@@ -105,8 +105,8 @@ do
 		grep -iF "error" ${TMP}/${OUT}.txt
 		fileHasString ${TMP}/${OUT}.txt "  ibsmRenderer = ${renderer}" 1
 		if [ $renderer == "sw_raster" ]; then
-			fileHasString ${TMP}/${OUT}.txt "RGB PSNR = inf" 1
-			fileHasString ${TMP}/${OUT}.txt "GEO PSNR = inf" 1
+			fileHasString ${TMP}/${OUT}.txt "RGB PSNR = 999.99" 1
+			fileHasString ${TMP}/${OUT}.txt "GEO PSNR = 999.99" 1
 		fi
 	fi
 

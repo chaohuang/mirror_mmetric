@@ -5,6 +5,11 @@ Primary author Jean-Eudes Marvie (InterDigital).
 
 Additional contributors mentioned per version or item hereafter.
 
+## Version 0.1.13
+
+- Add: compare IBSM clamp PSNR max to 999.99, 
+	- prevent issues on Mean computations in case of infinite value for some frames
+
 ## Version 0.1.12
 
 - Add: boxRatio confidence in IBSM results
