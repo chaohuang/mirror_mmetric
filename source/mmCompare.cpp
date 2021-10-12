@@ -1355,6 +1355,7 @@ int Compare::ibsm(
 	// place for the results
 	IbsmResults res;
 	size_t maskSizeSum = 0; // store the sum for final computation of the mean
+	size_t unmatchedPixelsSum = 0; // store the sum of unmatched pixels for reporting
 
 	clock_t t1 = clock();
 
@@ -1495,8 +1496,11 @@ int Compare::ibsm(
 		for (size_t i = 0; i < fbufferRef.size() / 4; ++i) {
 			const uint8_t maskRef = fbufferRef[i * 4 + 3];
 			const uint8_t maskDis = fbufferDis[i * 4 + 3];
-			if (maskRef != 0 || maskDis != 0) {
+			if (maskRef != 0 && maskDis != 0) {
 				maskSizeSum += 1;
+			}
+			else if (maskRef != 0 || maskDis != 0) {
+				unmatchedPixelsSum += 1;
 			}
 		}
 
@@ -1506,16 +1510,8 @@ int Compare::ibsm(
 		for (size_t i = 0; i < fbufferRef.size() / 4; ++i) {
 			const uint8_t maskRef = fbufferRef[i * 4 + 3];
 			const uint8_t maskDis = fbufferDis[i * 4 + 3];
-			// we are on non matching projection, we use full dynamic to emphasis the artefact
-			if ((maskRef == 0 && maskDis != 0) || (maskRef != 0 && maskDis == 0)) {
-				const double sse = (double)(255 * 255);
-				for (size_t c = 0; c < 3; ++c) { // we skip the alpha channel
-					res.rgbMSE[c] = res.rgbMSE[c] + sse;
-					res.yuvMSE[c] = res.yuvMSE[c] + sse;
-				}
-			}
 			// both object are projected on this pixel
-			else if (maskRef != 0 && maskDis != 0) {
+			if (maskRef != 0 && maskDis != 0) {
 				// store YUV on vector of floats
 				const glm::vec3 rgbRef(fbufferRef[i * 4 + 0], fbufferRef[i * 4 + 1], fbufferRef[i * 4 + 2]);
 				const glm::vec3 rgbDis(fbufferDis[i * 4 + 0], fbufferDis[i * 4 + 1], fbufferDis[i * 4 + 2]);
@@ -1551,12 +1547,8 @@ int Compare::ibsm(
 		for (size_t i = 0; i < zbufferRef.size(); ++i) {
 			const uint8_t maskRef = fbufferRef[i * 4 + 3];
 			const uint8_t maskDis = fbufferDis[i * 4 + 3];
-			// we are on non matching projection, we use rescaled full dynamic to emphasis the artefact
-			if ((maskRef == 0 && maskDis != 0) || (maskRef != 0 && maskDis == 0)) {
-				res.depthMSE = res.depthMSE + (double)(255 * 255);
-			}
 			// both object are projected on this pixel
-			else if (maskRef != 0 && maskDis != 0) {
+			if (maskRef != 0 && maskDis != 0) {
 				// |I1 - I2|
 				double pixel_depth_sse = ((double)zbufferRef[i] - (double)zbufferDis[i]) * 255.0 / sigDynamic;
 				// |I1 - I2|^2
@@ -1592,6 +1584,9 @@ int Compare::ibsm(
 	}
 	res.depthPSNR = std::min(999.99, 10.0 * log10((double)(255 * 255) / res.depthMSE));
 
+	// report the UnmatchedPixelPercentage - we may also report values over a given threshold to cout
+	res.unmatchedPixelPercentage = (maskSizeSum > 0) ? 100.0 * (double)unmatchedPixelsSum / (double)maskSizeSum : 100.0;
+
 	// Debug
 	if (depthNanCount != 0) {
 		std::cout << "Warning: skipped " << depthNanCount << " NaN in depth buffer" << std::endl;
@@ -1607,7 +1602,8 @@ int Compare::ibsm(
 	}
 
 	// output the results
-	std::cout << "BoxRatio = " << res.boxRatio << std::endl;
+	std::cout << "BoxRatio                 = " << res.boxRatio << std::endl;
+	std::cout << "UnmatchedPixelPercentage = " << res.unmatchedPixelPercentage << std::endl;
 	std::cout << "R   MSE  = " << res.rgbMSE[0] << std::endl;
 	std::cout << "G   MSE  = " << res.rgbMSE[1] << std::endl;
 	std::cout << "B   MSE  = " << res.rgbMSE[2] << std::endl;
@@ -1643,6 +1639,11 @@ void Compare::ibsmFinalize(void) {
 			[&](size_t i) -> double { return _ibsmResults[i].second.boxRatio; },
 			stats);
 		Statistics::printToLog(stats, "BoxRatio ", std::cout);
+
+		Statistics::compute(_ibsmResults.size(),
+			[&](size_t i) -> double { return _ibsmResults[i].second.unmatchedPixelPercentage; },
+			stats);
+		Statistics::printToLog(stats, "UnmatchedPixelPercentage ", std::cout);
 
 		Statistics::compute(_ibsmResults.size(),
 			[&](size_t i) -> double { return _ibsmResults[i].second.rgbPSNR[3]; },

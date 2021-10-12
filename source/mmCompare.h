@@ -33,13 +33,14 @@ class Compare : Command {
 public:
 
 	struct IbsmResults {
-		double rgbMSE[4]  = { 0,0,0,0 }; // [R mse, G mse, B mse, components mean]
-		double rgbPSNR[4] = { 0,0,0,0 }; // idem but with psnr
-		double yuvMSE[4]  = { 0,0,0 };   // [Y mse, U mse, V mse, 6/1/1 mean ]
-		double yuvPSNR[4] = { 0,0,0 };   // idem but with psnr
+		double rgbMSE[4]  = { 0,0,0,0 };		// [R mse, G mse, B mse, components mean]
+		double rgbPSNR[4] = { 0,0,0,0 };		// idem but with psnr
+		double yuvMSE[4]  = { 0,0,0 };			// [Y mse, U mse, V mse, 6/1/1 mean ]
+		double yuvPSNR[4] = { 0,0,0 };			// idem but with psnr
 		double depthMSE = 0;
 		double depthPSNR = 0;
-		double boxRatio;				 // ( dis box size / ref box size ) * 100.0
+		double boxRatio = 0;					// ( dis box size / ref box size ) * 100.0
+		double unmatchedPixelPercentage = 0;	// ( unmatchedPixelsSum /  maskSizeSum ) * 100.0
 	};
 
 private:
