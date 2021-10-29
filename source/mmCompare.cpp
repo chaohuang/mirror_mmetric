@@ -1602,8 +1602,8 @@ int Compare::ibsm(
 	}
 
 	// output the results
-	std::cout << "BoxRatio                 = " << res.boxRatio << std::endl;
 	std::cout << "UnmatchedPixelPercentage = " << res.unmatchedPixelPercentage << std::endl;
+	std::cout << "BoxRatio = " << res.boxRatio << std::endl;
 	std::cout << "R   MSE  = " << res.rgbMSE[0] << std::endl;
 	std::cout << "G   MSE  = " << res.rgbMSE[1] << std::endl;
 	std::cout << "B   MSE  = " << res.rgbMSE[2] << std::endl;

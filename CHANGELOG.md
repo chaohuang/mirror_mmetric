@@ -5,10 +5,16 @@ Primary author Jean-Eudes Marvie (InterDigital).
 
 Additional contributors mentioned per version or item hereafter.
 
-## Version 0.1.13
+## Version 0.1.13 
 
 - Add: compare IBSM clamp PSNR max to 999.99, 
 	- prevent issues on Mean computations in case of infinite value for some frames
+- Fix: remove unmatched pixels penalty (silhouette diffs and holes not emphasised any more)
+	- modification performed on WG7 request following meeting 136
+    - adding the penalty was leading to inconsistent results between subjective and objective results for some specific cases
+	- TODO: shall be refined later to better correlate with perceptual test results
+    - report as an extra statistic the ratio between unmatchedPixels and maskSizeSum (the smaller the better)
+	- Contributor: Olivier Mocquard (InterDigital) 
 
 ## Version 0.1.12
 
@@ -17,10 +23,10 @@ Additional contributors mentioned per version or item hereafter.
 	- also update the test suite that was not updated in previous commits
 - Fix: color index issue in compare ibsm
 	- Contributor: Danillo Graziosi (Sony)
-- Fix: color index issue in compare ibsm
+- Add: allow users to rotate the IBSM camera rig
 	- Contributor: Chao Huang et al. (Tencent)
 - Fix: renderer use (0, 0, 1) as viewUp when the camera is located at north/south pole 
-	- Contributor: Chao Huang et al. (Tencent)
+	- Contributor: Chao Huang et al. (Tencent) 
 - Add: ibsm yuv and color utilities
 - Fix: signal dynamic calculus in IBSM
 

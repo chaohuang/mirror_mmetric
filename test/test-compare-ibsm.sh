@@ -34,9 +34,9 @@ do
 		grep -iF "error" ${TMP}/${OUT}.txt
 		fileHasString ${TMP}/${OUT}.txt "  ibsmRenderer = ${renderer}" 1
 		if [ $renderer == "sw_raster" ]; then
-			fileHasString ${TMP}/${OUT}.txt "RGB PSNR = 23.6637415" 1
-			fileHasString ${TMP}/${OUT}.txt "YUV PSNR = 23.6637415" 1
-			fileHasString ${TMP}/${OUT}.txt "GEO PSNR = 23.6624282" 1
+			fileHasString ${TMP}/${OUT}.txt "RGB PSNR = 999.99" 1
+			fileHasString ${TMP}/${OUT}.txt "YUV PSNR = 999.99" 1
+			fileHasString ${TMP}/${OUT}.txt "GEO PSNR = 58.8384282" 1
 		fi
 	fi
 
@@ -89,9 +89,9 @@ do
 		grep -iF "error" ${TMP}/${OUT}.txt
 		fileHasString ${TMP}/${OUT}.txt "  ibsmRenderer = ${renderer}" 1
 		if [ $renderer == "sw_raster" ]; then
-			fileHasString ${TMP}/${OUT}.txt "RGB PSNR = 68.5458488" 1
-			fileHasString ${TMP}/${OUT}.txt "YUV PSNR = 68.5677003" 1
-			fileHasString ${TMP}/${OUT}.txt "GEO PSNR = 68.610331" 1
+			fileHasString ${TMP}/${OUT}.txt "RGB PSNR = 86.8614937" 1
+			fileHasString ${TMP}/${OUT}.txt "YUV PSNR = 88.6696194" 1
+			fileHasString ${TMP}/${OUT}.txt "GEO PSNR = 149.560767" 1
 		fi
 	fi
 	
@@ -120,9 +120,9 @@ do
 		grep -iF "error" ${TMP}/${OUT}.txt
 		fileHasString ${TMP}/${OUT}.txt "  ibsmRenderer = ${renderer}" 1
 		if [ $renderer == "sw_raster" ]; then
-			fileHasString ${TMP}/${OUT}.txt "RGB PSNR = 17.586507" 1
-			fileHasString ${TMP}/${OUT}.txt "YUV PSNR = 17.6038568" 1
-			fileHasString ${TMP}/${OUT}.txt "GEO PSNR = 17.8969953" 1
+			fileHasString ${TMP}/${OUT}.txt "RGB PSNR = 28.9146313" 1
+			fileHasString ${TMP}/${OUT}.txt "YUV PSNR = 29.160414" 1
+			fileHasString ${TMP}/${OUT}.txt "GEO PSNR = 42.1189127" 1
 		fi
 	fi
 
@@ -136,9 +136,9 @@ do
 		grep -iF "error" ${TMP}/${OUT}.txt
 		fileHasString ${TMP}/${OUT}.txt "  ibsmRenderer = ${renderer}" 1
 		if [ $renderer == "sw_raster" ]; then
-			fileHasString ${TMP}/${OUT}.txt "RGB PSNR = 17.5679349" 1
-			fileHasString ${TMP}/${OUT}.txt "YUV PSNR = 17.5854385" 1
-			fileHasString ${TMP}/${OUT}.txt "GEO PSNR = 17.8859371" 1
+			fileHasString ${TMP}/${OUT}.txt "RGB PSNR = 28.8013679" 1
+			fileHasString ${TMP}/${OUT}.txt "YUV PSNR = 29.043897" 1
+			fileHasString ${TMP}/${OUT}.txt "GEO PSNR = 42.1192512" 1
 		fi
 	fi
 
@@ -152,9 +152,9 @@ do
 		grep -iF "error" ${TMP}/${OUT}.txt
 		fileHasString ${TMP}/${OUT}.txt "  ibsmRenderer = ${renderer}" 1
 		if [ $renderer == "sw_raster" ]; then
-			fileHasString ${TMP}/${OUT}.txt "RGB PSNR = 42.0976932" 1
-			fileHasString ${TMP}/${OUT}.txt "YUV PSNR = 42.0976932" 1
-			fileHasString ${TMP}/${OUT}.txt "GEO PSNR = 42.0790485" 1
+			fileHasString ${TMP}/${OUT}.txt "RGB PSNR = 999.99" 1
+			fileHasString ${TMP}/${OUT}.txt "YUV PSNR = 999.99" 1
+			fileHasString ${TMP}/${OUT}.txt "GEO PSNR = 65.7603989" 1
 		fi
 	fi
 
@@ -178,12 +178,12 @@ do
 		if [ $renderer == "sw_raster" ]; then
 			fileHasString ${TMP}/${OUT}.txt "BoxRatio Min=99.9997664"  1
 			fileHasString ${TMP}/${OUT}.txt "BoxRatio Max=100"         1 
-			fileHasString ${TMP}/${OUT}.txt "RGB PSNR Mean=41.5663609" 1
-			fileHasString ${TMP}/${OUT}.txt "GEO PSNR Mean=41.6754508" 1
-			fileHasString ${TMP}/${OUT}.txt "Y   PSNR Mean=41.5809029" 1
-			fileHasString ${TMP}/${OUT}.txt "U   PSNR Mean=41.6812173" 1
-			fileHasString ${TMP}/${OUT}.txt "V   PSNR Mean=41.6831532" 1
-			fileHasString ${TMP}/${OUT}.txt "YUV PSNR Mean=41.5760006" 1
+			fileHasString ${TMP}/${OUT}.txt "RGB PSNR Mean=57.0410227" 1
+			fileHasString ${TMP}/${OUT}.txt "GEO PSNR Mean=66.1271437" 1
+			fileHasString ${TMP}/${OUT}.txt "Y   PSNR Mean=57.5864303" 1
+			fileHasString ${TMP}/${OUT}.txt "U   PSNR Mean=68.0485078" 1
+			fileHasString ${TMP}/${OUT}.txt "V   PSNR Mean=68.9786194" 1
+			fileHasString ${TMP}/${OUT}.txt "YUV PSNR Mean=57.3951796" 1
 		fi
 	fi
 done
