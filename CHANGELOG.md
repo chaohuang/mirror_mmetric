@@ -5,6 +5,10 @@ Primary author Jean-Eudes Marvie (InterDigital).
 
 Additional contributors mentioned per version or item hereafter.
 
+## Version 1.0.0 - version to use for the V-Mesh CfP
+
+No modification, only the version number upgrade. 
+
 ## Version 0.1.13 
 
 - Add: compare IBSM clamp PSNR max to 999.99, 
