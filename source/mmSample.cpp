@@ -720,21 +720,21 @@ void Sample::meshToPcGrid(
 		// we want to preserve invariance with existing references if useNormal is disabled
 		// so we do the following reordering only if option is enabled
 		if (useNormal) {
-			if ((abs(normal[0]) >= abs(normal[1])) && (abs(normal[0]) >= abs(normal[2]))) {
-				if (abs(normal[1]) >= abs(normal[2]))
+			if ((std::abs(normal[0]) >= std::abs(normal[1])) && (std::abs(normal[0]) >= std::abs(normal[2]))) {
+				if (std::abs(normal[1]) >= std::abs(normal[2]))
 					mainAxisVector = glm::ivec3(0, 1, 2);
 				else
 					mainAxisVector = glm::ivec3(0, 2, 1);
 			}
 			else {
-				if ((abs(normal[1]) >= abs(normal[0])) && (abs(normal[1]) >= abs(normal[2]))) {
-					if (abs(normal[0]) >= abs(normal[2]))
+				if ((std::abs(normal[1]) >= std::abs(normal[0])) && (std::abs(normal[1]) >= std::abs(normal[2]))) {
+					if (std::abs(normal[0]) >= std::abs(normal[2]))
 						mainAxisVector = glm::ivec3(1, 0, 2);
 					else
 						mainAxisVector = glm::ivec3(1, 2, 0);
 				}
 				else {
-					if (abs(normal[0]) >= abs(normal[1]))
+					if (std::abs(normal[0]) >= std::abs(normal[1]))
 						mainAxisVector = glm::ivec3(2, 0, 1);
 					else
 						mainAxisVector = glm::ivec3(2, 1, 0);

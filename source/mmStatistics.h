@@ -72,7 +72,7 @@ namespace Statistics {
 		// compute variance
 		output.variance = 0.0;
 		for (size_t i = 0; i < nbSamples; ++i) {
-			output.variance += fract * pow(sampler(i) - output.mean, 2.0);
+			output.variance += fract * std::pow(sampler(i) - output.mean, 2.0);
 		}
 		output.stdDev = sqrt(output.variance);
 
@@ -80,9 +80,9 @@ namespace Statistics {
 		const double ms = 3;
 		// finalize the code here
 		for (size_t i = 0; i < nbSamples; i++) {
-			output.minkowsky += fract * pow(abs(sampler(i)), ms);
+			output.minkowsky += fract * std::pow(std::abs(sampler(i)), ms);
 		}
-		output.minkowsky = pow(output.minkowsky, 1.0 / ms);
+		output.minkowsky = std::pow(output.minkowsky, 1.0 / ms);
 	}
 
 	// 
