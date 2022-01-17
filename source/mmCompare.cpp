@@ -666,6 +666,27 @@ int Compare::equ(
 	// mesh mode
 	if (inputA.triangles.size() != 0) {
 
+      if (inputA.vertices.size() != inputB.vertices.size()) {
+          std::cout << "meshes are not equal, number of positions are different " <<
+              inputA.getPositionCount() << " vs " << inputB.getPositionCount() << std::endl;
+          return true;
+      }
+      if (inputA.uvcoords.size() != inputB.uvcoords.size()) {
+          std::cout << "meshes are not equal, number of uv coordinates are different " <<
+              inputA.getUvCount() << " vs " << inputB.getUvCount() << std::endl;
+          return true;
+      }
+      if (inputA.trianglesuv.size() != 0 && inputA.trianglesuv.size() != inputA.triangles.size()) {
+          std::cout << "Error: meshes with uv coordinate index tables different from position index tables are not supported by the Equ command "
+              << " modelA pos Index size = " << inputA.triangles.size() << " vs " << " modelA uv Index size = " << inputA.trianglesuv.size() << std::endl;
+          return true;
+      }
+      if (inputB.trianglesuv.size() != 0 && inputB.trianglesuv.size() != inputB.triangles.size()) {
+          std::cout << "Error: meshes with uv coordinate index tables different from position index tables are not supported by the Equ command "
+              << " modelB pos Index size = " << inputB.triangles.size() << " vs " << " modelB uv Index size = " << inputB.trianglesuv.size() << std::endl;
+          return true;
+      }
+
 		// prepare a store for face status 
 		// doundInB[true] if the nth face of B matches one face of A
 		std::vector<bool> foundInB(inputB.getTriangleCount(), false);
