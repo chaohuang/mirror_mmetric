@@ -5,11 +5,19 @@ Primary author Jean-Eudes Marvie (InterDigital).
 
 Additional contributors mentioned per version or item hereafter.
 
-## Version 1.0.0 - version to use for the V-Mesh CfP
+## Version 1.0.1 - version to use for the V-Mesh CfP with corrigendum
+
+- Fix: compiler instability on math calls,
+    - add std:: prefix systematically on function invocation
+    - checked for all ceil, floor, abs, pow, min and max
+	- Contributors: Danillo Graziosi (Sony) and Jean-Eudes Marvie (InterDigital)
+- Fix: test attibute size equality in compare eq
+
+## Version 1.0.0 - (replaced by version 1.0.1 for the Cfp)
 
 No modification, only the version number upgrade. 
 
-## Version 0.1.13 
+## Version 0.1.13 - (replaced by version 1.0.1 for the Cfp)
 
 - Add: compare IBSM clamp PSNR max to 999.99, 
 	- prevent issues on Mean computations in case of infinite value for some frames
