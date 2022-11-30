@@ -2,10 +2,12 @@ main
 x64
 .vs
 *.vcxproj.user
-bin
-deps
-build
+/build/
+/build_*/
 tmp
 mm
 features_extracted.csv
-.vscode/launch.json
+.vscode/
+
+dependencies/glfw/
+dependencies/dmetric/

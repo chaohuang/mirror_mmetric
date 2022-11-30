@@ -15,21 +15,21 @@ Usage:
       --qc arg                Colors quantization bitdepth. A value < 7 no
                               quantization. (default: 8)
       --minPos arg            min corner of vertex position bbox, a string of
-                              three floats. Computed of not set.
+                              three floats. Computed if not set.
       --maxPos arg            max corner of vertex position bbox, a string of
-                              three floats. Computed of not set.
+                              three floats. Computed if not set.
       --minUv arg             min corner of vertex texture coordinates bbox,
-                              a string of three floats. Computed of not set.
+                              a string of three floats. Computed if not set.
       --maxUv arg             max corner of vertex texture coordinates bbox,
-                              a string of three floats. Computed of not set.
+                              a string of three floats. Computed if not set.
       --minNrm arg            min corner of vertex normal bbox, a string of
-                              three floats. Computed of not set.
+                              three floats. Computed if not set.
       --maxNrm arg            max corner of vertex normal bbox, a string of
-                              three floats. Computed of not set.
+                              three floats. Computed if not set.
       --minCol arg            min corner of vertex color bbox, a string of
-                              three floats. Computed of not set.
+                              three floats. Computed if not set.
       --maxCol arg            max corner of vertex color bbox, a string of
-                              three floats. Computed of not set.
+                              three floats. Computed if not set.
       --outputVar arg         path to the output variables file.
       --useFixedPoint         internally convert the minPos and maxPos to
                               fixed point 16.

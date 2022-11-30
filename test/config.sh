@@ -20,9 +20,9 @@ mkdir -p $TMP
 CMD=""
 if [ "$(uname)" == "Linux" ]; 
 then
-	CMD=../bin/mm
+	CMD=../build/Release/bin/mm
 else
-	CMD=../bin/mm.exe
+	CMD=../build/Release/bin/Release/mm.exe
 fi
 
 # function to compare two Os specific logs

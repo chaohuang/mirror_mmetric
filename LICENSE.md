@@ -20,15 +20,15 @@ Author: jean-eudes.marvie@interdigital.com
 
 # 3rdParty softwares:
 
-| name           | license | url                                                           |
-|----------------|---------|---------------------------------------------------------------|
-|Eigen3          | MPL2    | http://eigen.tuxfamily.org/index.php?title=Main_Page#License  |
-|Nanoflann       | BSD2    | https://github.com/jlblancoc/nanoflann                        |
-|Tinyply         | MIT like| https://github.com/ddiakopoulos/tinyply                       |
-|PCQM2           | MPL     | https://github.com/MEPP-team/PCQM/blob/master/LICENSE.md      |
-|Stb_image       | MIT     | https://github.com/nothings/stb                               |
-|Cxxopts         | MIT     | https://github.com/jarro2783/cxxopts                          |
-|Glm             | MIT     | https://github.com/g-truc/glm/blob/master/copying.txt         |
-|mpec_pcc_derror | MIT     | http://mpegx.int-evry.fr/software/MPEG/PCC/mpeg-pcc-dmetric   |
-|glad            | MIT     | https://github.com/Dav1dde/glad                               |
-|glfw            | ZLIB    | https://github.com/glfw/glfw                                  |
+| name            | license | url                                                           |
+|-----------------|---------|---------------------------------------------------------------|
+|Eigen3           | MPL2    | http://eigen.tuxfamily.org/index.php?title=Main_Page#License  |
+|Nanoflann        | BSD2    | https://github.com/jlblancoc/nanoflann                        |
+|Tinyply          | MIT like| https://github.com/ddiakopoulos/tinyply                       |
+|PCQM2            | MPL     | https://github.com/MEPP-team/PCQM/blob/master/LICENSE.md      |
+|Stb_image        | MIT     | https://github.com/nothings/stb                               |
+|Cxxopts          | MIT     | https://github.com/jarro2783/cxxopts                          |
+|Glm              | MIT     | https://github.com/g-truc/glm/blob/master/copying.txt         |
+|mpec_pcc_dmetric | MIT     | http://mpegx.int-evry.fr/software/MPEG/PCC/mpeg-pcc-dmetric   |
+|glad             | MIT     | https://github.com/Dav1dde/glad                               |
+|glfw             | ZLIB    | https://github.com/glfw/glfw                                  |

@@ -1,55 +1,94 @@
 #!/bin/bash
 
-CURDIR=`dirname $0`;
-echo -e "\033[0;32mBuild: $(readlink -f $CURDIR) \033[0m";
+CURDIR=$( cd "$( dirname "$0" )" && pwd ); 
+echo -e "\033[0;32mBuild: ${CURDIR} \033[0m";
 
-case "$(uname -s)" in
-  Linux*)     MACHINE=Linux;;
-  Darwin*)    MACHINE=Mac;;
-  *)          MACHINE=Other
-esac
+CMAKE=""; 
+if [ "$( cmake  --version 2>&1 | grep version | awk '{print $3 }' | awk -F '.' '{print $1}' )" == 3 ] ; then CMAKE=cmake; fi
+if [ "$( cmake3 --version 2>&1 | grep version | awk '{print $3 }' | awk -F '.' '{print $1}' )" == 3 ] ; then CMAKE=cmake3; fi
+if [ "$CMAKE" == "" ] ; then echo "Can't find cmake > 3.0"; exit; fi
 
-MODE=Release;
-CMAKE_FLAGS=;
-if [ "$MACHINE" == "Linux" ] ; then NUMBER_OF_PROCESSORS=`grep -c ^processor /proc/cpuinfo`; fi
+print_usage()
+{
+  echo "$0 mpeg-pcc-mmetric building script: "
+  echo "";
+  echo "    Usage:" 
+  echo "       -h|--help    : Display this information."  
+  echo "       -o|--ouptut  : Output build directory."
+  echo "       -n|--ninja   : Use Ninja"
+  echo "       --debug      : Build in debug mode."
+  echo "       --release    : Build in release mode."
+  echo "       --doc        : Build documentation"
+  echo "       --test       : Execute all tests"
+  echo "       --format     : Format source code"
+  echo "       --nojobs     : Disables multi-processor build on unix"
+  echo "       --noomp      : Disables openmp build"
+  echo "       --nocmd      : Disables mm software building"
+  echo "";
+  echo "    Examples:";
+  echo "      $0 "; 
+  echo "      $0 --debug"; 
+  echo "      $0 --doc";   
+  echo "      $0 --format";    
+  echo "    ";  
+  if [ $# != 0 ] ; then echo -e "ERROR: $1 \n"; fi
+  exit 0;
+}
 
-USE_OPENMP=ON
+MODE=Release
+TARGETS=()
+CMAKE_FLAGS=()
+OUTPUT=build
+case $(uname -s) in Linux*) NUMBER_OF_PROCESSORS=$( grep -c ^processor /proc/cpuinfo );; esac
 
-for i in "$@"
-do  
-  case "$i" in
-		deps|Deps|deps\/       ) ./build-deps.sh; exit;;
-		doc|Doc|doc\/          ) ./build-doc.sh; exit;;
-		debug|Debug|DEBUG      ) MODE=Debug;;
-		release|Release|RELEASE) MODE=Release;;
-		nojobs|NOJOBS		   ) NUMBER_OF_PROCESSORS=1;;
-		noomp|NOOMP		       ) USE_OPENMP=OFF;;
-		*                      ) echo "ERROR: arguments \"$i\" not supported: option = [doc|debug|release]"; exit -1;;
+while [[ $# -gt 0 ]] ; do  
+  C=$1; if [[ "$C" =~ [=] ]] ; then V=${C#*=}; elif [[ $2 == -* ]] ; then  V=""; else V=$2; shift; fi;
+  case "$C" in    
+    -h|--help     ) print_usage;;
+    -n|--ninja    ) CMAKE_FLAGS+=( "-GNinja" );; 
+    -o|--output=* ) OUTPUT=${V};;
+    --debug       ) MODE=Debug; CMAKE_FLAGS+=("-DCMAKE_C_FLAGS=\"-g3\"" "-DCMAKE_CXX_FLAGS=\"-g3\"" );;
+    --release     ) MODE=Release;;
+    --doc         ) ${CURDIR}/doc/build-doc.sh; exit;;
+    --test        ) ${CURDIR}/test.sh; exit;;
+    --format      ) TARGETS+=( "clang-format" );;    
+    --doc         ) ${CURDIR}/doc/build-doc.sh; exit;;
+    --test        ) ${CURDIR}/doc/test.sh; exit;;
+    --nojobs      ) NUMBER_OF_PROCESSORS=1;;
+    --noomp       ) CMAKE_FLAGS+=( "-DUSE_OPENMP=OFF" );;
+    --nocmd       ) CMAKE_FLAGS+=( "-DMM_BUILD_CMD=OFF" );;
+    *             ) print_usage "unsupported arguments: $C ";;
   esac
+  shift;
 done
 
-if [[ ! -d "./deps" ]];
+CMAKE_FLAGS+=( "-DCMAKE_BUILD_TYPE=$MODE" )
+CMAKE_FLAGS+=( "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON" )
+if ! ${CMAKE} -H${CURDIR} -B"${CURDIR}/${OUTPUT}/${MODE}" "${CMAKE_FLAGS[@]}";
 then
-	./build-deps.sh
+  echo -e "\033[1;31mfailed \033[0m"
+  exit 1;
+fi 
+echo -e "\033[0;32mdone \033[0m";
+
+# Use custom targets
+if (( ${#TARGETS[@]} ))
+then 
+  for TARGET in ${TARGETS[@]}
+  do     
+    echo -e "\033[0;32m${TARGET}: ${CURDIR} \033[0m";
+    ${CMAKE} --build "${CURDIR}/${OUTPUT}/${MODE}" --target ${TARGET}
+    echo -e "\033[0;32mdone \033[0m";
+  done
+  exit 0
 fi
 
-CMAKE_FLAGS="$CMAKE_FLAGS -DCMAKE_BUILD_TYPE=$MODE -DUSE_OPENMP=$USE_OPENMP";
-case "${MACHINE}" in
-  Linux) cmake -B${CURDIR}/build/${MODE} -G "Unix Makefiles"               ${CMAKE_FLAGS};; 
-  Mac)   cmake -B${CURDIR}/build/${MODE} -G "Xcode"                        ${CMAKE_FLAGS};;
-  *)     cmake -B${CURDIR}/build/${MODE} -G "Visual Studio 16 2019" -A x64 ${CMAKE_FLAGS};;
-esac
+echo -e "\033[0;32mBuild: ${CURDIR} \033[0m";
+if ! ${CMAKE} --build "${CURDIR}/${OUTPUT}/${MODE}" --config ${MODE} --parallel "${NUMBER_OF_PROCESSORS}" ;
+then
+  echo -e "\033[1;31mfailed \033[0m"
+  exit 1;
+fi 
+echo -e "\033[0;32mdone \033[0m";
 
-case "${MACHINE}" in
-  Linux) make -C ${CURDIR}/build/${MODE} -j ${NUMBER_OF_PROCESSORS} -s;; 
-  Mac)   echo "Please, open the generated xcode project and build it ";;
-  *)     MSBUILD=/C/Program\ Files\ \(x86\)/Microsoft\ Visual\ Studio/2019/Professional/MSBuild/Current/Bin/msbuild.exe
-         if [[ -f "$MSBUILD" ]];
-         then 
-           "${MSBUILD}" ./build/${MODE}/mm.sln /property:Configuration=${MODE};
-         else
-           echo "MsBuild not found ($MSBUILD)";
-           echo "Please, open the generated visual studio solution and build it ";        
-         fi
-  ;;
-esac 
+#EOF

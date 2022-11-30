@@ -5,6 +5,38 @@ Primary author Jean-Eudes Marvie (InterDigital).
 
 Additional contributors mentioned per version or item hereafter.
 
+## Version 1.1.0
+
+Contributor: Julien Ricard (Interdigital)
+
+Add: separate core engine into library
+
+  - new library architecture
+  - update documentation
+  - update clang-format command to allow cmake include
+  - update dmetric tag (release-v0.14) and static compute function to clip values to 999.99
+  - add format command and clang-format style
+  - remove ./dependencies/pcc and clone dmetric mpeg repository
+  - fix remove duplicate sort difference with gcc or clang and remove duplicate average normal computation
+  - add verbose parameter to metric functions to disable logs during vmesh metric calculations
+  - update getPSNR function to convert inf value by 999.99 like in CFP documents
+  - update load ply to manage vmesh ply files
+  - update loadPly form IO to manage vmesh ply files
+  - add missing std:: in absolute function inside mmSample.cpp
+  - add hausdorff distances in getFinalPccResults() function
+  - update ltrim and rtrim functions for c++17
+  - update glfw cmake and dependencies directory
+  - add glfw fetch repository process
+
+Fix issues reported in gitlab:
+  - #1 Build requirements missing?
+  - #2 Readme issues.
+  - #3 Minor bugfixes in code.
+  - #4 RGB / YUV MSE reporting.
+  - #6 Typos in README.md.
+  - #7 The values of c2p_psnr and haus_c2c_psnr are output to a csv file in the wrong order.
+  - #8 Wrong ibsm mode YUV-psnr calculation.
+
 ## Version 1.0.1 - version to use for the V-Mesh CfP with corrigendum
 
 - Fix: compiler instability on math calls,
