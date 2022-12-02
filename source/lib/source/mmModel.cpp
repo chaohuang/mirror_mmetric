@@ -262,7 +262,10 @@ void Model::computeNeighborTriangles( bool useIndices, bool skipNonManifold ) {
             std::set<size_t> intersection;
             auto&            firstCluster = *firstClusterIter;
             auto&            scndCluster  = *scndClusterIter;
-            std::set_intersection( firstCluster.begin(), firstCluster.end(), scndCluster.begin(), scndCluster.end(),
+            std::set_intersection( firstCluster.begin(),
+                                   firstCluster.end(),
+                                   scndCluster.begin(),
+                                   scndCluster.end(),
                                    std::inserter( intersection, intersection.begin() ) );
 
             if ( intersection.size() != 0 ) {
@@ -333,8 +336,8 @@ void Model::computeNeighborTriangles( bool useIndices, bool skipNonManifold ) {
       auto& s2 = perVertexTriangles[i[2]];
 
       std::set<size_t> intersect1;
-      std::set_intersection( s0.begin(), s0.end(), s1.begin(), s1.end(),
-                             std::inserter( intersect1, intersect1.begin() ) );
+      std::set_intersection(
+        s0.begin(), s0.end(), s1.begin(), s1.end(), std::inserter( intersect1, intersect1.begin() ) );
       intersect1.erase( triIndex );  // remove self
       if ( intersect1.size() > 1 ) {
         if ( skipNonManifold ) {
@@ -355,8 +358,8 @@ void Model::computeNeighborTriangles( bool useIndices, bool skipNonManifold ) {
       }
 
       std::set<size_t> intersect2;
-      std::set_intersection( s1.begin(), s1.end(), s2.begin(), s2.end(),
-                             std::inserter( intersect2, intersect2.begin() ) );
+      std::set_intersection(
+        s1.begin(), s1.end(), s2.begin(), s2.end(), std::inserter( intersect2, intersect2.begin() ) );
       intersect2.erase( triIndex );  // remove self
       if ( intersect2.size() > 1 ) {
         if ( skipNonManifold ) {
@@ -377,8 +380,8 @@ void Model::computeNeighborTriangles( bool useIndices, bool skipNonManifold ) {
       }
 
       std::set<size_t> intersect3;
-      std::set_intersection( s2.begin(), s2.end(), s0.begin(), s0.end(),
-                             std::inserter( intersect3, intersect3.begin() ) );
+      std::set_intersection(
+        s2.begin(), s2.end(), s0.begin(), s0.end(), std::inserter( intersect3, intersect3.begin() ) );
       intersect3.erase( triIndex );  // remove self
       if ( intersect3.size() > 1 ) {
         if ( skipNonManifold ) {

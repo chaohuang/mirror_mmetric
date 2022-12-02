@@ -56,7 +56,7 @@ void Dequantize::dequantize( const Model&     input,
                              const glm::vec3& maxCol,
                              const bool       useFixedPoint,
                              const bool       colorSpaceConversion,
-                             const bool       verbose  ) {
+                             const bool       verbose ) {
   // copy input
   output = input;
 
@@ -69,14 +69,10 @@ void Dequantize::dequantize( const Model&     input,
       // converting the values to a fixed point representation
       // minBox(FP16) will be used in AAPS -> shift
       for ( int i = 0; i < 3; i++ ) {
-        if ( minBox[i] > 0 )
-          minBox[i] = ( std::floor( minBox[i] * fixedPoint16 ) ) / fixedPoint16;
-        else
-          minBox[i] = ( -1 ) * ( std::ceil( std::abs( minBox[i] ) * fixedPoint16 ) ) / fixedPoint16;
-        if ( maxBox[i] > 0 )
-          maxBox[i] = ( std::ceil( maxBox[i] * fixedPoint16 ) ) / fixedPoint16;
-        else
-          maxBox[i] = ( -1 ) * ( std::floor( std::abs( maxBox[i] ) * fixedPoint16 ) ) / fixedPoint16;
+        if ( minBox[i] > 0 ) minBox[i] = ( std::floor( minBox[i] * fixedPoint16 ) ) / fixedPoint16;
+        else minBox[i] = ( -1 ) * ( std::ceil( std::abs( minBox[i] ) * fixedPoint16 ) ) / fixedPoint16;
+        if ( maxBox[i] > 0 ) maxBox[i] = ( std::ceil( maxBox[i] * fixedPoint16 ) ) / fixedPoint16;
+        else maxBox[i] = ( -1 ) * ( std::floor( std::abs( maxBox[i] ) * fixedPoint16 ) ) / fixedPoint16;
       }
     }
 

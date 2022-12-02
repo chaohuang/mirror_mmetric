@@ -124,8 +124,7 @@ bool CmdSample::initialize( Context* context, std::string app, int argc, char* a
       return false;
     }
     //
-    if ( result.count( "inputModel" ) )
-      inputModelFilename = result["inputModel"].as<std::string>();
+    if ( result.count( "inputModel" ) ) inputModelFilename = result["inputModel"].as<std::string>();
     else {
       std::cerr << "Error: missing inputModel parameter" << std::endl;
       std::cout << options.help() << std::endl;
@@ -134,8 +133,7 @@ bool CmdSample::initialize( Context* context, std::string app, int argc, char* a
     //
     if ( result.count( "inputMap" ) ) inputTextureFilename = result["inputMap"].as<std::string>();
     //
-    if ( result.count( "outputModel" ) )
-      outputModelFilename = result["outputModel"].as<std::string>();
+    if ( result.count( "outputModel" ) ) outputModelFilename = result["outputModel"].as<std::string>();
     else {
       std::cerr << "Error: missing outputModel parameter" << std::endl;
       std::cout << options.help() << std::endl;
@@ -257,12 +255,20 @@ bool CmdSample::process( uint32_t frame ) {
     size_t computedResolution = 0;
     if ( _nbSamplesMin != 0 ) {
       std::cout << "  using contrained mode with nbSamples (costly!)" << std::endl;
-      mm::Sample::meshToPcFace( *inputModel, *outputModel, *textureMap, _nbSamplesMin, _nbSamplesMax, _maxIterations,
-                                thickness, bilinear, !hideProgress, computedResolution );
+      mm::Sample::meshToPcFace( *inputModel,
+                                *outputModel,
+                                *textureMap,
+                                _nbSamplesMin,
+                                _nbSamplesMax,
+                                _maxIterations,
+                                thickness,
+                                bilinear,
+                                !hideProgress,
+                                computedResolution );
     } else {
       std::cout << "  using contrained mode with resolution " << std::endl;
-      mm::Sample::meshToPcFace( *inputModel, *outputModel, *textureMap, _resolution, thickness, bilinear,
-                                !hideProgress );
+      mm::Sample::meshToPcFace(
+        *inputModel, *outputModel, *textureMap, _resolution, thickness, bilinear, !hideProgress );
     }
     // print the stats
     if ( csvFileOut ) {
@@ -290,13 +296,31 @@ bool CmdSample::process( uint32_t frame ) {
     size_t computedResolution = 0;
     if ( _nbSamplesMin != 0 ) {
       std::cout << "  using contrained mode with nbSamples (costly!)" << std::endl;
-      mm::Sample::meshToPcGrid( *inputModel, *outputModel, *textureMap, _nbSamplesMin, _nbSamplesMax, _maxIterations,
-                                bilinear, !hideProgress, _useNormal, _useFixedPoint, _minPos, _maxPos,
+      mm::Sample::meshToPcGrid( *inputModel,
+                                *outputModel,
+                                *textureMap,
+                                _nbSamplesMin,
+                                _nbSamplesMax,
+                                _maxIterations,
+                                bilinear,
+                                !hideProgress,
+                                _useNormal,
+                                _useFixedPoint,
+                                _minPos,
+                                _maxPos,
                                 computedResolution );
     } else {
       std::cout << "  using contrained mode with gridSize " << std::endl;
-      mm::Sample::meshToPcGrid( *inputModel, *outputModel, *textureMap, _gridSize, bilinear, !hideProgress, _useNormal,
-                                _useFixedPoint, _minPos, _maxPos );
+      mm::Sample::meshToPcGrid( *inputModel,
+                                *outputModel,
+                                *textureMap,
+                                _gridSize,
+                                bilinear,
+                                !hideProgress,
+                                _useNormal,
+                                _useFixedPoint,
+                                _minPos,
+                                _maxPos );
     }
     // print the stats
     if ( csvFileOut ) {
@@ -338,11 +362,18 @@ bool CmdSample::process( uint32_t frame ) {
     float computedThres = 0.0f;
     if ( _nbSamplesMin != 0 ) {
       std::cout << "  using contrained mode with nbSamples (costly!)" << std::endl;
-      mm::Sample::meshToPcDiv( *inputModel, *outputModel, *textureMap, _nbSamplesMin, _nbSamplesMax, _maxIterations,
-                               bilinear, !hideProgress, computedThres );
+      mm::Sample::meshToPcDiv( *inputModel,
+                               *outputModel,
+                               *textureMap,
+                               _nbSamplesMin,
+                               _nbSamplesMax,
+                               _maxIterations,
+                               bilinear,
+                               !hideProgress,
+                               computedThres );
     } else {
-      mm::Sample::meshToPcDiv( *inputModel, *outputModel, *textureMap, areaThreshold, mapThreshold, bilinear,
-                               !hideProgress );
+      mm::Sample::meshToPcDiv(
+        *inputModel, *outputModel, *textureMap, areaThreshold, mapThreshold, bilinear, !hideProgress );
     }
     // print the stats
     if ( csvFileOut ) {
@@ -370,11 +401,18 @@ bool CmdSample::process( uint32_t frame ) {
     float computedThres = 0.0f;
     if ( _nbSamplesMin != 0 ) {
       std::cout << "  using contrained mode with nbSamples (costly!)" << std::endl;
-      mm::Sample::meshToPcDivEdge( *inputModel, *outputModel, *textureMap, _nbSamplesMin, _nbSamplesMax, _maxIterations,
-                                   bilinear, !hideProgress, computedThres );
+      mm::Sample::meshToPcDivEdge( *inputModel,
+                                   *outputModel,
+                                   *textureMap,
+                                   _nbSamplesMin,
+                                   _nbSamplesMax,
+                                   _maxIterations,
+                                   bilinear,
+                                   !hideProgress,
+                                   computedThres );
     } else {
-      mm::Sample::meshToPcDivEdge( *inputModel, *outputModel, *textureMap, lengthThreshold, _resolution, bilinear,
-                                   !hideProgress, computedThres );
+      mm::Sample::meshToPcDivEdge(
+        *inputModel, *outputModel, *textureMap, lengthThreshold, _resolution, bilinear, !hideProgress, computedThres );
     }
     // print the stats
     if ( csvFileOut ) {
@@ -414,8 +452,6 @@ bool CmdSample::process( uint32_t frame ) {
   std::cout << "Time on processing: " << ( (float)( t2 - t1 ) ) / CLOCKS_PER_SEC << " sec." << std::endl;
 
   // save the result
-  if ( mm::IO::saveModel( outputModelFilename, outputModel ) )
-    return true;
-  else
-    return false;
+  if ( mm::IO::saveModel( outputModelFilename, outputModel ) ) return true;
+  else return false;
 }

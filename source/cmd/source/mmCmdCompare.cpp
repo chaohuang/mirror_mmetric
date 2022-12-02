@@ -148,16 +148,14 @@ bool CmdCompare::initialize( Context* context, std::string app, int argc, char* 
       return false;
     }
     //
-    if ( result.count( "inputModelA" ) )
-      _inputModelAFilename = result["inputModelA"].as<std::string>();
+    if ( result.count( "inputModelA" ) ) _inputModelAFilename = result["inputModelA"].as<std::string>();
     else {
       std::cerr << "Error: missing inputModelA parameter" << std::endl;
       std::cout << options.help() << std::endl;
       return false;
     }
     //
-    if ( result.count( "inputModelB" ) )
-      _inputModelBFilename = result["inputModelB"].as<std::string>();
+    if ( result.count( "inputModelB" ) ) _inputModelBFilename = result["inputModelB"].as<std::string>();
     else {
       std::cerr << "Error: missing inputModelB parameter" << std::endl;
       std::cout << options.help() << std::endl;
@@ -310,8 +308,15 @@ bool CmdCompare::process( uint32_t frame ) {
   if ( _mode == "equ" ) {
     std::cout << "Compare models for equality" << std::endl;
     std::cout << "  Epsilon = " << _equEpsilon << std::endl;
-    res = _compare.equ( *inputModelA, *inputModelB, *textureMapA, *textureMapB, _equEpsilon, _equEarlyReturn,
-                            _equUnoriented, *outputModelA, *outputModelB );
+    res = _compare.equ( *inputModelA,
+                        *inputModelB,
+                        *textureMapA,
+                        *textureMapB,
+                        _equEpsilon,
+                        _equEarlyReturn,
+                        _equUnoriented,
+                        *outputModelA,
+                        *outputModelB );
 
     // print the stats
     if ( csvFileOut ) {
@@ -362,7 +367,8 @@ bool CmdCompare::process( uint32_t frame ) {
     std::cout << "  averageNormals = " << _pccParams.bAverageNormals << std::endl;
     // just backup for logging because it might be modified by pcc function call if auto mode
     float paramsResolution = _pccParams.resolution;
-    res = _compare.pcc( *inputModelA, *inputModelB, *textureMapA, *textureMapB, _pccParams, *outputModelA, *outputModelB );
+    res =
+      _compare.pcc( *inputModelA, *inputModelB, *textureMapA, *textureMapB, _pccParams, *outputModelA, *outputModelB );
 
     // print the stats
     // TODO add all parameters in the output
@@ -371,8 +377,7 @@ bool CmdCompare::process( uint32_t frame ) {
       auto& frameResults = _compare.getPccResults();
 
       // print the header if file is empty
-      if (csvFileLength == 0)
-      {
+      if ( csvFileLength == 0 ) {
         csvFileOut << "p_inputModelA;"
                    << "p_inputModelB;"
                    << "p_inputMapA;"
@@ -398,29 +403,29 @@ bool CmdCompare::process( uint32_t frame ) {
                    << "haus_rgb_psnr[2]" << std::endl;
       }
       // print stats
-      csvFileOut << _inputModelAFilename << ";"                            // inputModelA
-                 << _inputModelBFilename << ";"                            // inputModelB
-                 << _inputTextureAFilename << ";"                          // inputMapA
-                 << _inputTextureBFilename << ";"                          // inputMapB
-                 << _pccParams.singlePass << ";"                           // singlePass
-                 << _pccParams.hausdorff << ";"                            // hausdorff
-                 << _pccParams.bColor << ";"                               // color
-                 << paramsResolution << ";"                                // resolution
-                 << _pccParams.neighborsProc << ";"                        // neighborsProc
-                 << _pccParams.dropDuplicates << ";"                       // dropDuplicates
-                 << _pccParams.bAverageNormals << ";"                      // averageNormals
-                 << frame << ";"                                           // frame
-                 << _pccParams.resolution << ";"                           // resolution
-                 << frameResults.second.c2c_psnr << ";"                    // c2c_psnr
-                 << frameResults.second.c2c_hausdorff_psnr << ";"          // haus_c2c_psnr
-                 << frameResults.second.c2p_psnr << ";"                    // c2p_psnr 
-                 << frameResults.second.c2p_hausdorff_psnr << ";"          // hausc2p_psnr 
-                 << frameResults.second.color_psnr[0] << ";"               // color_psnr[0]
-                 << frameResults.second.color_psnr[1] << ";"               // color_psnr[1]
-                 << frameResults.second.color_psnr[2] << ";"               // color_psnr[2]
-                 << frameResults.second.color_rgb_hausdorff_psnr[0] << ";" // haus_rgb_psnr[0]
-                 << frameResults.second.color_rgb_hausdorff_psnr[1] << ";" // haus_rgb_psnr[1]
-                 << frameResults.second.color_rgb_hausdorff_psnr[2]        // haus_rgb_psnr[2]
+      csvFileOut << _inputModelAFilename << ";"                             // inputModelA
+                 << _inputModelBFilename << ";"                             // inputModelB
+                 << _inputTextureAFilename << ";"                           // inputMapA
+                 << _inputTextureBFilename << ";"                           // inputMapB
+                 << _pccParams.singlePass << ";"                            // singlePass
+                 << _pccParams.hausdorff << ";"                             // hausdorff
+                 << _pccParams.bColor << ";"                                // color
+                 << paramsResolution << ";"                                 // resolution
+                 << _pccParams.neighborsProc << ";"                         // neighborsProc
+                 << _pccParams.dropDuplicates << ";"                        // dropDuplicates
+                 << _pccParams.bAverageNormals << ";"                       // averageNormals
+                 << frame << ";"                                            // frame
+                 << _pccParams.resolution << ";"                            // resolution
+                 << frameResults.second.c2c_psnr << ";"                     // c2c_psnr
+                 << frameResults.second.c2c_hausdorff_psnr << ";"           // haus_c2c_psnr
+                 << frameResults.second.c2p_psnr << ";"                     // c2p_psnr
+                 << frameResults.second.c2p_hausdorff_psnr << ";"           // hausc2p_psnr
+                 << frameResults.second.color_psnr[0] << ";"                // color_psnr[0]
+                 << frameResults.second.color_psnr[1] << ";"                // color_psnr[1]
+                 << frameResults.second.color_psnr[2] << ";"                // color_psnr[2]
+                 << frameResults.second.color_rgb_hausdorff_psnr[0] << ";"  // haus_rgb_psnr[0]
+                 << frameResults.second.color_rgb_hausdorff_psnr[1] << ";"  // haus_rgb_psnr[1]
+                 << frameResults.second.color_rgb_hausdorff_psnr[2]         // haus_rgb_psnr[2]
                  << std::endl;
       // done
       csvFileOut.close();
@@ -430,8 +435,15 @@ bool CmdCompare::process( uint32_t frame ) {
     std::cout << "  radiusCurvature = " << _pcqmRadiusCurvature << std::endl;
     std::cout << "  thresholdKnnSearch = " << _pcqmThresholdKnnSearch << std::endl;
     std::cout << "  radiusFactor = " << _pcqmRadiusFactor << std::endl;
-    res = _compare.pcqm( *inputModelA, *inputModelB, *textureMapA, *textureMapB, _pcqmRadiusCurvature, _pcqmThresholdKnnSearch,
-                _pcqmRadiusFactor, *outputModelA, *outputModelB );
+    res = _compare.pcqm( *inputModelA,
+                         *inputModelB,
+                         *textureMapA,
+                         *textureMapB,
+                         _pcqmRadiusCurvature,
+                         _pcqmThresholdKnnSearch,
+                         _pcqmRadiusFactor,
+                         *outputModelA,
+                         *outputModelB );
     // print the stats
     // TODO add all parameters in the output
     if ( csvFileOut ) {
@@ -461,15 +473,25 @@ bool CmdCompare::process( uint32_t frame ) {
     std::cout << "  ibsmDisableCulling = " << _ibsmDisableCulling << std::endl;
     std::cout << "  ibsmOutputPrefix = " << _ibsmOutputPrefix << std::endl;
 
-    res = _compare.ibsm( *inputModelA, *inputModelB, *textureMapA, *textureMapB, _ibsmDisableReordering,
-                         _ibsmResolution, _ibsmCameraCount, _ibsmCamRotParams, _ibsmRenderer, _ibsmOutputPrefix,
-                         _ibsmDisableCulling, *outputModelA, *outputModelB );
+    res = _compare.ibsm( *inputModelA,
+                         *inputModelB,
+                         *textureMapA,
+                         *textureMapB,
+                         _ibsmDisableReordering,
+                         _ibsmResolution,
+                         _ibsmCameraCount,
+                         _ibsmCamRotParams,
+                         _ibsmRenderer,
+                         _ibsmOutputPrefix,
+                         _ibsmDisableCulling,
+                         *outputModelA,
+                         *outputModelB );
 
     // print the stats
     if ( csvFileOut ) {
       // retrieve  metric results
       auto& frameResults = _compare.getIbsmResults();
-      
+
       // print the header if file is empty
       if ( csvFileLength == 0 ) {
         csvFileOut << "p_inputModelA;p_inputModelB;p_inputMapA;p_inputMapB;"

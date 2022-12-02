@@ -120,8 +120,10 @@ bool CmdAnalyse::process( uint32_t frame ) {
 
   // analyse the model if any
   if ( inputModel != NULL ) {
-    _counts.push_back( std::make_tuple( _context->getFrame(), (double)inputModel->triangles.size() / 3,
-                                        (double)inputModel->vertices.size() / 3, (double)inputModel->colors.size() / 3,
+    _counts.push_back( std::make_tuple( _context->getFrame(),
+                                        (double)inputModel->triangles.size() / 3,
+                                        (double)inputModel->vertices.size() / 3,
+                                        (double)inputModel->colors.size() / 3,
                                         (double)inputModel->normals.size() / 3,
                                         (double)inputModel->uvcoords.size() / 2 ) );
 
@@ -174,18 +176,15 @@ bool CmdAnalyse::process( uint32_t frame ) {
            << maxPos[0] << ";" << maxPos[1] << ";" << maxPos[2];
       if ( inputModel->uvcoords.size() ) {
         fout << ";" << minUv[0] << ";" << minUv[1] << ";" << maxUv[0] << ";" << maxUv[1];
-      } else
-        fout << ";;;;";
+      } else fout << ";;;;";
       if ( inputModel->colors.size() ) {
         fout << ";" << minCol[0] << ";" << minCol[1] << ";" << minCol[2] << ";" << maxCol[0] << ";" << maxCol[1] << ";"
              << maxCol[2];
-      } else
-        fout << ";;;;;;";
+      } else fout << ";;;;;;";
       if ( inputModel->normals.size() ) {
         fout << ";" << minNrm[0] << ";" << minNrm[1] << ";" << minNrm[2] << ";" << maxNrm[0] << ";" << maxNrm[1] << ";"
              << maxNrm[2];
-      } else
-        fout << ";;;;;;";
+      } else fout << ";;;;;;";
     }
     fout << std::endl;
     // done
@@ -223,19 +222,19 @@ bool CmdAnalyse::finalize() {
 
     mm::Statistics::Results stats;
     mm::Statistics::compute(
-        _counts.size(), [&]( size_t i ) -> double { return std::get<1>( _counts[i] ); }, stats );
+      _counts.size(), [&]( size_t i ) -> double { return std::get<1>( _counts[i] ); }, stats );
     mm::Statistics::printToLog( stats, "globalTriangleCount", *out[i] );
     mm::Statistics::compute(
-        _counts.size(), [&]( size_t i ) -> double { return std::get<2>( _counts[i] ); }, stats );
+      _counts.size(), [&]( size_t i ) -> double { return std::get<2>( _counts[i] ); }, stats );
     mm::Statistics::printToLog( stats, "globalVertexCount", *out[i] );
     mm::Statistics::compute(
-        _counts.size(), [&]( size_t i ) -> double { return std::get<3>( _counts[i] ); }, stats );
+      _counts.size(), [&]( size_t i ) -> double { return std::get<3>( _counts[i] ); }, stats );
     mm::Statistics::printToLog( stats, "globalColorCount", *out[i] );
     mm::Statistics::compute(
-        _counts.size(), [&]( size_t i ) -> double { return std::get<4>( _counts[i] ); }, stats );
+      _counts.size(), [&]( size_t i ) -> double { return std::get<4>( _counts[i] ); }, stats );
     mm::Statistics::printToLog( stats, "globalNormalCount", *out[i] );
     mm::Statistics::compute(
-        _counts.size(), [&]( size_t i ) -> double { return std::get<5>( _counts[i] ); }, stats );
+      _counts.size(), [&]( size_t i ) -> double { return std::get<5>( _counts[i] ); }, stats );
     mm::Statistics::printToLog( stats, "globalUvCoordCount", *out[i] );
 
     *out[i] << "globalMinPos=\"" << _minPos[0] << " " << _minPos[1] << " " << _minPos[2] << "\"" << std::endl;

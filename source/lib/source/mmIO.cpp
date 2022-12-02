@@ -19,7 +19,7 @@
 
 // remove warning when using sprintf on MSVC
 #ifdef _MSC_VER
-#define _CRT_SECURE_NO_WARNINGS
+#  define _CRT_SECURE_NO_WARNINGS
 #endif
 
 #include <iostream>
@@ -318,8 +318,7 @@ bool IO::_loadObj( std::string filename, Model& output ) {
           temp_index   = atoi( temp_str.substr( 0, found ).c_str() ) - 1;
           int uv_index = atoi( temp_str.substr( found + 1, temp_str.size() - found ).c_str() ) - 1;
           output.trianglesuv.push_back( uv_index );
-        } else
-          temp_index = atoi( temp_str.c_str() ) - 1;
+        } else temp_index = atoi( temp_str.c_str() ) - 1;
         output.triangles.push_back( temp_index );
       }
     }
@@ -351,10 +350,15 @@ bool IO::_saveObj( std::string filename, const Model& input ) {
   // this is mandatory to print floats with full precision
   fout.precision( std::numeric_limits<float>::max_digits10 );
 
-  printf( "_saveObj %-40s: V = %zu Vc = %zu N = %zu UV = %zu F = %zu Fuv = %zu \n", filename.c_str(),
-          input.vertices.size() / 3, input.colors.size() / 3, input.normals.size() / 3, input.uvcoords.size() / 2,
-          input.triangles.size() / 3, input.trianglesuv.size() / 3 );
-  fflush(stdout);
+  printf( "_saveObj %-40s: V = %zu Vc = %zu N = %zu UV = %zu F = %zu Fuv = %zu \n",
+          filename.c_str(),
+          input.vertices.size() / 3,
+          input.colors.size() / 3,
+          input.normals.size() / 3,
+          input.uvcoords.size() / 2,
+          input.triangles.size() / 3,
+          input.trianglesuv.size() / 3 );
+  fflush( stdout );
 
   fout << input.header << std::endl;
   for ( int i = 0; i < input.vertices.size() / 3; i++ ) {
@@ -373,9 +377,7 @@ bool IO::_saveObj( std::string filename, const Model& input ) {
   for ( int i = 0; i < input.uvcoords.size() / 2; i++ ) {
     fout << "vt " << input.uvcoords[i * 2 + 0] << " " << input.uvcoords[i * 2 + 1] << std::endl;
   }
-  if( input.hasUvCoords() ) {
-    fout << "usemtl material0000" << std::endl;
-  }
+  if ( input.hasUvCoords() ) { fout << "usemtl material0000" << std::endl; }
   for ( int i = 0; i < input.triangles.size() / 3; i++ ) {
     if ( input.trianglesuv.size() == input.triangles.size() ) {
       fout << "f " << input.triangles[i * 3 + 0] + 1 << "/" << input.trianglesuv[i * 3 + 0] + 1 << " "
@@ -383,75 +385,51 @@ bool IO::_saveObj( std::string filename, const Model& input ) {
            << input.triangles[i * 3 + 2] + 1 << "/" << input.trianglesuv[i * 3 + 2] + 1 << std::endl;
     } else {
       fout << "f " << input.triangles[i * 3 + 0] + 1 << " " << input.triangles[i * 3 + 1] + 1 << " "
-            << input.triangles[i * 3 + 2] + 1 << std::endl;
+           << input.triangles[i * 3 + 2] + 1 << std::endl;
     }
   }
   fout.close();
   delete[] buf;
   return true;
 }
-template <typename T, typename D>
-void templateConvert(std::shared_ptr<tinyply::PlyData> src,
-                     const uint8_t numSrc,
-                     std::vector<T> &dst,
-                     const uint8_t numDst)
-{
-  const size_t numBytes = src->buffer.size_bytes();
+template<typename T, typename D>
+void templateConvert( std::shared_ptr<tinyply::PlyData> src,
+                      const uint8_t                     numSrc,
+                      std::vector<T>&                   dst,
+                      const uint8_t                     numDst ) {
+  const size_t   numBytes = src->buffer.size_bytes();
   std::vector<D> data;
-  data.resize(src->count * numSrc);
-  std::memcpy(data.data(), src->buffer.get(), numBytes);
-  if (numSrc == numDst)
-  {
-    dst.assign(data.begin(), data.end());
-  }
-  else
-  {
-    dst.resize(src->count * numDst);
-    for (size_t i = 0; i < src->count; i++)
-      for (size_t c = 0; c < numDst; c++)
-        dst[i * numDst + c] = (T)data[i * numSrc + c];
+  data.resize( src->count * numSrc );
+  std::memcpy( data.data(), src->buffer.get(), numBytes );
+  if ( numSrc == numDst ) {
+    dst.assign( data.begin(), data.end() );
+  } else {
+    dst.resize( src->count * numDst );
+    for ( size_t i = 0; i < src->count; i++ )
+      for ( size_t c = 0; c < numDst; c++ ) dst[i * numDst + c] = (T)data[i * numSrc + c];
   }
 }
 
 template<typename T>
-void set(std::shared_ptr<tinyply::PlyData> src,
-         const uint8_t numSrc, 
-         std::vector<T>& dst,
-         const uint8_t numDst, 
-         std::string name)
-{
-  if (src)
-  {
-    switch (src->t)
-    {
-    case tinyply::Type::INT8:
-      templateConvert<T,int8_t>(src, numSrc, dst, numDst);
-      break;
-    case tinyply::Type::UINT8:
-      templateConvert<T,uint8_t>(src, numSrc, dst, numDst);
-      break;
-    case tinyply::Type::INT16:
-      templateConvert<T,int16_t>(src, numSrc, dst, numDst);
-      break;
-    case tinyply::Type::UINT16:
-      templateConvert<T,uint16_t>(src, numSrc, dst, numDst);
-      break;
-    case tinyply::Type::INT32:
-      templateConvert<T,int32_t>(src, numSrc, dst, numDst);
-      break;
-    case tinyply::Type::UINT32:
-      templateConvert<T,uint32_t>(src, numSrc, dst, numDst);
-      break;
-    case tinyply::Type::FLOAT32:
-      templateConvert<T,float>(src, numSrc, dst, numDst);
-      break;
-    case tinyply::Type::FLOAT64:
-      templateConvert<T,double>(src, numSrc, dst, numDst);
-      break;
+void set( std::shared_ptr<tinyply::PlyData> src,
+          const uint8_t                     numSrc,
+          std::vector<T>&                   dst,
+          const uint8_t                     numDst,
+          std::string                       name ) {
+  if ( src ) {
+    switch ( src->t ) {
+    case tinyply::Type::INT8: templateConvert<T, int8_t>( src, numSrc, dst, numDst ); break;
+    case tinyply::Type::UINT8: templateConvert<T, uint8_t>( src, numSrc, dst, numDst ); break;
+    case tinyply::Type::INT16: templateConvert<T, int16_t>( src, numSrc, dst, numDst ); break;
+    case tinyply::Type::UINT16: templateConvert<T, uint16_t>( src, numSrc, dst, numDst ); break;
+    case tinyply::Type::INT32: templateConvert<T, int32_t>( src, numSrc, dst, numDst ); break;
+    case tinyply::Type::UINT32: templateConvert<T, uint32_t>( src, numSrc, dst, numDst ); break;
+    case tinyply::Type::FLOAT32: templateConvert<T, float>( src, numSrc, dst, numDst ); break;
+    case tinyply::Type::FLOAT64: templateConvert<T, double>( src, numSrc, dst, numDst ); break;
     default:
-      printf("ERROR: PLY type not supported: %s \n", name.c_str());
-      fflush(stdout);
-      exit(-1);
+      printf( "ERROR: PLY type not supported: %s \n", name.c_str() );
+      fflush( stdout );
+      exit( -1 );
       break;
     }
   }
@@ -462,72 +440,67 @@ bool IO::_loadPly( std::string filename, Model& output ) {
   file_stream.reset( new std::ifstream( filename.c_str(), std::ios::binary ) );
   tinyply::PlyFile file;
   file.parse_header( *file_stream );
-  std::shared_ptr<tinyply::PlyData> _vertices, _normals, _colors, _colorsRGBA, _texcoords, _faces, _tripstrip, _uvfaces, _nrmfaces;
+  std::shared_ptr<tinyply::PlyData> _vertices, _normals, _colors, _colorsRGBA, _texcoords, _faces, _tripstrip, _uvfaces,
+    _nrmfaces;
 
   // The header information can be used to programmatically extract properties on elements
   // known to exist in the header prior to reading the data. For brevity of this sample, properties
   // like vertex position are hard-coded:
   try {
-    _vertices = file.request_properties_from_element( "vertex", {"x", "y", "z"} );
+    _vertices = file.request_properties_from_element( "vertex", { "x", "y", "z" } );
   } catch ( const std::exception& e ) { std::cerr << "skipping: " << e.what() << std::endl; }
   try {
-    _normals = file.request_properties_from_element( "vertex", {"nx", "ny", "nz"} );
+    _normals = file.request_properties_from_element( "vertex", { "nx", "ny", "nz" } );
   } catch ( const std::exception& e ) { std::cerr << "skipping: " << e.what() << std::endl; }
 
   try {
-    _colors = file.request_properties_from_element( "vertex", {"red", "green", "blue"} );
+    _colors = file.request_properties_from_element( "vertex", { "red", "green", "blue" } );
   } catch ( const std::exception& ) {}
   try {
-    _colors = file.request_properties_from_element( "vertex", {"r", "g", "b"} );
+    _colors = file.request_properties_from_element( "vertex", { "r", "g", "b" } );
   } catch ( const std::exception& ) {}
   try {
-    _colorsRGBA = file.request_properties_from_element( "vertex", {"red", "green", "blue", "alpha"} );
-  } catch ( const std::exception& ) {}
-
-  try {
-    _colorsRGBA = file.request_properties_from_element( "vertex", {"r", "g", "b", "a"} );
+    _colorsRGBA = file.request_properties_from_element( "vertex", { "red", "green", "blue", "alpha" } );
   } catch ( const std::exception& ) {}
 
   try {
-    _texcoords = file.request_properties_from_element( "vertex", {"texture_u", "texture_v"} );
+    _colorsRGBA = file.request_properties_from_element( "vertex", { "r", "g", "b", "a" } );
+  } catch ( const std::exception& ) {}
+
+  try {
+    _texcoords = file.request_properties_from_element( "vertex", { "texture_u", "texture_v" } );
   } catch ( const std::exception& ) {}
 
   // Providing a list size hint (the last argument) is a 2x performance improvement. If you have
   // arbitrary ply files, it is best to leave this 0.
   try {
-    _faces = file.request_properties_from_element( "face", {"vertex_indices"}, 3 );
+    _faces = file.request_properties_from_element( "face", { "vertex_indices" }, 3 );
   } catch ( const std::exception& e ) { std::cerr << "skipping: " << e.what() << std::endl; }
 
   try {
-    _uvfaces = file.request_properties_from_element( "face", {"texcoord"}, 6 );
+    _uvfaces = file.request_properties_from_element( "face", { "texcoord" }, 6 );
   } catch ( const std::exception& e ) { std::cerr << "skipping: " << e.what() << std::endl; }
-  
+
   // // Tristrips must always be read with a 0 list size hint (unless you know exactly how many elements
   // // are specifically in the file, which is unlikely);
   // try {
   //   _tripstrip = file.request_properties_from_element( "tristrips", {"vertex_indices"}, 0 );
   // } catch ( const std::exception& e ) { std::cerr << "skipping " << e.what() << std::endl; }
 
-  file.read(*file_stream);
+  file.read( *file_stream );
 
   // now feed the data to the frame structure
-  set(_vertices, 3, output.vertices, 3, "vertices");
-  set(_texcoords, 2, output.uvcoords, 2, "uvcoords");
-  set(_normals, 3, output.normals, 3, "normals");
-  set(_colors, 3, output.colors, 3, "colors");
-  set(_colorsRGBA, 4, output.colors, 3, "colorsRGBA");
-  set(_faces, 3, output.triangles, 3, "triangles");
-  if (_uvfaces)
-  {
+  set( _vertices, 3, output.vertices, 3, "vertices" );
+  set( _texcoords, 2, output.uvcoords, 2, "uvcoords" );
+  set( _normals, 3, output.normals, 3, "normals" );
+  set( _colors, 3, output.colors, 3, "colors" );
+  set( _colorsRGBA, 4, output.colors, 3, "colorsRGBA" );
+  set( _faces, 3, output.triangles, 3, "triangles" );
+  if ( _uvfaces ) {
     const auto triCount = _uvfaces->count;
-    output.trianglesuv.resize(triCount * 3);
-    output.uvcoords.resize(triCount * 6);
-    std::memcpy(
-        reinterpret_cast<uint8_t *>(reinterpret_cast<void *>(output.uvcoords.data())),
-        _uvfaces->buffer.get(),
-        _uvfaces->buffer.size_bytes());
-    for (size_t i = 0; i < triCount * 3; i++)
-      output.trianglesuv[i] = i;
+    output.trianglesuv.resize( triCount * 3 );    
+    set( _uvfaces, 6, output.uvcoords, 6, "uvfaces" );    
+    for ( size_t i = 0; i < triCount * 3; i++ ) output.trianglesuv[i] = i;
   }
   return true;
 }
@@ -705,26 +678,26 @@ bool IO::_loadImageFromVideo( std::string filename, Image& output ) {
       for ( int y = 0; y < chromaHeight; y++ )
         for ( int x = 0; x < chromaStride; x++ ) {
           frameUpscaled[width * height + ( ( 2 * x ) + width * ( 2 * y ) )] =
-              frame[width * height + ( x + chromaStride * y )];
+            frame[width * height + ( x + chromaStride * y )];
           frameUpscaled[width * height + ( ( 2 * x + 1 ) + width * ( 2 * y ) )] =
-              frame[width * height + ( x + chromaStride * y )];
+            frame[width * height + ( x + chromaStride * y )];
           frameUpscaled[width * height + ( ( 2 * x ) + width * ( 2 * y + 1 ) )] =
-              frame[width * height + ( x + chromaStride * y )];
+            frame[width * height + ( x + chromaStride * y )];
           frameUpscaled[width * height + ( ( 2 * x + 1 ) + width * ( 2 * y + 1 ) )] =
-              frame[width * height + ( x + chromaStride * y )];
+            frame[width * height + ( x + chromaStride * y )];
         }
 
       // copy the down-sampled chroma channel
       for ( int y = 0; y < chromaHeight; y++ )
         for ( int x = 0; x < chromaStride; x++ ) {
           frameUpscaled[2 * width * height + ( ( 2 * x ) + width * ( 2 * y ) )] =
-              frame[width * height + chromaStride * chromaHeight + ( x + chromaStride * y )];
+            frame[width * height + chromaStride * chromaHeight + ( x + chromaStride * y )];
           frameUpscaled[2 * width * height + ( ( 2 * x + 1 ) + width * ( 2 * y ) )] =
-              frame[width * height + chromaStride * chromaHeight + ( x + chromaStride * y )];
+            frame[width * height + chromaStride * chromaHeight + ( x + chromaStride * y )];
           frameUpscaled[2 * width * height + ( ( 2 * x ) + width * ( 2 * y + 1 ) )] =
-              frame[width * height + chromaStride * chromaHeight + ( x + chromaStride * y )];
+            frame[width * height + chromaStride * chromaHeight + ( x + chromaStride * y )];
           frameUpscaled[2 * width * height + ( ( 2 * x + 1 ) + width * ( 2 * y + 1 ) )] =
-              frame[width * height + chromaStride * chromaHeight + ( x + chromaStride * y )];
+            frame[width * height + chromaStride * chromaHeight + ( x + chromaStride * y )];
         }
       delete[] frame;
       frame = frameUpscaled;
@@ -745,13 +718,13 @@ bool IO::_loadImageFromVideo( std::string filename, Image& output ) {
           Cr        = std::min<double>( std::max<double>( ( Cr - 128 ) / 255.0, -0.5 ), 0.5 );
           double R  = Y + 1.57480 * Cr;
           output.data[( x + width * y ) * 3 + 0] =
-              (unsigned char)std::round( 255 * std::min<double>( std::max<double>( R, 0.0 ), 1.0 ) );
+            (unsigned char)std::round( 255 * std::min<double>( std::max<double>( R, 0.0 ), 1.0 ) );
           double G = Y - 0.18733 * Cb - 0.46813 * Cr;
           output.data[( x + width * y ) * 3 + 1] =
-              (unsigned char)std::round( 255 * std::min<double>( std::max<double>( G, 0.0 ), 1.0 ) );
+            (unsigned char)std::round( 255 * std::min<double>( std::max<double>( G, 0.0 ), 1.0 ) );
           double B = Y + 1.85563 * Cb;
           output.data[( x + width * y ) * 3 + 2] =
-              (unsigned char)std::round( 255 * std::min<double>( std::max<double>( B, 0.0 ), 1.0 ) );
+            (unsigned char)std::round( 255 * std::min<double>( std::max<double>( B, 0.0 ), 1.0 ) );
         }
       }
     } else {
@@ -776,7 +749,7 @@ bool IO::_loadImageFromVideo( std::string filename, Image& output ) {
 
 std::string IO::getTextureMapPathFromMTL( const std::string& mtl ) {
   std::string ret = "";
-  if ( mtl != "" ) {    
+  if ( mtl != "" ) {
     std::ifstream fin;
     fin.open( mtl.c_str(), std::ios::in );
     if ( !fin ) {
@@ -784,9 +757,12 @@ std::string IO::getTextureMapPathFromMTL( const std::string& mtl ) {
     } else {
       std::string line;
       while ( std::getline( fin, line ) ) {
-        line.erase( std::unique( line.begin(), line.end(), [=]( char l, char r ) { return ( l == r ) && ( l == ' ' ); } ),
-                    line.end() );
-        if ( line.find_first_not_of( ' ' ) != std::string::npos ) { line = line.substr( line.find_first_not_of( ' ' ) ); }      
+        line.erase(
+          std::unique( line.begin(), line.end(), [=]( char l, char r ) { return ( l == r ) && ( l == ' ' ); } ),
+          line.end() );
+        if ( line.find_first_not_of( ' ' ) != std::string::npos ) {
+          line = line.substr( line.find_first_not_of( ' ' ) );
+        }
         if ( line.rfind( "map_Kd", 0 ) == 0 ) { return line.substr( line.find( ' ' ) + 1 ); }
       }
     }

@@ -72,10 +72,11 @@ inline bool areTrianglesEqual( bool              unoriented,
                                const mm::Vertex& vB1,
                                const mm::Vertex& vB2,
                                const mm::Vertex& vB3 ) {
-  return ( vA1 == vB1 && vA2 == vB2 && vA3 == vB3 ) || ( vA1 == vB2 && vA2 == vB3 && vA3 == vB1 ) ||
-         ( vA1 == vB3 && vA2 == vB1 && vA3 == vB2 ) ||
-         ( unoriented && ( ( vA1 == vB1 && vA2 == vB3 && vA3 == vB2 ) || ( vA1 == vB3 && vA2 == vB2 && vA3 == vB1 ) ||
-                           ( vA1 == vB2 && vA2 == vB1 && vA3 == vB3 ) ) );
+  return ( vA1 == vB1 && vA2 == vB2 && vA3 == vB3 ) || ( vA1 == vB2 && vA2 == vB3 && vA3 == vB1 )
+         || ( vA1 == vB3 && vA2 == vB1 && vA3 == vB2 )
+         || ( unoriented
+              && ( ( vA1 == vB1 && vA2 == vB3 && vA3 == vB2 ) || ( vA1 == vB3 && vA2 == vB2 && vA3 == vB1 )
+                   || ( vA1 == vB2 && vA2 == vB1 && vA3 == vB3 ) ) );
 }
 
 Compare::Compare() : _hwRendererInitialized( false ) {}
@@ -403,8 +404,8 @@ int Compare::topo( const mm::Model&   modelA,
     size_t m1 = vertexMap[B1];
     size_t m2 = vertexMap[B2];
     size_t m3 = vertexMap[B3];
-    if ( !( ( ( A1 == m1 ) && ( A2 == m2 ) && ( A3 == m3 ) ) || ( ( A1 == m2 ) && ( A2 == m3 ) && ( A3 == m1 ) ) ||
-            ( ( A1 == m3 ) && ( A2 == m1 ) && ( A3 == m2 ) ) ) ) {
+    if ( !( ( ( A1 == m1 ) && ( A2 == m2 ) && ( A3 == m3 ) ) || ( ( A1 == m2 ) && ( A2 == m3 ) && ( A3 == m1 ) )
+            || ( ( A1 == m3 ) && ( A2 == m1 ) && ( A3 == m2 ) ) ) ) {
       std::cout << "Topologies are different: orientations are not preserved " << std::endl;
       std::cout << "modelA->Triangle[" << faceMap[triIdx] << "] = [" << A1 << "," << A2 << "," << A3 << ")]."
                 << std::endl;
@@ -435,56 +436,46 @@ void sampleIfNeeded( const mm::Model& input, const mm::Image& map, mm::Model& ou
 }
 
 // code  from PCC_error (prevents pcc_error library modification.
-int
-removeDuplicatePoints(PccPointCloud& pc,
-                      int            dropDuplicates,
-                      int            neighborsProc,
-                      const bool     verbose = true ) {
+int removeDuplicatePoints( PccPointCloud& pc, int dropDuplicates, int neighborsProc, const bool verbose = true ) {
   // sort the point cloud
   std::vector<size_t> indices;
-  indices.resize(pc.size);
-  for (size_t i = 0; i < pc.size; i++) { indices[i] = i; }
-  std::sort(indices.begin(),
-            indices.end(),
-            [=, &pc](const size_t& a, const size_t& b) -> bool {
-              return pc.xyz.p[a] == pc.xyz.p[b] ? a < b : pc.xyz.p[a] < pc.xyz.p[b];
-            });
+  indices.resize( pc.size );
+  for ( size_t i = 0; i < pc.size; i++ ) { indices[i] = i; }
+  std::sort( indices.begin(), indices.end(), [=, &pc]( const size_t& a, const size_t& b ) -> bool {
+    return pc.xyz.p[a] == pc.xyz.p[b] ? a < b : pc.xyz.p[a] < pc.xyz.p[b];
+  } );
   auto xyz    = pc.xyz.p;
   auto rgb    = pc.rgb.c;
   auto normal = pc.normal.n;
   auto lidar  = pc.lidar.reflectance;
-  if (pc.bXyz) {
-    for (size_t i = 0; i < pc.size; i++) { pc.xyz.p[i] = xyz[indices[i]]; }
+  if ( pc.bXyz ) {
+    for ( size_t i = 0; i < pc.size; i++ ) { pc.xyz.p[i] = xyz[indices[i]]; }
   }
-  if (pc.bRgb) {
-    for (size_t i = 0; i < pc.size; i++) { pc.rgb.c[i] = rgb[indices[i]]; }
+  if ( pc.bRgb ) {
+    for ( size_t i = 0; i < pc.size; i++ ) { pc.rgb.c[i] = rgb[indices[i]]; }
   }
-  if (pc.bNormal) {
-    for (size_t i = 0; i < pc.size; i++) { pc.normal.n[i] = normal[indices[i]]; }
+  if ( pc.bNormal ) {
+    for ( size_t i = 0; i < pc.size; i++ ) { pc.normal.n[i] = normal[indices[i]]; }
   }
-  if (pc.bLidar) {
-    for (size_t i = 0; i < pc.size; i++) { pc.lidar.reflectance[i] = lidar[indices[i]]; }
+  if ( pc.bLidar ) {
+    for ( size_t i = 0; i < pc.size; i++ ) { pc.lidar.reflectance[i] = lidar[indices[i]]; }
   }
   // Find runs of identical point positions
   bool errorFind = false;
-  for (auto it_seq = pc.begin(); it_seq != pc.end(); ++it_seq) {
+  for ( auto it_seq = pc.begin(); it_seq != pc.end(); ++it_seq ) {
     auto it_next = it_seq + 1;
-    if (it_next != pc.end()) {
-      if (*it_next < *it_seq && !errorFind ) {
-        printf("WARNING: something went wrong between %zu and %zu \n",
-               it_seq.idx,
-               it_next.idx);
+    if ( it_next != pc.end() ) {
+      if ( *it_next < *it_seq && !errorFind ) {
+        printf( "WARNING: something went wrong between %zu and %zu \n", it_seq.idx, it_next.idx );
         errorFind = true;
       }
     }
   }
-  if( errorFind ){
-    printf("WARNING: something went wrong in duplicate point sort process\n");
-  }
+  if ( errorFind ) { printf( "WARNING: something went wrong in duplicate point sort process\n" ); }
   // Find runs of identical point positions
   for ( auto it_seq = pc.begin(); it_seq != pc.end(); ) {
     it_seq = std::adjacent_find( it_seq, pc.end() );
-    if ( it_seq == pc.end() ) break;
+    if ( it_seq == pc.end() || it_seq.idx >= pc.size) break;
 
     // accumulators for averaging attribute values
     long cattr[3]{};  // sum colors.
@@ -536,9 +527,9 @@ removeDuplicatePoints(PccPointCloud& pc,
 
   if ( verbose && duplicatesFound > 0 ) {
     switch ( dropDuplicates ) {
-      case 0: printf( "WARNING: %d points with same coordinates found in \n", duplicatesFound ); break;
-      case 1: printf( "WARNING: %d points with same coordinates found and dropped in\n", duplicatesFound ); break;
-      case 2: printf( "WARNING: %d points with same coordinates found and averaged in\n", duplicatesFound );
+    case 0: printf( "WARNING: %d points with same coordinates found in \n", duplicatesFound ); break;
+    case 1: printf( "WARNING: %d points with same coordinates found and dropped in\n", duplicatesFound ); break;
+    case 2: printf( "WARNING: %d points with same coordinates found and averaged in\n", duplicatesFound );
     }
   }
   return 0;
@@ -547,36 +538,31 @@ removeDuplicatePoints(PccPointCloud& pc,
 // utility func used by compare::pcc
 // no sanity check, we assume the model is clean
 // and generated by sampling that allways generate content with color and normals
-void
-convertModel(const mm::Model&         inputModel,
-             pcc_quality::commandPar& params,
-             PccPointCloud&           outputModel,
-             const bool               verbose) {
-  for (size_t i = 0; i < inputModel.vertices.size() / 3; ++i) {
+void convertModel( const mm::Model&         inputModel,
+                   pcc_quality::commandPar& params,
+                   PccPointCloud&           outputModel,
+                   const bool               verbose ) {
+  for ( size_t i = 0; i < inputModel.vertices.size() / 3; ++i ) {
     // push the positions
     outputModel.xyz.p.push_back( std::array<float, 3>(
-        { inputModel.vertices[i * 3], inputModel.vertices[i * 3 + 1], inputModel.vertices[i * 3 + 2] } ) );
+      { inputModel.vertices[i * 3], inputModel.vertices[i * 3 + 1], inputModel.vertices[i * 3 + 2] } ) );
     // push the normals if any
     if ( inputModel.normals.size() > i * 3 + 2 )
       outputModel.normal.n.push_back( std::array<float, 3>(
-          { inputModel.normals[i * 3], inputModel.normals[i * 3 + 1], inputModel.normals[i * 3 + 2] } ) );
+        { inputModel.normals[i * 3], inputModel.normals[i * 3 + 1], inputModel.normals[i * 3 + 2] } ) );
     // push the colors if any
     if ( inputModel.colors.size() > i * 3 + 2 )
       outputModel.rgb.c.push_back(
-          std::array<unsigned char, 3>( { (unsigned char)( std::roundf( inputModel.colors[i * 3] ) ),
-                                          (unsigned char)( std::roundf( inputModel.colors[i * 3 + 1] ) ),
-                                          (unsigned char)( std::roundf( inputModel.colors[i * 3 + 2] ) ) } ) );
+        std::array<unsigned char, 3>( { (unsigned char)( std::roundf( inputModel.colors[i * 3] ) ),
+                                        (unsigned char)( std::roundf( inputModel.colors[i * 3 + 1] ) ),
+                                        (unsigned char)( std::roundf( inputModel.colors[i * 3 + 2] ) ) } ) );
   }
   outputModel.size = (long)outputModel.xyz.p.size();
   outputModel.bXyz = outputModel.size >= 1;
-  if ( inputModel.colors.size() == inputModel.vertices.size() )
-    outputModel.bRgb = true;
-  else
-    outputModel.bRgb = false;
-  if ( inputModel.normals.size() == inputModel.vertices.size() )
-    outputModel.bNormal = true;
-  else
-    outputModel.bNormal = false;
+  if ( inputModel.colors.size() == inputModel.vertices.size() ) outputModel.bRgb = true;
+  else outputModel.bRgb = false;
+  if ( inputModel.normals.size() == inputModel.vertices.size() ) outputModel.bNormal = true;
+  else outputModel.bNormal = false;
   outputModel.bLidar = false;
 
   outputModel.xyz.nbdup.resize( outputModel.xyz.p.size() );
@@ -614,10 +600,11 @@ int Compare::pcc( const mm::Model&         modelA,
   params.file2 = "dummy2.ply";  // could be any name !="", just force some pcc inner tests to pass
   // compute plane metric if we have valid normal arrays
   params.c2c_only =
-      !( outputA.normals.size() == outputA.vertices.size() && outputB.normals.size() == outputB.vertices.size() );
+    !( outputA.normals.size() == outputA.vertices.size() && outputB.normals.size() == outputB.vertices.size() );
   // compute color metric if valid color arrays (no support for RGBA colors)
-  params.bColor = params.bColor && ( outputA.colors.size() == outputA.vertices.size() &&
-                                     outputB.colors.size() == outputB.vertices.size() );
+  params.bColor =
+    params.bColor
+    && ( outputA.colors.size() == outputA.vertices.size() && outputB.colors.size() == outputB.vertices.size() );
   params.mseSpace  = 1;
   params.nbThreads = 1;
 
@@ -638,27 +625,27 @@ void Compare::pccFinalize( void ) {
     Statistics::Results stats;
 
     Statistics::compute(
-        _pccResults.size(), [&]( size_t i ) -> double { return _pccResults[i].second.c2c_psnr; }, stats );
+      _pccResults.size(), [&]( size_t i ) -> double { return _pccResults[i].second.c2c_psnr; }, stats );
 
     Statistics::printToLog( stats, "mseF, PSNR(p2point) ", std::cout );
 
     Statistics::compute(
-        _pccResults.size(), [&]( size_t i ) -> double { return _pccResults[i].second.c2p_psnr; }, stats );
+      _pccResults.size(), [&]( size_t i ) -> double { return _pccResults[i].second.c2p_psnr; }, stats );
 
     Statistics::printToLog( stats, "mseF, PSNR(p2plane) ", std::cout );
 
     Statistics::compute(
-        _pccResults.size(), [&]( size_t i ) -> double { return _pccResults[i].second.color_psnr[0]; }, stats );
+      _pccResults.size(), [&]( size_t i ) -> double { return _pccResults[i].second.color_psnr[0]; }, stats );
 
     Statistics::printToLog( stats, "c[0],PSNRF          ", std::cout );
 
     Statistics::compute(
-        _pccResults.size(), [&]( size_t i ) -> double { return _pccResults[i].second.color_psnr[1]; }, stats );
+      _pccResults.size(), [&]( size_t i ) -> double { return _pccResults[i].second.color_psnr[1]; }, stats );
 
     Statistics::printToLog( stats, "c[1],PSNRF          ", std::cout );
 
     Statistics::compute(
-        _pccResults.size(), [&]( size_t i ) -> double { return _pccResults[i].second.color_psnr[2]; }, stats );
+      _pccResults.size(), [&]( size_t i ) -> double { return _pccResults[i].second.color_psnr[2]; }, stats );
 
     Statistics::printToLog( stats, "c[2],PSNRF          ", std::cout );
   }
@@ -711,7 +698,7 @@ int Compare::pcqm( const mm::Model& modelA,
                    const double     radiusFactor,
                    mm::Model&       outputA,
                    mm::Model&       outputB,
-                  const bool        verbose ) {
+                   const bool       verbose ) {
   // 1 - sample the models if needed
   sampleIfNeeded( modelA, mapA, outputA );
   sampleIfNeeded( modelB, mapB, outputB );
@@ -727,7 +714,7 @@ int Compare::pcqm( const mm::Model& modelA,
   // ModelA is Reference model
   // switch ref anf deg as in original PCQM (order matters)
   double pcqm =
-      compute_pcqm( inCloud2, inCloud1, "reffile", "regfile", radiusCurvature, thresholdKnnSearch, radiusFactor );
+    compute_pcqm( inCloud2, inCloud1, "reffile", "regfile", radiusCurvature, thresholdKnnSearch, radiusFactor );
 
   // compute PSNR
   // we use outputA as reference for PSNR signal dynamic
@@ -754,12 +741,12 @@ void Compare::pcqmFinalize( void ) {
     Statistics::Results stats;
 
     Statistics::compute(
-        _pcqmResults.size(), [&]( size_t i ) -> double { return std::get<1>( _pcqmResults[i] ); }, stats );
+      _pcqmResults.size(), [&]( size_t i ) -> double { return std::get<1>( _pcqmResults[i] ); }, stats );
 
     Statistics::printToLog( stats, "PCQM ", std::cout );
 
     Statistics::compute(
-        _pcqmResults.size(), [&]( size_t i ) -> double { return std::get<2>( _pcqmResults[i] ); }, stats );
+      _pcqmResults.size(), [&]( size_t i ) -> double { return std::get<2>( _pcqmResults[i] ); }, stats );
 
     Statistics::printToLog( stats, "PCQM-PSNR ", std::cout );
   }
@@ -818,7 +805,7 @@ int Compare::ibsm( const mm::Model&   modelA,
                    const bool         disableCulling,
                    mm::Model&         outputA,
                    mm::Model&         outputB,
-                  const bool          verbose  ) {
+                   const bool         verbose ) {
   if ( renderer == "gl12_raster" && !_hwRendererInitialized ) {
     // now initialize OpenGL contexts if needed
     // this part is valid for all the frames
@@ -827,8 +814,8 @@ int Compare::ibsm( const mm::Model&   modelA,
   }
   // place for the results
   IbsmResults res;
-  size_t      maskSizeSum = 0;  // store the sum for final computation of the mean
-	size_t unmatchedPixelsSum = 0; // store the sum of unmatched pixels for reporting
+  size_t      maskSizeSum        = 0;  // store the sum for final computation of the mean
+  size_t      unmatchedPixelsSum = 0;  // store the sum of unmatched pixels for reporting
 
   clock_t t1 = clock();
   if ( !disableReordering ) {
@@ -836,16 +823,16 @@ int Compare::ibsm( const mm::Model&   modelA,
     // to get Infinite PSNR on equal meshes even with shuffled faces.
     mm::reorder( modelA, "oriented", outputA );
     mm::reorder( modelB, "oriented", outputB );
-    if( verbose )
+    if ( verbose )
       std::cout << "Time on mesh reordering = " << ( (float)( clock() - t1 ) ) / CLOCKS_PER_SEC << " sec." << std::endl;
   } else {
     // just replicate the input
     // outputs may have updated normals hereafter
     outputA = modelA;
     outputB = modelB;
-    if( verbose )
-      std::cout << "Skipped reordering, time on mesh recopy = " << ( (float)( clock() - t1 ) ) / CLOCKS_PER_SEC << " sec."
-                << std::endl;
+    if ( verbose )
+      std::cout << "Skipped reordering, time on mesh recopy = " << ( (float)( clock() - t1 ) ) / CLOCKS_PER_SEC
+                << " sec." << std::endl;
   }
 
   const unsigned int width   = resolution;
@@ -884,39 +871,33 @@ int Compare::ibsm( const mm::Model&   modelA,
   // now we render for each camera position
   for ( size_t camIdx = 0; camIdx < camDir.size(); ++camIdx ) {
     viewDir = camDir[camIdx];
-    if ( glm::distance( glm::abs( viewDir ), glm::vec3( 0, 1, 0 ) ) < 1e-6 )
-      viewUp = glm::vec3( 0, 0, 1 );
-    else
-      viewUp = glm::vec3( 0, 1, 0 );
+    if ( glm::distance( glm::abs( viewDir ), glm::vec3( 0, 1, 0 ) ) < 1e-6 ) viewUp = glm::vec3( 0, 0, 1 );
+    else viewUp = glm::vec3( 0, 1, 0 );
 
-    if( verbose ) {
+    if ( verbose ) {
       std::cout << "render viewDir= " << viewDir[0] << " " << viewDir[1] << " " << viewDir[2] << std::endl;
       std::cout << "render viewUp= " << viewUp[0] << " " << viewUp[1] << " " << viewUp[2] << std::endl;
     }
     clock_t t1 = clock();
 
     if ( renderer == "gl12_raster" ) {
-      if ( disableCulling )
-        _hwRenderer.disableCulling();
-      else
-        _hwRenderer.enableCulling();
+      if ( disableCulling ) _hwRenderer.disableCulling();
+      else _hwRenderer.enableCulling();
 
-      _hwRenderer.render( &outputA, &mapA, fbufferRef, zbufferRef, width, height, viewDir, viewUp, bboxMin, bboxMax,
-                          true, verbose );
-      _hwRenderer.render( &outputB, &mapB, fbufferDis, zbufferDis, width, height, viewDir, viewUp, bboxMin, bboxMax,
-                          true, verbose );
+      _hwRenderer.render(
+        &outputA, &mapA, fbufferRef, zbufferRef, width, height, viewDir, viewUp, bboxMin, bboxMax, true, verbose );
+      _hwRenderer.render(
+        &outputB, &mapB, fbufferDis, zbufferDis, width, height, viewDir, viewUp, bboxMin, bboxMax, true, verbose );
     } else {
-      if ( disableCulling )
-        _swRenderer.disableCulling();
-      else
-        _swRenderer.enableCulling();
+      if ( disableCulling ) _swRenderer.disableCulling();
+      else _swRenderer.enableCulling();
 
-      _swRenderer.render( &outputA, &mapA, fbufferRef, zbufferRef, width, height, viewDir, viewUp, bboxMin, bboxMax,
-                          true, verbose );
+      _swRenderer.render(
+        &outputA, &mapA, fbufferRef, zbufferRef, width, height, viewDir, viewUp, bboxMin, bboxMax, true, verbose );
       float depthRangeRef = _swRenderer.depthRange;
 
-      _swRenderer.render( &outputB, &mapB, fbufferDis, zbufferDis, width, height, viewDir, viewUp, bboxMin, bboxMax,
-                          true, verbose );
+      _swRenderer.render(
+        &outputB, &mapB, fbufferDis, zbufferDis, width, height, viewDir, viewUp, bboxMin, bboxMax, true, verbose );
       float depthRangeDis = _swRenderer.depthRange;
 
       if ( depthRangeRef != depthRangeDis ) {  // should never occur
@@ -924,25 +905,32 @@ int Compare::ibsm( const mm::Model&   modelA,
                   << depthRangeDis << std::endl;
       }
       sigDynamic = depthRangeDis;
-      if( verbose )
-        std::cout << "Signal Dynamic = " << depthRangeRef << std::endl;
+      if ( verbose ) std::cout << "Signal Dynamic = " << depthRangeRef << std::endl;
     }
 
-    clock_t t2 = clock();    
-    if( verbose ) {
+    clock_t t2 = clock();
+    if ( verbose ) {
       std::cout << "Time on buffers rendering: " << ( (float)( t2 - t1 ) ) / CLOCKS_PER_SEC << " sec." << std::endl;
     }
     if ( outputPrefix != "" ) {
       const std::string fullPrefix =
-          outputPrefix + "_" + std::to_string( _ibsmResults.size() ) + "_" + std::to_string( camIdx ) + "_";
+        outputPrefix + "_" + std::to_string( _ibsmResults.size() ) + "_" + std::to_string( camIdx ) + "_";
 
       // Write image Y-flipped because OpenGL
-      stbi_write_png( ( fullPrefix + "ref.png" ).c_str(), width, height, 4,
-                      fbufferRef.data() + ( width * 4 * ( height - 1 ) ), -(int)width * 4 );
+      stbi_write_png( ( fullPrefix + "ref.png" ).c_str(),
+                      width,
+                      height,
+                      4,
+                      fbufferRef.data() + ( width * 4 * ( height - 1 ) ),
+                      -(int)width * 4 );
 
       // Write image Y-flipped because OpenGL
-      stbi_write_png( ( fullPrefix + "dis.png" ).c_str(), width, height, 4,
-                      fbufferDis.data() + ( width * 4 * ( height - 1 ) ), -(int)width * 4 );
+      stbi_write_png( ( fullPrefix + "dis.png" ).c_str(),
+                      width,
+                      height,
+                      4,
+                      fbufferDis.data() + ( width * 4 * ( height - 1 ) ),
+                      -(int)width * 4 );
 
       // converts depth to positive 8 bit for visualization
       std::vector<uint8_t> zbufferRef_8bits( zbufferRef.size(), 255 );
@@ -958,21 +946,29 @@ int Compare::ibsm( const mm::Model&   modelA,
       }
 
       // Write image Y-flipped because OpenGL
-      stbi_write_png( ( fullPrefix + "ref_depth.png" ).c_str(), width, height, 1,
-                      zbufferRef_8bits.data() + ( width * 1 * ( height - 1 ) ), -(int)width * 1 );
+      stbi_write_png( ( fullPrefix + "ref_depth.png" ).c_str(),
+                      width,
+                      height,
+                      1,
+                      zbufferRef_8bits.data() + ( width * 1 * ( height - 1 ) ),
+                      -(int)width * 1 );
 
       // Write image Y-flipped because OpenGL
-      stbi_write_png( ( fullPrefix + "dis_depth.png" ).c_str(), width, height, 1,
-                      zbufferDis_8bits.data() + ( width * 1 * ( height - 1 ) ), -(int)width * 1 );
+      stbi_write_png( ( fullPrefix + "dis_depth.png" ).c_str(),
+                      width,
+                      height,
+                      1,
+                      zbufferDis_8bits.data() + ( width * 1 * ( height - 1 ) ),
+                      -(int)width * 1 );
     }
 
     // 0 - compute the amount of pixels where there is a projection of Ref or Dist
     for ( size_t i = 0; i < fbufferRef.size() / 4; ++i ) {
       const uint8_t maskRef = fbufferRef[i * 4 + 3];
       const uint8_t maskDis = fbufferDis[i * 4 + 3];
-      if (maskRef != 0 && maskDis != 0) {
+      if ( maskRef != 0 && maskDis != 0 ) {
         maskSizeSum += 1;
-      } else if (maskRef != 0 || maskDis != 0) {
+      } else if ( maskRef != 0 || maskDis != 0 ) {
         unmatchedPixelsSum += 1;
       }
     }
@@ -1037,7 +1033,7 @@ int Compare::ibsm( const mm::Model&   modelA,
       // else we skip ~ add 0, because no depth exist in both buffers (faster processing)
     }
 
-    if( verbose ) {
+    if ( verbose ) {
       clock_t t3 = clock();
       std::cout << "Time on MSE computing: " << ( (float)( t3 - t2 ) ) / CLOCKS_PER_SEC << " sec." << std::endl;
     }
@@ -1054,15 +1050,15 @@ int Compare::ibsm( const mm::Model&   modelA,
 
   // compute the PSNRs (can be infinite)
   for ( size_t c = 0; c <= 3; ++c ) {
-		res.rgbPSNR[c] = std::min(999.99, 10.0 * log10((double)(255 * 255) / res.rgbMSE[c]));
-		res.yuvPSNR[c] = std::min(999.99, 10.0 * log10((double)(255 * 255) / res.yuvMSE[c]));
+    res.rgbPSNR[c] = std::min( 999.99, 10.0 * log10( (double)( 255 * 255 ) / res.rgbMSE[c] ) );
+    res.yuvPSNR[c] = std::min( 999.99, 10.0 * log10( (double)( 255 * 255 ) / res.yuvMSE[c] ) );
   }
-	res.depthPSNR = std::min(999.99, 10.0 * log10((double)(255 * 255) / res.depthMSE));
+  res.depthPSNR = std::min( 999.99, 10.0 * log10( (double)( 255 * 255 ) / res.depthMSE ) );
 
-	// report the UnmatchedPixelPercentage - we may also report values over a given threshold to cout
-	res.unmatchedPixelPercentage = (maskSizeSum > 0) ? 100.0 * (double)unmatchedPixelsSum / (double)maskSizeSum : 100.0;
+  // report the UnmatchedPixelPercentage - we may also report values over a given threshold to cout
+  res.unmatchedPixelPercentage = ( maskSizeSum > 0 ) ? 100.0 * (double)unmatchedPixelsSum / (double)maskSizeSum : 100.0;
 
-  if( verbose ) {
+  if ( verbose ) {
     // Debug
     if ( depthNanCount != 0 ) {
       std::cout << "Warning: skipped " << depthNanCount << " NaN in depth buffer" << std::endl;
@@ -1072,9 +1068,9 @@ int Compare::ibsm( const mm::Model&   modelA,
     }
 
     if ( res.boxRatio < 99.5F || res.boxRatio > 100.5F ) {
-      std::cout 
+      std::cout
         << "Warning: the size of the bounding box of reference and distorted models are quite different (see BoxRatio)."
-                << "  IBSM results might not be accurate. Please perform a visual check of your models." << std::endl;
+        << "  IBSM results might not be accurate. Please perform a visual check of your models." << std::endl;
     }
 
     // output the results
@@ -1110,55 +1106,55 @@ void Compare::ibsmFinalize( void ) {
     Statistics::Results stats;
 
     Statistics::compute(
-        _ibsmResults.size(), [&]( size_t i ) -> double { return _ibsmResults[i].second.boxRatio; }, stats );
+      _ibsmResults.size(), [&]( size_t i ) -> double { return _ibsmResults[i].second.boxRatio; }, stats );
     Statistics::printToLog( stats, "BoxRatio ", std::cout );
 
-		Statistics::compute(_ibsmResults.size(),
-			[&](size_t i) -> double { return _ibsmResults[i].second.unmatchedPixelPercentage; },
-			stats);
-		Statistics::printToLog(stats, "UnmatchedPixelPercentage ", std::cout);
+    Statistics::compute(
+      _ibsmResults.size(),
+      [&]( size_t i ) -> double { return _ibsmResults[i].second.unmatchedPixelPercentage; },
+      stats );
+    Statistics::printToLog( stats, "UnmatchedPixelPercentage ", std::cout );
 
     Statistics::compute(
-        _ibsmResults.size(), [&]( size_t i ) -> double { return _ibsmResults[i].second.rgbPSNR[3]; }, stats );
+      _ibsmResults.size(), [&]( size_t i ) -> double { return _ibsmResults[i].second.rgbPSNR[3]; }, stats );
     Statistics::printToLog( stats, "RGB PSNR ", std::cout );
 
     Statistics::compute(
-        _ibsmResults.size(), [&]( size_t i ) -> double { return _ibsmResults[i].second.yuvPSNR[0]; }, stats );
+      _ibsmResults.size(), [&]( size_t i ) -> double { return _ibsmResults[i].second.yuvPSNR[0]; }, stats );
     Statistics::printToLog( stats, "Y   PSNR ", std::cout );
 
     Statistics::compute(
-        _ibsmResults.size(), [&]( size_t i ) -> double { return _ibsmResults[i].second.yuvPSNR[1]; }, stats );
+      _ibsmResults.size(), [&]( size_t i ) -> double { return _ibsmResults[i].second.yuvPSNR[1]; }, stats );
     Statistics::printToLog( stats, "U   PSNR ", std::cout );
 
     Statistics::compute(
-        _ibsmResults.size(), [&]( size_t i ) -> double { return _ibsmResults[i].second.yuvPSNR[2]; }, stats );
+      _ibsmResults.size(), [&]( size_t i ) -> double { return _ibsmResults[i].second.yuvPSNR[2]; }, stats );
     Statistics::printToLog( stats, "V   PSNR ", std::cout );
 
     Statistics::compute(
-        _ibsmResults.size(), [&]( size_t i ) -> double { return _ibsmResults[i].second.yuvPSNR[3]; }, stats );
+      _ibsmResults.size(), [&]( size_t i ) -> double { return _ibsmResults[i].second.yuvPSNR[3]; }, stats );
     Statistics::printToLog( stats, "YUV PSNR ", std::cout );
 
     Statistics::compute(
-        _ibsmResults.size(), [&]( size_t i ) -> double { return _ibsmResults[i].second.depthPSNR; }, stats );
+      _ibsmResults.size(), [&]( size_t i ) -> double { return _ibsmResults[i].second.depthPSNR; }, stats );
     Statistics::printToLog( stats, "GEO PSNR ", std::cout );
   }
 }
 
-std::vector<double>
-Compare::getPccResults(const size_t index) {
+std::vector<double> Compare::getPccResults( const size_t index ) {
   std::vector<double> results;
   results.resize( 10, 0.0 );
-  if (index < _pccResults.size()) {
-    results[0] = (std::min)( 999.99, _pccResults[index].second.c2c_psnr ); 
-    results[1] = (std::min)( 999.99, _pccResults[index].second.c2p_psnr ); 
-    results[2] = (std::min)( 999.99, _pccResults[index].second.color_psnr[0] ); 
-    results[3] = (std::min)( 999.99, _pccResults[index].second.color_psnr[1] ); 
-    results[4] = (std::min)( 999.99, _pccResults[index].second.color_psnr[2] ); 
-    results[5] = (std::min)( 999.99, _pccResults[index].second.c2c_hausdorff_psnr ); 
-    results[6] = (std::min)( 999.99, _pccResults[index].second.c2p_hausdorff_psnr ); 
-    results[7] = (std::min)( 999.99, _pccResults[index].second.color_rgb_hausdorff_psnr[0] ); 
-    results[8] = (std::min)( 999.99, _pccResults[index].second.color_rgb_hausdorff_psnr[1] ); 
-    results[9] = (std::min)( 999.99, _pccResults[index].second.color_rgb_hausdorff_psnr[2] ); 
+  if ( index < _pccResults.size() ) {
+    results[0] = ( std::min )( 999.99, _pccResults[index].second.c2c_psnr );
+    results[1] = ( std::min )( 999.99, _pccResults[index].second.c2p_psnr );
+    results[2] = ( std::min )( 999.99, _pccResults[index].second.color_psnr[0] );
+    results[3] = ( std::min )( 999.99, _pccResults[index].second.color_psnr[1] );
+    results[4] = ( std::min )( 999.99, _pccResults[index].second.color_psnr[2] );
+    results[5] = ( std::min )( 999.99, _pccResults[index].second.c2c_hausdorff_psnr );
+    results[6] = ( std::min )( 999.99, _pccResults[index].second.c2p_hausdorff_psnr );
+    results[7] = ( std::min )( 999.99, _pccResults[index].second.color_rgb_hausdorff_psnr[0] );
+    results[8] = ( std::min )( 999.99, _pccResults[index].second.color_rgb_hausdorff_psnr[1] );
+    results[9] = ( std::min )( 999.99, _pccResults[index].second.color_rgb_hausdorff_psnr[2] );
   }
   return results;
 }

@@ -31,9 +31,9 @@
 // the name of the application binary
 // i.e argv[0] minus the eventual path
 #ifdef _WIN32
-#define APP_NAME "mm.exe"
+#  define APP_NAME "mm.exe"
 #else
-#define APP_NAME "mm"
+#  define APP_NAME "mm"
 #endif
 
 // The commands

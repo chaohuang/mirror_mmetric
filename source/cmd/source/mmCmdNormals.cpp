@@ -70,16 +70,14 @@ bool CmdNormals::initialize( Context* ctx, std::string app, int argc, char* argv
       return false;
     }
     //
-    if ( result.count( "inputModel" ) )
-      _inputModelFilename = result["inputModel"].as<std::string>();
+    if ( result.count( "inputModel" ) ) _inputModelFilename = result["inputModel"].as<std::string>();
     else {
       std::cerr << "Error: missing inputModel parameter" << std::endl;
       std::cout << options.help() << std::endl;
       return false;
     }
     //
-    if ( result.count( "outputModel" ) )
-      _outputModelFilename = result["outputModel"].as<std::string>();
+    if ( result.count( "outputModel" ) ) _outputModelFilename = result["outputModel"].as<std::string>();
     else {
       std::cerr << "Error: missing outputModel parameter" << std::endl;
       std::cout << options.help() << std::endl;
@@ -126,8 +124,7 @@ bool CmdNormals::process( uint32_t frame ) {
   std::cout << "Time on processing: " << ( (float)( t2 - t1 ) ) / CLOCKS_PER_SEC << " sec." << std::endl;
 
   // save the result
-  if ( mm::IO::saveModel( _outputModelFilename, outputModel ) )
-    return true;
+  if ( mm::IO::saveModel( _outputModelFilename, outputModel ) ) return true;
   else {
     delete outputModel;
     return false;

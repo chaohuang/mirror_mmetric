@@ -100,8 +100,7 @@ bool CmdRender::initialize( Context* ctx, std::string app, int argc, char* argv[
       return false;
     }
     //
-    if ( result.count( "inputModel" ) )
-      inputModelFilename = result["inputModel"].as<std::string>();
+    if ( result.count( "inputModel" ) ) inputModelFilename = result["inputModel"].as<std::string>();
     else {
       std::cerr << "Error: missing inputModel parameter" << std::endl;
       std::cout << options.help() << std::endl;
@@ -237,10 +236,8 @@ bool CmdRender::process( uint32_t frame ) {
     std::cout << "  hideProgress = " << hideProgress << std::endl;
     _swRenderer.setClearColor( clearColor );
     //
-    if ( enableCulling )
-      _swRenderer.enableCulling();
-    else
-      _swRenderer.disableCulling();
+    if ( enableCulling ) _swRenderer.enableCulling();
+    else _swRenderer.disableCulling();
     _swRenderer.setCwCulling( cwCulling );
     //
     if ( enableLighting ) {
@@ -250,8 +247,8 @@ bool CmdRender::process( uint32_t frame ) {
         _swRenderer.setLightAutoDir( lightAutoDir );
       }
     }
-    res = _swRenderer.render( inputModel, textureMap, outImage, outDepth, width, height, viewDir, viewUp, bboxMin,
-                              bboxMax, bboxValid );
+    res = _swRenderer.render(
+      inputModel, textureMap, outImage, outDepth, width, height, viewDir, viewUp, bboxMin, bboxMax, bboxValid );
   } else if ( renderer == "gl12_raster" ) {
     std::cout << "Render gl12_raster" << std::endl;
     std::cout << "  Width = " << width << std::endl;
@@ -259,8 +256,8 @@ bool CmdRender::process( uint32_t frame ) {
     std::cout << "  Bilinear = " << bilinear << std::endl;
     std::cout << "  hideProgress = " << hideProgress << std::endl;
     _hwRenderer.setClearColor( clearColor );
-    res = _hwRenderer.render( inputModel, textureMap, outImage, outDepth, width, height, viewDir, viewUp, bboxMin,
-                              bboxMax, bboxValid );
+    res = _hwRenderer.render(
+      inputModel, textureMap, outImage, outDepth, width, height, viewDir, viewUp, bboxMin, bboxMax, bboxValid );
   } else {
     std::cout << "Error: invalid renderer " << renderer << std::endl;
     return false;

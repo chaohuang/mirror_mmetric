@@ -68,8 +68,8 @@ void Sample::meshToPcFace( const Model& input,
 
     Vertex v1, v2, v3;
 
-    fetchTriangle( input, t, input.uvcoords.size() != 0, input.colors.size() != 0, input.normals.size() != 0, v1, v2,
-                   v3 );
+    fetchTriangle(
+      input, t, input.uvcoords.size() != 0, input.colors.size() != 0, input.normals.size() != 0, v1, v2, v3 );
 
     // check if triangle is not degenerate
     if ( Geometry::triangleArea( v1.pos, v2.pos, v3.pos ) < DBL_EPSILON ) {
@@ -108,14 +108,12 @@ void Sample::meshToPcFace( const Model& input,
           if ( input.uvcoords.size() != 0 && tex_map.data != NULL ) {  // use the texture map
             // compute UV
             const glm::vec2 uv{
-                ( v1.uv[0] + step12 / l12 * ( v2.uv[0] - v1.uv[0] ) + step23 / l23 * ( v3.uv[0] - v2.uv[0] ) ),
-                ( v1.uv[1] + step12 / l12 * ( v2.uv[1] - v1.uv[1] ) + step23 / l23 * ( v3.uv[1] - v2.uv[1] ) )};
+              ( v1.uv[0] + step12 / l12 * ( v2.uv[0] - v1.uv[0] ) + step23 / l23 * ( v3.uv[0] - v2.uv[0] ) ),
+              ( v1.uv[1] + step12 / l12 * ( v2.uv[1] - v1.uv[1] ) + step23 / l23 * ( v3.uv[1] - v2.uv[1] ) ) };
 
             // fetch the color from the map
-            if ( bilinear )
-              texture2D_bilinear( tex_map, uv, v.col );
-            else
-              texture2D( tex_map, uv, v.col );
+            if ( bilinear ) texture2D_bilinear( tex_map, uv, v.col );
+            else texture2D( tex_map, uv, v.col );
             v.hasColor = true;
           } else if ( input.colors.size() != 0 ) {  // use color per vertex
             v.col[0] = v1.col[0] + step12 / l12 * ( v2.col[0] - v1.col[0] ) + step23 / l23 * ( v3.col[0] - v2.col[0] );
@@ -153,8 +151,8 @@ void Sample::meshToPcFace( const Model& input,
   size_t maxResolution = 0;
   //
   size_t iter = 0;
-  while ( ( output.getPositionCount() < nbSamplesMin || output.getPositionCount() > nbSamplesMax ) &&
-          iter < maxIterations ) {
+  while ( ( output.getPositionCount() < nbSamplesMin || output.getPositionCount() > nbSamplesMax )
+          && iter < maxIterations ) {
     iter++;
     // let's refine
     if ( output.getPositionCount() < nbSamplesMin ) {  // need to add some points
@@ -200,18 +198,18 @@ void Sample::meshToPcGrid( const Model& input,
   glm::vec3     stepSize;
   if ( minPos == maxPos ) {
     Geometry::computeBBox( input.vertices, minBox, maxBox );
-    if( verbose ) {
-      std::cout << "Computing positions range" << std::endl;    
+    if ( verbose ) {
+      std::cout << "Computing positions range" << std::endl;
       std::cout << "minBox = " << minBox[0] << "," << minBox[1] << "," << minBox[2] << std::endl;
       std::cout << "maxBox = " << maxBox[0] << "," << maxBox[1] << "," << maxBox[2] << std::endl;
       std::cout << "Transform bounding box to square box" << std::endl;
     }
     // hence sampling will be unform in the three dimensions
     Geometry::toCubicalBBox(
-        minBox, maxBox );  // this will change the origin of the coordinate system (but it is just a translation)
+      minBox, maxBox );  // this will change the origin of the coordinate system (but it is just a translation)
     stepSize = ( maxBox - minBox ) * ( 1.0F / (float)( resolution - 1 ) );
   } else {
-    if( verbose ) {
+    if ( verbose ) {
       std::cout << "Using parameter positions range" << std::endl;
       std::cout << "minPos = " << minPos[0] << "," << minPos[1] << "," << minPos[2] << std::endl;
       std::cout << "maxPos = " << maxPos[0] << "," << maxPos[1] << "," << maxPos[2] << std::endl;
@@ -220,17 +218,14 @@ void Sample::meshToPcGrid( const Model& input,
       // converting the values to a fixed point representation
       // minBox(FP16) will be used in AAPS -> shift
       for ( int i = 0; i < 3; i++ ) {
-        if ( minBox[i] > 0 )
-          minBox[i] = ( std::floor( minBox[i] * fixedPoint16 ) ) / fixedPoint16;
-        else
-          minBox[i] = ( -1 ) * ( std::ceil( std::abs( minBox[i] ) * fixedPoint16 ) ) / fixedPoint16;
+        if ( minBox[i] > 0 ) minBox[i] = ( std::floor( minBox[i] * fixedPoint16 ) ) / fixedPoint16;
+        else minBox[i] = ( -1 ) * ( std::ceil( std::abs( minBox[i] ) * fixedPoint16 ) ) / fixedPoint16;
         if ( maxBox[i] > 0 ) {
           maxBox[i] = std::ceil( maxPos[i] * fixedPoint16 ) / fixedPoint16;
-        } else
-          maxBox[i] = ( -1 ) * ( std::floor( std::abs( maxBox[i] ) * fixedPoint16 ) ) / fixedPoint16;
+        } else maxBox[i] = ( -1 ) * ( std::floor( std::abs( maxBox[i] ) * fixedPoint16 ) ) / fixedPoint16;
       }
     }
-    if( verbose ) {
+    if ( verbose ) {
       std::cout << "minBox = " << minBox[0] << "," << minBox[1] << "," << minBox[2] << std::endl;
       std::cout << "maxBox = " << maxBox[0] << "," << maxBox[1] << "," << maxBox[2] << std::endl;
     }
@@ -246,9 +241,7 @@ void Sample::meshToPcGrid( const Model& input,
     }
   }
 
-  if( verbose ) {
-    std::cout << "stepSize = " << stepSize[0] << "," << stepSize[1] << "," << stepSize[2] << std::endl;
-  }
+  if ( verbose ) { std::cout << "stepSize = " << stepSize[0] << "," << stepSize[1] << "," << stepSize[2] << std::endl; }
 
   // we will now sample between min and max over the three dimensions, using resolution
   // by throwing rays from the three orthogonal faces of the box XY, XZ, YZ
@@ -264,8 +257,8 @@ void Sample::meshToPcGrid( const Model& input,
 
     Vertex v1, v2, v3;
 
-    fetchTriangle( input, triIdx, input.uvcoords.size() != 0, input.colors.size() != 0, input.normals.size() != 0, v1,
-                   v2, v3 );
+    fetchTriangle(
+      input, triIdx, input.uvcoords.size() != 0, input.colors.size() != 0, input.normals.size() != 0, v1, v2, v3 );
 
     // check if triangle is not degenerate
     if ( Geometry::triangleArea( v1.pos, v2.pos, v3.pos ) < DBL_EPSILON ) {
@@ -283,7 +276,7 @@ void Sample::meshToPcGrid( const Model& input,
 
     // now find the Discrete range from global box to triangle box
     glm::vec3 lmin =
-        glm::floor( ( triMinBox - minBox ) / stepSize );  // can lead to division by zero with flat box, handled later
+      glm::floor( ( triMinBox - minBox ) / stepSize );  // can lead to division by zero with flat box, handled later
     glm::vec3 lmax = glm::ceil( ( triMaxBox - minBox ) / stepSize );  // idem
     glm::vec3 lcnt = lmax - lmin;
 
@@ -296,21 +289,16 @@ void Sample::meshToPcGrid( const Model& input,
     // so we do the following reordering only if option is enabled
     if ( useNormal ) {
       if ( ( std::abs( normal[0] ) >= std::abs( normal[1] ) ) && ( std::abs( normal[0] ) >= std::abs( normal[2] ) ) ) {
-        if ( std::abs( normal[1] ) >= std::abs( normal[2] ) )
-          mainAxisVector = glm::ivec3( 0, 1, 2 );
-        else
-          mainAxisVector = glm::ivec3( 0, 2, 1 );
+        if ( std::abs( normal[1] ) >= std::abs( normal[2] ) ) mainAxisVector = glm::ivec3( 0, 1, 2 );
+        else mainAxisVector = glm::ivec3( 0, 2, 1 );
       } else {
-        if ( ( std::abs( normal[1] ) >= std::abs( normal[0] ) ) && ( std::abs( normal[1] ) >= std::abs( normal[2] ) ) ) {
-          if ( std::abs( normal[0] ) >= std::abs( normal[2] ) )
-            mainAxisVector = glm::ivec3( 1, 0, 2 );
-          else
-            mainAxisVector = glm::ivec3( 1, 2, 0 );
+        if ( ( std::abs( normal[1] ) >= std::abs( normal[0] ) )
+             && ( std::abs( normal[1] ) >= std::abs( normal[2] ) ) ) {
+          if ( std::abs( normal[0] ) >= std::abs( normal[2] ) ) mainAxisVector = glm::ivec3( 1, 0, 2 );
+          else mainAxisVector = glm::ivec3( 1, 2, 0 );
         } else {
-          if ( std::abs( normal[0] ) >= std::abs( normal[1] ) )
-            mainAxisVector = glm::ivec3( 2, 0, 1 );
-          else
-            mainAxisVector = glm::ivec3( 2, 1, 0 );
+          if ( std::abs( normal[0] ) >= std::abs( normal[1] ) ) mainAxisVector = glm::ivec3( 2, 0, 1 );
+          else mainAxisVector = glm::ivec3( 2, 1, 0 );
         }
       }
     }
@@ -333,8 +321,8 @@ void Sample::meshToPcGrid( const Model& input,
       if ( minBox[secondAxis] == maxBox[secondAxis] || minBox[thirdAxis] == maxBox[thirdAxis] ) continue;
 
       // let's throw from mainAxis prependicular plane
-      glm::vec3 rayOrigin    = {0.0, 0.0, 0.0};
-      glm::vec3 rayDirection = {0.0, 0.0, 0.0};
+      glm::vec3 rayOrigin    = { 0.0, 0.0, 0.0 };
+      glm::vec3 rayDirection = { 0.0, 0.0, 0.0 };
 
       // on the main axis
       if ( stepSize[mainAxis] == 0.0F ) {  // handle stepSize[axis]==0
@@ -372,10 +360,8 @@ void Sample::meshToPcGrid( const Model& input,
               glm::vec2 uv = v1.uv * ( 1.0f - res.y - res.z ) + v2.uv * res.y + v3.uv * res.z;
 
               // fetch the color from the map
-              if ( bilinear )
-                texture2D_bilinear( tex_map, uv, v.col );
-              else
-                texture2D( tex_map, uv, v.col );
+              if ( bilinear ) texture2D_bilinear( tex_map, uv, v.col );
+              else texture2D( tex_map, uv, v.col );
 
               v.hasColor = true;
               // v.col = v.col * rayDirection; --> for debugging, paints the color of the vertex according to the
@@ -423,8 +409,8 @@ void Sample::meshToPcGrid( const Model& input,
   size_t maxResolution = 0;
   //
   size_t iter = 0;
-  while ( ( output.getPositionCount() < nbSamplesMin || output.getPositionCount() > nbSamplesMax ) &&
-          iter < maxIterations ) {
+  while ( ( output.getPositionCount() < nbSamplesMin || output.getPositionCount() > nbSamplesMax )
+          && iter < maxIterations ) {
     iter++;
     // let's refine
     if ( output.getPositionCount() < nbSamplesMin ) {  // need to add some points
@@ -474,8 +460,8 @@ void Sample::meshToPcMap( const Model& input, Model& output, const Image& tex_ma
 
     Vertex v1, v2, v3;
 
-    fetchTriangle( input, triIdx, input.uvcoords.size() != 0, input.colors.size() != 0, input.normals.size() != 0, v1,
-                   v2, v3 );
+    fetchTriangle(
+      input, triIdx, input.uvcoords.size() != 0, input.colors.size() != 0, input.normals.size() != 0, v1, v2, v3 );
 
     // check if triangle is not degenerate
     if ( Geometry::triangleArea( v1.pos, v2.pos, v3.pos ) < DBL_EPSILON ) {
@@ -488,14 +474,14 @@ void Sample::meshToPcMap( const Model& input, Model& output, const Image& tex_ma
     Geometry::triangleNormal( v1.pos, v2.pos, v3.pos, normal );
 
     // compute the UVs bounding box
-    glm::vec2 uvMin = {FLT_MAX, FLT_MAX};
-    glm::vec2 uvMax = {-FLT_MAX, -FLT_MAX};
+    glm::vec2 uvMin = { FLT_MAX, FLT_MAX };
+    glm::vec2 uvMax = { -FLT_MAX, -FLT_MAX };
     uvMin           = glm::min( v3.uv, glm::min( v2.uv, glm::min( v1.uv, uvMin ) ) );
     uvMax           = glm::max( v3.uv, glm::max( v2.uv, glm::max( v1.uv, uvMax ) ) );
 
     // find the integer coordinates covered in the map
-    glm::i32vec2 intUvMin = {( tex_map.width - 1 ) * uvMin.x, ( tex_map.height - 1 ) * uvMin.y};
-    glm::i32vec2 intUvMax = {( tex_map.width - 1 ) * uvMax.x, ( tex_map.height - 1 ) * uvMax.y};
+    glm::i32vec2 intUvMin = { ( tex_map.width - 1 ) * uvMin.x, ( tex_map.height - 1 ) * uvMin.y };
+    glm::i32vec2 intUvMax = { ( tex_map.width - 1 ) * uvMax.x, ( tex_map.height - 1 ) * uvMax.y };
 
     // loop over the box in image space
     // if a pixel center is in the triangle then backproject
@@ -509,7 +495,7 @@ void Sample::meshToPcMap( const Model& input, Model& output, const Image& tex_ma
         v.nrm       = normal;
         // get the UV for the center of the pixel
         v.hasUVCoord = true;
-        v.uv         = {( 0.5F + i ) / tex_map.width, ( 0.5F + j ) / tex_map.height};
+        v.uv         = { ( 0.5F + i ) / tex_map.width, ( 0.5F + j ) / tex_map.height };
 
         // test if this pixelUV is in the triangle UVs
         glm::vec3 bary;  // the barycentrics if success
@@ -547,14 +533,14 @@ void subdivideTriangle( const Vertex& v1,
 
   // recursion stop criterion on texels adjacency
   if ( mapThreshold && tex_map.data != NULL ) {
-    const glm::ivec2 mapSize = {tex_map.width, tex_map.height};
+    const glm::ivec2 mapSize = { tex_map.width, tex_map.height };
     glm::ivec2       mapCoord1, mapCoord2, mapCoord3;
     mapCoordClamped( v1.uv, mapSize, mapCoord1 );
     mapCoordClamped( v2.uv, mapSize, mapCoord2 );
     mapCoordClamped( v3.uv, mapSize, mapCoord3 );
-    if ( std::abs( mapCoord1.x - mapCoord2.x ) <= 1 && std::abs( mapCoord1.x - mapCoord3.x ) <= 1 &&
-         std::abs( mapCoord2.x - mapCoord3.x ) <= 1 && std::abs( mapCoord1.y - mapCoord2.y ) <= 1 &&
-         std::abs( mapCoord1.y - mapCoord3.y ) <= 1 && std::abs( mapCoord2.y - mapCoord3.y ) <= 1 && areaReached ) {
+    if ( std::abs( mapCoord1.x - mapCoord2.x ) <= 1 && std::abs( mapCoord1.x - mapCoord3.x ) <= 1
+         && std::abs( mapCoord2.x - mapCoord3.x ) <= 1 && std::abs( mapCoord1.y - mapCoord2.y ) <= 1
+         && std::abs( mapCoord1.y - mapCoord3.y ) <= 1 && std::abs( mapCoord2.y - mapCoord3.y ) <= 1 && areaReached ) {
       return;
     }
   } else if ( areaReached ) {
@@ -623,8 +609,8 @@ void Sample::meshToPcDiv( const Model& input,
 
     Vertex v1, v2, v3;
 
-    fetchTriangle( input, triIdx, input.uvcoords.size() != 0, input.colors.size() != 0, input.normals.size() != 0, v1,
-                   v2, v3 );
+    fetchTriangle(
+      input, triIdx, input.uvcoords.size() != 0, input.colors.size() != 0, input.normals.size() != 0, v1, v2, v3 );
 
     // check if triangle is not degenerate
     if ( Geometry::triangleArea( v1.pos, v2.pos, v3.pos ) < DBL_EPSILON ) {
@@ -668,8 +654,8 @@ void Sample::meshToPcDiv( const Model& input,
   float maxBound = 0;
   //
   size_t iter = 0;
-  while ( ( output.getPositionCount() < nbSamplesMin || output.getPositionCount() > nbSamplesMax ) &&
-          iter < maxIterations ) {
+  while ( ( output.getPositionCount() < nbSamplesMin || output.getPositionCount() > nbSamplesMax )
+          && iter < maxIterations ) {
     iter++;
     // let's refine
     if ( output.getPositionCount() > nbSamplesMin ) {  // need to remove some points
@@ -698,16 +684,16 @@ void Sample::meshToPcDiv( const Model& input,
   std::cout << "algorithm ended after " << iter << " iterations " << std::endl;
 }
 
-//                      // 
-//          v2          // 
-//   		    /\          // 
-//         /  \         // 
-//     e1 /----\ e2     // 
-//       / \  / \       // 
-//      /   \/   \      // 
-//    v1 -------- v3    // 
-//          e3          // 
-//                      // 
+//                      //
+//          v2          //
+//   		    /\          //
+//         /  \         //
+//     e1 /----\ e2     //
+//       / \  / \       //
+//      /   \/   \      //
+//    v1 -------- v3    //
+//          e3          //
+//                      //
 void subdivideTriangleEdge( const Vertex& v1,
                             const Vertex& v2,
                             const Vertex& v3,
@@ -847,8 +833,8 @@ void Sample::meshToPcDivEdge( const Model& input,
 
     Vertex v1, v2, v3;
 
-    fetchTriangle( input, triIdx, input.uvcoords.size() != 0, input.colors.size() != 0, input.normals.size() != 0, v1,
-                   v2, v3 );
+    fetchTriangle(
+      input, triIdx, input.uvcoords.size() != 0, input.colors.size() != 0, input.normals.size() != 0, v1, v2, v3 );
 
     // check if triangle is not degenerate
     if ( Geometry::triangleArea( v1.pos, v2.pos, v3.pos ) < DBL_EPSILON ) {
@@ -893,8 +879,8 @@ void Sample::meshToPcDivEdge( const Model& input,
   float maxBound = 0;
   //
   size_t iter = 0;
-  while ( ( output.getPositionCount() < nbSamplesMin || output.getPositionCount() > nbSamplesMax ) &&
-          iter < maxIterations ) {
+  while ( ( output.getPositionCount() < nbSamplesMin || output.getPositionCount() > nbSamplesMax )
+          && iter < maxIterations ) {
     iter++;
     // let's refine
     if ( output.getPositionCount() > nbSamplesMin ) {  // need to remove some points
@@ -941,8 +927,8 @@ void Sample::meshToPcPrnd( const Model& input,
   for ( size_t triIdx = 0; triIdx < input.triangles.size() / 3; ++triIdx ) {
     Vertex v1, v2, v3;
 
-    fetchTriangle( input, triIdx, input.uvcoords.size() != 0, input.colors.size() != 0, input.normals.size() != 0, v1,
-                   v2, v3 );
+    fetchTriangle(
+      input, triIdx, input.uvcoords.size() != 0, input.colors.size() != 0, input.normals.size() != 0, v1, v2, v3 );
     totalArea += Geometry::triangleArea( v1.pos, v2.pos, v3.pos );
   }
 
@@ -954,8 +940,8 @@ void Sample::meshToPcPrnd( const Model& input,
     if ( logProgress ) std::cout << '\r' << triIdx << "/" << input.triangles.size() / 3 << std::flush;
 
     Vertex v1, v2, v3;
-    fetchTriangle( input, triIdx, input.uvcoords.size() != 0, input.colors.size() != 0, input.normals.size() != 0, v1,
-                   v2, v3 );
+    fetchTriangle(
+      input, triIdx, input.uvcoords.size() != 0, input.colors.size() != 0, input.normals.size() != 0, v1, v2, v3 );
 
     // check if triangle is not degenerate
     if ( Geometry::triangleArea( v1.pos, v2.pos, v3.pos ) < DBL_EPSILON ) {

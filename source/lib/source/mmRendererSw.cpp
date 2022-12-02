@@ -102,8 +102,9 @@ struct ShaderMapLight : IShader {
     // fetch uv coordinates
     _data.varying_uv = glm::column( _data.varying_uv, nthvert, _data.model->fetchUv( iface, nthvert ) );
     _data.varying_nrm =
-        glm::column( _data.varying_nrm, nthvert,
-                     glm::vec3( normalMatrix * glm::vec4( _data.model->fetchNormal( iface, nthvert ), 1.0 ) ) );
+      glm::column( _data.varying_nrm,
+                   nthvert,
+                   glm::vec3( normalMatrix * glm::vec4( _data.model->fetchNormal( iface, nthvert ), 1.0 ) ) );
     // fetch and transform the vertex position
     glm::vec4 pos( _data.model->fetchPosition( iface, nthvert ), 1.0 );
     _data.varying_vert  = glm::column( _data.varying_vert, nthvert, glm::vec3( modelView * pos ) );
@@ -180,7 +181,9 @@ struct ShaderRed : IShader {
 };
 
 void viewport( const int x, const int y, const int w, const int h ) {
-  vp = glm::mat4( glm::vec4( w / 2., 0, x + w / 2., 0 ), glm::vec4( 0, h / 2., y + h / 2., 0 ), glm::vec4( 0, 0, 1, 0 ),
+  vp = glm::mat4( glm::vec4( w / 2., 0, x + w / 2., 0 ),
+                  glm::vec4( 0, h / 2., y + h / 2., 0 ),
+                  glm::vec4( 0, 0, 1, 0 ),
                   glm::vec4( 0, 0, 0, 1 ) );
 }
 
@@ -205,16 +208,16 @@ void rasterize( void*                 data,
     // might use pts2 (i.e. coords in box) instead to support perspective - to be checked
     if ( isCullingEnabled ) {
       glm::vec3 normal =
-          glm::cross( glm::vec3( clip_verts[1] - clip_verts[0] ), glm::vec3( clip_verts[2] - clip_verts[0] ) );
+        glm::cross( glm::vec3( clip_verts[1] - clip_verts[0] ), glm::vec3( clip_verts[2] - clip_verts[0] ) );
       if ( ( cwCulling && normal.z <= 0 ) || ( !cwCulling && normal.z >= 0 ) ) continue;
     }
 
     // triangle screen coordinates before persp. division
-    glm::vec4 pts[3] = {vp * clip_verts[0], vp * clip_verts[1], vp * clip_verts[2]};
+    glm::vec4 pts[3] = { vp * clip_verts[0], vp * clip_verts[1], vp * clip_verts[2] };
 
     // triangle screen coordinates after  persp. division
-    glm::vec2 pts2[3] = {glm::vec2( pts[0] / pts[0][3] ), glm::vec2( pts[1] / pts[1][3] ),
-                         glm::vec2( pts[2] / pts[2][3] )};
+    glm::vec2 pts2[3] = {
+      glm::vec2( pts[0] / pts[0][3] ), glm::vec2( pts[1] / pts[1][3] ), glm::vec2( pts[2] / pts[2][3] ) };
 
     // compute the rasterization box
     glm::vec2 bboxmin( std::numeric_limits<double>::max(), std::numeric_limits<double>::max() );
@@ -311,7 +314,7 @@ bool RendererSw::render( Model*                model,
   viewPosition   = boxCtr + viewDirUnit * radius;
   glm::mat4 view = glm::lookAt( viewPosition, boxCtr, viewUpUnit );
 
-  if( verbose ) {
+  if ( verbose ) {
     std::cout << "ViewPos=" << viewPosition.x << " " << viewPosition.y << " " << viewPosition.z << std::endl;
     std::cout << "ViewDir=" << viewDirUnit.x << " " << viewDirUnit.y << " " << viewDirUnit.z << std::endl;
     std::cout << "ViewUp=" << viewUpUnit.x << " " << viewUpUnit.y << " " << viewUpUnit.z << std::endl;
@@ -319,8 +322,8 @@ bool RendererSw::render( Model*                model,
     std::cout << "BSphereRad=" << radius << std::endl;
   }
   // glob transfo to center view and fit OpenGL HW results.
-  glm::mat4 glob = glm::translate( glm::mat4( 1.0 ), glm::vec3( ratio * radius, radius, 0 ) ) *
-                   glm::scale( glm::mat4( 1.0 ), glm::vec3( 1.0F, 1.0F, -1.0F ) );
+  glm::mat4 glob = glm::translate( glm::mat4( 1.0 ), glm::vec3( ratio * radius, radius, 0 ) )
+                   * glm::scale( glm::mat4( 1.0 ), glm::vec3( 1.0F, 1.0F, -1.0F ) );
   glm::mat4 proj = glm::ortho( -ratio * radius, ratio * radius, -radius, radius, 0.0F, 2.0F * radius );
 
   modelView    = view * mdl;
@@ -341,7 +344,7 @@ bool RendererSw::render( Model*                model,
       lightPosition = _lightPosition;
     }
     lightPositionMV = modelView * glm::vec4( lightPosition, 1.0 );
-    if( verbose ) {
+    if ( verbose ) {
       std::cout << "Light Pos = " << lightPositionMV.x << ", " << lightPositionMV.y << ", " << lightPositionMV.z << ", "
                 << std::endl;
     }
@@ -350,23 +353,20 @@ bool RendererSw::render( Model*                model,
     materialDiffuse = _materialDiffuse;
     //
     if ( !model->hasVertexNormals() ) {
-      if( verbose )
-        std::cout << "Processing normals with \"noseams\" enabled..." << std::endl;
-      model->computeVertexNormals( true, true );      
-      if( verbose ) 
+      if ( verbose ) std::cout << "Processing normals with \"noseams\" enabled..." << std::endl;
+      model->computeVertexNormals( true, true );
+      if ( verbose )
         std::cout << "Time on processing normals: " << ( (float)( clock() - t1 ) ) / CLOCKS_PER_SEC << " sec."
                   << std::endl;
       t1 = clock();
-    } else {   
-      if( verbose ) 
-        std::cout << "Using pre-defined model normals." << std::endl;
+    } else {
+      if ( verbose ) std::cout << "Using pre-defined model normals." << std::endl;
     }
   } else {
-    if ( !model->hasTriangleNormals() ) {   
-      if( verbose ) 
-        std::cout << "Processing triangle normals " << std::endl;
-      model->computeFaceNormals( true );   
-      if( verbose ) 
+    if ( !model->hasTriangleNormals() ) {
+      if ( verbose ) std::cout << "Processing triangle normals " << std::endl;
+      model->computeFaceNormals( true );
+      if ( verbose )
         std::cout << "Time on processing normals: " << ( (float)( clock() - t1 ) ) / CLOCKS_PER_SEC << " sec."
                   << std::endl;
       t1 = clock();
@@ -383,8 +383,8 @@ bool RendererSw::render( Model*                model,
   if ( model->uvcoords.size() != 0 && map != NULL && map->data != NULL ) {
     if ( _isLigthingEnabled && model->normals.size() != 0 ) {
       ShaderMapLight shader( model, map );
-      rasterize( &shader, ShaderMapLight::vertex, ShaderMapLight::fragment, shader.model, fbuffer, width, height,
-                 zbuffer );
+      rasterize(
+        &shader, ShaderMapLight::vertex, ShaderMapLight::fragment, shader.model, fbuffer, width, height, zbuffer );
     } else {
       ShaderMap shader( model, map );
       rasterize( &shader, ShaderMap::vertex, ShaderMap::fragment, shader.model, fbuffer, width, height, zbuffer );
@@ -405,17 +405,16 @@ bool RendererSw::render( Model*                model,
       if ( ( c + 1 ) % 4 == 0 ) continue;
       maxDist = std::max( maxDist, fbuffer[c] );
     }
-       
-    if( verbose ) 
-      std::cout << "Auto Level MaxDist = " << (int)maxDist << std::endl;
+
+    if ( verbose ) std::cout << "Auto Level MaxDist = " << (int)maxDist << std::endl;
     // level up the intensity
     for ( size_t c = 0; c < fbuffer.size(); ++c ) {
       if ( ( c + 1 ) % 4 == 0 ) continue;
-      fbuffer[c] = fbuffer[c] + ( uint8_t )( 255 - maxDist );
+      fbuffer[c] = fbuffer[c] + (uint8_t)( 255 - maxDist );
     }
   }
-   
-  if( verbose ) 
+
+  if ( verbose )
     std::cout << "Time on render: " << ( (float)( clock() - t1 ) ) / CLOCKS_PER_SEC << " sec." << std::endl;
 
   return true;
@@ -445,17 +444,17 @@ bool RendererSw::render( Model*             model,
 
   if ( outputImage != "" ) {
     // Write image Y-flipped because OpenGL
-    stbi_write_png( outputImage.c_str(), width, height, 4, fbuffer.data() + ( width * 4 * ( height - 1 ) ),
-                    -(int)width * 4 );
+    stbi_write_png(
+      outputImage.c_str(), width, height, 4, fbuffer.data() + ( width * 4 * ( height - 1 ) ), -(int)width * 4 );
   }
 
   if ( outputDepth != "" ) {
     // Write depth splitted on RGBA
-    stbi_write_png( outputDepth.c_str(), width, height, 4, (char*)zbuffer.data() + ( width * 4 * ( height - 1 ) ),
-                    -(int)width * 4 );
+    stbi_write_png(
+      outputDepth.c_str(), width, height, 4, (char*)zbuffer.data() + ( width * 4 * ( height - 1 ) ), -(int)width * 4 );
   }
-  
-  if( verbose )
+
+  if ( verbose )
     std::cout << "Time on saving: " << ( (float)( clock() - t1 ) ) / CLOCKS_PER_SEC << " sec." << std::endl;
 
   return true;

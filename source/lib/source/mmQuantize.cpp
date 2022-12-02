@@ -66,7 +66,7 @@ void Quantize::quantize( const Model&       input,
 
   // prepare logging and output var
   std::vector<std::ostream*> out;
-  if( verbose ) out.push_back( &std::cout );
+  if ( verbose ) out.push_back( &std::cout );
   std::ofstream fout;
   if ( outputVarFilename != "" ) {
     fout.open( outputVarFilename.c_str(), std::ios::out );
@@ -84,24 +84,20 @@ void Quantize::quantize( const Model&       input,
   // quantize position
   if ( !input.vertices.empty() && qp >= 7 ) {
     if ( minPos == maxPos ) {
-      if( verbose ) std::cout << "Computing positions range" << std::endl;
+      if ( verbose ) std::cout << "Computing positions range" << std::endl;
       Geometry::computeBBox( input.vertices, minPos, maxPos );
     } else {
-      if( verbose ) std::cout << "Using parameter positions range" << std::endl;
+      if ( verbose ) std::cout << "Using parameter positions range" << std::endl;
     }
     const int32_t fixedPoint16 = ( 1u << 16 );
     if ( useFixedPoint ) {
       // converting the values to a fixed point representation
       // minPos(FP16) will be used in AAPS -> shift
       for ( int i = 0; i < 3; i++ ) {
-        if ( minPos[i] > 0 )
-          minPos[i] = ( std::floor( minPos[i] * fixedPoint16 ) ) / fixedPoint16;
-        else
-          minPos[i] = ( -1 ) * ( std::ceil( std::abs( minPos[i] ) * fixedPoint16 ) ) / fixedPoint16;
-        if ( maxPos[i] > 0 )
-          maxPos[i] = ( std::ceil( maxPos[i] * fixedPoint16 ) ) / fixedPoint16;
-        else
-          maxPos[i] = ( -1 ) * ( std::floor( std::abs( maxPos[i] ) * fixedPoint16 ) ) / fixedPoint16;
+        if ( minPos[i] > 0 ) minPos[i] = ( std::floor( minPos[i] * fixedPoint16 ) ) / fixedPoint16;
+        else minPos[i] = ( -1 ) * ( std::ceil( std::abs( minPos[i] ) * fixedPoint16 ) ) / fixedPoint16;
+        if ( maxPos[i] > 0 ) maxPos[i] = ( std::ceil( maxPos[i] * fixedPoint16 ) ) / fixedPoint16;
+        else maxPos[i] = ( -1 ) * ( std::floor( std::abs( maxPos[i] ) * fixedPoint16 ) ) / fixedPoint16;
       }
     }
     const glm::vec3 diag                      = maxPos - minPos;
@@ -120,8 +116,8 @@ void Quantize::quantize( const Model&       input,
 
     for ( size_t i = 0; i < input.vertices.size() / 3; i++ ) {
       for ( glm::vec3::length_type c = 0; c < 3; ++c ) {
-        uint32_t pos = static_cast<uint32_t>(
-            std::floor( ( ( double( input.vertices[i * 3 + c] - minPos[c] ) ) / scale ) + 0.5f ) );
+        uint32_t pos =
+          static_cast<uint32_t>( std::floor( ( ( double( input.vertices[i * 3 + c] - minPos[c] ) ) / scale ) + 0.5f ) );
         output.vertices[i * 3 + c] = static_cast<float>( pos );
       }
     }
@@ -130,10 +126,10 @@ void Quantize::quantize( const Model&       input,
   // quantize UV coordinates
   if ( !input.uvcoords.empty() && qt >= 7 ) {
     if ( minUv == maxUv ) {
-      if( verbose ) std::cout << "Computing uv coordinates range" << std::endl;
+      if ( verbose ) std::cout << "Computing uv coordinates range" << std::endl;
       Geometry::computeBBox( input.uvcoords, minUv, maxUv );
     } else {
-      if( verbose ) std::cout << "Using parameter uv coordinates range" << std::endl;
+      if ( verbose ) std::cout << "Using parameter uv coordinates range" << std::endl;
     }
     const glm::vec2 diag                    = maxUv - minUv;
     const float     range                   = std::max( diag.x, diag.y );
@@ -148,7 +144,7 @@ void Quantize::quantize( const Model&       input,
     for ( size_t i = 0; i < input.uvcoords.size() / 2; i++ ) {
       for ( glm::vec2::length_type c = 0; c < 2; ++c ) {
         uint32_t uv = static_cast<uint32_t>(
-            std::floor( ( ( input.uvcoords[i * 2 + c] - minUv[c] ) / range ) * maxUVcordQuantizedValue + 0.5f ) );
+          std::floor( ( ( input.uvcoords[i * 2 + c] - minUv[c] ) / range ) * maxUVcordQuantizedValue + 0.5f ) );
         output.uvcoords[i * 2 + c] = static_cast<float>( uv );
       }
     }
@@ -157,10 +153,10 @@ void Quantize::quantize( const Model&       input,
   // quantize normals
   if ( !input.normals.empty() && qn >= 7 ) {
     if ( minNrm == maxNrm ) {
-      if( verbose ) std::cout << "Computing normals range" << std::endl;
+      if ( verbose ) std::cout << "Computing normals range" << std::endl;
       Geometry::computeBBox( input.normals, minNrm, maxNrm );
     } else {
-    if( verbose ) std::cout << "Using parameter normals range" << std::endl;
+      if ( verbose ) std::cout << "Using parameter normals range" << std::endl;
     }
     const glm::vec3 diag                    = maxNrm - minNrm;
     const float     range                   = std::max( std::max( diag.x, diag.y ), diag.z );
@@ -175,7 +171,7 @@ void Quantize::quantize( const Model&       input,
     for ( size_t i = 0; i < input.normals.size() / 3; i++ ) {
       for ( glm::vec3::length_type c = 0; c < 3; ++c ) {
         uint32_t nrm = static_cast<uint32_t>(
-            std::floor( ( ( input.normals[i * 3 + c] - minNrm[c] ) / range ) * maxNormalQuantizedValue + 0.5f ) );
+          std::floor( ( ( input.normals[i * 3 + c] - minNrm[c] ) / range ) * maxNormalQuantizedValue + 0.5f ) );
         output.normals[i * 3 + c] = static_cast<float>( nrm );
       }
     }
@@ -184,10 +180,10 @@ void Quantize::quantize( const Model&       input,
   // quantize colors
   if ( !input.colors.empty() && ( ( qc >= 7 ) || ( colorSpaceConversion ) ) ) {
     if ( minCol == maxCol ) {
-      if( verbose ) std::cout << "Computing colors range" << std::endl;
+      if ( verbose ) std::cout << "Computing colors range" << std::endl;
       Geometry::computeBBox( input.colors, minCol, maxCol );
     } else {
-      if( verbose ) std::cout << "Using parameter colors range" << std::endl;
+      if ( verbose ) std::cout << "Using parameter colors range" << std::endl;
     }
     const glm::vec3 diag                   = maxCol - minCol;
     const float     range                  = std::max( std::max( diag.x, diag.y ), diag.z );
@@ -212,7 +208,7 @@ void Quantize::quantize( const Model&       input,
       } else {
         for ( glm::vec3::length_type c = 0; c < 3; ++c ) {
           uint32_t col = static_cast<uint32_t>(
-              std::floor( ( ( input.colors[i * 3 + c] - minCol[c] ) / range ) * maxColorQuantizedValue + 0.5f ) );
+            std::floor( ( ( input.colors[i * 3 + c] - minCol[c] ) / range ) * maxColorQuantizedValue + 0.5f ) );
           output.colors[i * 3 + c] = static_cast<float>( col );
         }
       }

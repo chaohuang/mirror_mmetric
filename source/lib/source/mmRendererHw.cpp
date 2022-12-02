@@ -21,8 +21,8 @@
 #include <time.h>
 
 #if USE_NATIVE_OSMESA
-#define GLFW_EXPOSE_NATIVE_OSMESA
-#include <GLFW/glfw3native.h>
+#  define GLFW_EXPOSE_NATIVE_OSMESA
+#  include <GLFW/glfw3native.h>
 #endif
 
 // "implementation" done in mmIO
@@ -41,67 +41,62 @@
 
 using namespace mm;
 
-static const char* col_vertex_shader_text =
-    "#version 110\n"
-    "uniform mat4 MVP;\n"
-    "uniform vec3 col;\n"
-    "attribute vec3 vPos;\n"
-    "varying vec3 color;\n"
-    "void main()\n"
-    "{\n"
-    "    gl_Position = MVP * vec4(vPos, 1.0);\n"
-    "    color = col;\n"
-    "}\n";
+static const char* col_vertex_shader_text = "#version 110\n"
+                                            "uniform mat4 MVP;\n"
+                                            "uniform vec3 col;\n"
+                                            "attribute vec3 vPos;\n"
+                                            "varying vec3 color;\n"
+                                            "void main()\n"
+                                            "{\n"
+                                            "    gl_Position = MVP * vec4(vPos, 1.0);\n"
+                                            "    color = col;\n"
+                                            "}\n";
 
-static const char* col_fragment_shader_text =
-    "#version 110\n"
-    "varying vec3 color;\n"
-    "void main()\n"
-    "{\n"
-    "    gl_FragColor = vec4(color, 1.0);\n"
-    "}\n";
+static const char* col_fragment_shader_text = "#version 110\n"
+                                              "varying vec3 color;\n"
+                                              "void main()\n"
+                                              "{\n"
+                                              "    gl_FragColor = vec4(color, 1.0);\n"
+                                              "}\n";
 
-static const char* vertex_shader_text =
-    "#version 110\n"
-    "uniform mat4 MVP;\n"
-    "attribute vec3 vCol;\n"
-    "attribute vec3 vPos;\n"
-    "varying vec3 color;\n"
-    "void main()\n"
-    "{\n"
-    "    gl_Position = MVP * vec4(vPos, 1.0);\n"
-    "    color = vCol / vec3(255.0);\n"
-    "}\n";
+static const char* vertex_shader_text = "#version 110\n"
+                                        "uniform mat4 MVP;\n"
+                                        "attribute vec3 vCol;\n"
+                                        "attribute vec3 vPos;\n"
+                                        "varying vec3 color;\n"
+                                        "void main()\n"
+                                        "{\n"
+                                        "    gl_Position = MVP * vec4(vPos, 1.0);\n"
+                                        "    color = vCol / vec3(255.0);\n"
+                                        "}\n";
 
-static const char* fragment_shader_text =
-    "#version 110\n"
-    "varying vec3 color;\n"
-    "void main()\n"
-    "{\n"
-    "    gl_FragColor = vec4(color, 1.0);\n"
-    "}\n";
+static const char* fragment_shader_text = "#version 110\n"
+                                          "varying vec3 color;\n"
+                                          "void main()\n"
+                                          "{\n"
+                                          "    gl_FragColor = vec4(color, 1.0);\n"
+                                          "}\n";
 
-static const char* map_vertex_shader_text =
-    "#version 110\n"
-    "uniform mat4 MVP;\n"
-    "attribute vec2 vTex;\n"
-    "attribute vec3 vPos;\n"
-    "varying vec2 texCoord;\n"
-    "void main()\n"
-    "{\n"
-    "    gl_Position = MVP * vec4(vPos, 1.0);\n"
-    "	 texCoord = vTex;\n"
-    "}\n";
+static const char* map_vertex_shader_text = "#version 110\n"
+                                            "uniform mat4 MVP;\n"
+                                            "attribute vec2 vTex;\n"
+                                            "attribute vec3 vPos;\n"
+                                            "varying vec2 texCoord;\n"
+                                            "void main()\n"
+                                            "{\n"
+                                            "    gl_Position = MVP * vec4(vPos, 1.0);\n"
+                                            "	 texCoord = vTex;\n"
+                                            "}\n";
 
 static const char* map_fragment_shader_text =
-    "#version 110\n"
-    "varying vec2 texCoord;\n"
-    "uniform sampler2D texture;"
-    "void main()\n"
-    "{\n"
-    "    //gl_FragColor = vec4(texCoord, 1.0, 1.0);\n"
-    "    gl_FragColor = texture2D(texture, vec2(texCoord.x, 1.0 - texCoord.y));\n"
-    "}\n";
+  "#version 110\n"
+  "varying vec2 texCoord;\n"
+  "uniform sampler2D texture;"
+  "void main()\n"
+  "{\n"
+  "    //gl_FragColor = vec4(texCoord, 1.0, 1.0);\n"
+  "    gl_FragColor = texture2D(texture, vec2(texCoord.x, 1.0 - texCoord.y));\n"
+  "}\n";
 
 // glfw error callback
 static void error_callback( int error, const char* description ) {
@@ -117,8 +112,12 @@ void GLAPIENTRY MessageCallback( GLenum        source,
                                  GLsizei       length,
                                  const GLchar* message,
                                  const void*   userParam ) {
-  fprintf( stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
-           ( type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : "" ), type, severity, message );
+  fprintf( stderr,
+           "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
+           ( type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : "" ),
+           type,
+           severity,
+           message );
 }
 
 // open the output render context and associated hidden window
@@ -187,13 +186,13 @@ bool RendererHw::initialize( const unsigned int width, const unsigned int height
   GLenum status;
   status = glCheckFramebufferStatus( GL_FRAMEBUFFER );
   switch ( status ) {
-    case GL_FRAMEBUFFER_COMPLETE:
-      std::cout << "Created FBO width=" << _width << " height=" << _height << std::endl;
-      break;
-    default:
-      std::cout << "Error: could not create proper FBO" << std::endl;
-      glfwTerminate();
-      return false;
+  case GL_FRAMEBUFFER_COMPLETE:
+    std::cout << "Created FBO width=" << _width << " height=" << _height << std::endl;
+    break;
+  default:
+    std::cout << "Error: could not create proper FBO" << std::endl;
+    glfwTerminate();
+    return false;
   }
 
   std::cout << "Time on GL setup: " << ( (float)( clock() - t1 ) ) / CLOCKS_PER_SEC << " sec." << std::endl;
@@ -243,13 +242,12 @@ bool RendererHw::render( Model*                model,
 
   // test if we render cpv and maps
   if ( model->trianglesuv.size() != 0 ) {
-    if( verbose )
-      std::cout << "Reindexing the model" << std::endl;
+    if ( verbose ) std::cout << "Reindexing the model" << std::endl;
     t1       = clock();
     tmpModel = new Model();
     reindex( *model, *tmpModel );
     rndModel = tmpModel;
-    if( verbose )
+    if ( verbose )
       std::cout << "Time on reindexing: " << ( (float)( clock() - t1 ) ) / CLOCKS_PER_SEC << " sec." << std::endl;
   }
   bool useCpv = rndModel->colors.size() == rndModel->vertices.size() && map == NULL;
@@ -258,26 +256,22 @@ bool RendererHw::render( Model*                model,
   t1 = clock();
 
   // NOTE: OpenGL error checks have been omitted for brevity
-  if( verbose )
-    std::cout << "Create shader " << std::endl;
+  if ( verbose ) std::cout << "Create shader " << std::endl;
 
   vertex_shader   = glCreateShaderObjectARB( GL_VERTEX_SHADER_ARB );
   fragment_shader = glCreateShaderObjectARB( GL_FRAGMENT_SHADER_ARB );
 
-  if ( useMap ) {    
-    if( verbose )
-      std::cout << "UseMap" << std::endl;
+  if ( useMap ) {
+    if ( verbose ) std::cout << "UseMap" << std::endl;
     glShaderSourceARB( vertex_shader, 1, &map_vertex_shader_text, NULL );
     glShaderSourceARB( fragment_shader, 1, &map_fragment_shader_text, NULL );
   } else if ( useCpv ) {
-    if( verbose )
-      std::cout << "UseCpv" << std::endl;
+    if ( verbose ) std::cout << "UseCpv" << std::endl;
     glShaderSourceARB( vertex_shader, 1, &vertex_shader_text, NULL );
     glShaderSourceARB( fragment_shader, 1, &fragment_shader_text, NULL );
   } else {
     // use diffuse color shader
-    if( verbose )
-      std::cout << "No map no CPV, use diffuse color" << std::endl;
+    if ( verbose ) std::cout << "No map no CPV, use diffuse color" << std::endl;
     glShaderSourceARB( vertex_shader, 1, &col_vertex_shader_text, NULL );
     glShaderSourceARB( fragment_shader, 1, &col_fragment_shader_text, NULL );
   }
@@ -305,8 +299,7 @@ bool RendererHw::render( Model*                model,
     return false;
   }
 
-  if( verbose )
-    std::cout << "Assemble and link" << std::endl;
+  if ( verbose ) std::cout << "Assemble and link" << std::endl;
   program = glCreateProgramObjectARB();
   glAttachObjectARB( program, vertex_shader );
   glAttachObjectARB( program, fragment_shader );
@@ -331,11 +324,10 @@ bool RendererHw::render( Model*                model,
     col_location = glGetUniformLocationARB( program, "col" );
   }
 
-  if( verbose )
+  if ( verbose )
     std::cout << "Time on shader compilation: " << ( (float)( clock() - t1 ) ) / CLOCKS_PER_SEC << " sec." << std::endl;
-  t1 = clock();  
-  if( verbose )
-    std::cout << "Upload model to GPU" << std::endl;
+  t1 = clock();
+  if ( verbose ) std::cout << "Upload model to GPU" << std::endl;
 
   glGenVertexArrays( 1, &VAO );
   glGenBuffersARB( 1, &vertex_buffer );     // VBO
@@ -348,8 +340,8 @@ bool RendererHw::render( Model*                model,
 
   // vertex coordinates
   glBindBufferARB( GL_ARRAY_BUFFER_ARB, vertex_buffer );
-  glBufferDataARB( GL_ARRAY_BUFFER_ARB, rndModel->vertices.size() * sizeof( float ), rndModel->vertices.data(),
-                   GL_STATIC_DRAW_ARB );
+  glBufferDataARB(
+    GL_ARRAY_BUFFER_ARB, rndModel->vertices.size() * sizeof( float ), rndModel->vertices.data(), GL_STATIC_DRAW_ARB );
 
   glEnableVertexAttribArrayARB( vpos_location );
   glVertexAttribPointerARB( vpos_location, 3, GL_FLOAT, GL_FALSE, 3 * sizeof( float ), (void*)0 );
@@ -357,8 +349,8 @@ bool RendererHw::render( Model*                model,
   // texture coordinates
   if ( useMap ) {
     glBindBufferARB( GL_ARRAY_BUFFER_ARB, texcoord_buffer );
-    glBufferDataARB( GL_ARRAY_BUFFER_ARB, rndModel->uvcoords.size() * sizeof( float ), rndModel->uvcoords.data(),
-                     GL_STATIC_DRAW_ARB );
+    glBufferDataARB(
+      GL_ARRAY_BUFFER_ARB, rndModel->uvcoords.size() * sizeof( float ), rndModel->uvcoords.data(), GL_STATIC_DRAW_ARB );
     glEnableVertexAttribArrayARB( vtex_location );
     glVertexAttribPointerARB( vtex_location, 2, GL_FLOAT, GL_FALSE, 2 * sizeof( float ), (void*)0 );
   }
@@ -366,34 +358,37 @@ bool RendererHw::render( Model*                model,
   // color per vertex
   if ( useCpv ) {
     glBindBufferARB( GL_ARRAY_BUFFER_ARB, color_buffer );
-    glBufferDataARB( GL_ARRAY_BUFFER_ARB, rndModel->colors.size() * sizeof( float ), rndModel->colors.data(),
-                     GL_STATIC_DRAW_ARB );
+    glBufferDataARB(
+      GL_ARRAY_BUFFER_ARB, rndModel->colors.size() * sizeof( float ), rndModel->colors.data(), GL_STATIC_DRAW_ARB );
     glEnableVertexAttribArrayARB( vcol_location );
     glVertexAttribPointerARB( vcol_location, 3, GL_FLOAT, GL_FALSE, 3 * sizeof( float ), (void*)0 );
   }
 
   glBindBufferARB( GL_ELEMENT_ARRAY_BUFFER_ARB, triangles_buffer );
-  glBufferDataARB( GL_ELEMENT_ARRAY_BUFFER_ARB, rndModel->triangles.size() * sizeof( unsigned int ),
-                   rndModel->triangles.data(), GL_STATIC_DRAW_ARB );
+  glBufferDataARB( GL_ELEMENT_ARRAY_BUFFER_ARB,
+                   rndModel->triangles.size() * sizeof( unsigned int ),
+                   rndModel->triangles.data(),
+                   GL_STATIC_DRAW_ARB );
 
   glEnableVertexAttribArrayARB( 0 );
   glBindBufferARB( GL_ARRAY_BUFFER_ARB, 0 );  // disable
   glBindVertexArray( 0 );                     // disable VAO
 
-  if( verbose )
-    std::cout << "Time on model upload to GPU: " << ( (float)( clock() - t1 ) ) / CLOCKS_PER_SEC << " sec." << std::endl;
+  if ( verbose )
+    std::cout << "Time on model upload to GPU: " << ( (float)( clock() - t1 ) ) / CLOCKS_PER_SEC << " sec."
+              << std::endl;
   t1 = clock();
 
   // Handle texture map
   unsigned int texture;
   if ( useMap ) {
-    t1 = clock();    
-    if( verbose )
-      std::cout << "Upload texture to GPU" << std::endl;
+    t1 = clock();
+    if ( verbose ) std::cout << "Upload texture to GPU" << std::endl;
     glGenTextures( 1, &texture );
     glBindTexture( GL_TEXTURE_2D, texture );
     // set the texture wrapping parameters
-    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
+    glTexParameteri( GL_TEXTURE_2D,
+                     GL_TEXTURE_WRAP_S,
                      GL_CLAMP_TO_EDGE );  // set texture wrapping to GL_REPEAT (default wrapping method)
     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
     // set texture filtering parameters
@@ -402,23 +397,20 @@ bool RendererHw::render( Model*                model,
     glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
     //
     GLuint inputFormat = GL_RGB;
-    if ( map->nbc == 4 )
-      inputFormat = GL_RGBA;
-    else if ( map->nbc == 1 )
-      inputFormat = GL_RED;
+    if ( map->nbc == 4 ) inputFormat = GL_RGBA;
+    else if ( map->nbc == 1 ) inputFormat = GL_RED;
     // allways use RGB internal format
     glTexImage2D( GL_TEXTURE_2D, 0, GL_RGB, map->width, map->height, 0, inputFormat, GL_UNSIGNED_BYTE, map->data );
-    // glGenerateMipmap(GL_TEXTURE_2D); // not sure if we shall use the mipmaps    
-    if( verbose )
+    // glGenerateMipmap(GL_TEXTURE_2D); // not sure if we shall use the mipmaps
+    if ( verbose )
       std::cout << "Time on texture upload to GPU: " << ( (float)( clock() - t1 ) ) / CLOCKS_PER_SEC << " sec."
                 << std::endl;
   } else {
     glBindTexture( GL_TEXTURE_2D, 0 );
   }
 
-  // Init finished now we render  
-  if( verbose )
-    std::cout << "Start rendering" << std::endl;
+  // Init finished now we render
+  if ( verbose ) std::cout << "Start rendering" << std::endl;
   t1 = clock();
 
   // glfwGetFramebufferSize(window, &_width, &_height);
@@ -432,10 +424,8 @@ bool RendererHw::render( Model*                model,
 
   glEnable( GL_DEPTH_TEST );
 
-  if ( _isCullingEnabled )
-    glEnable( GL_CULL_FACE );
-  else
-    glDisable( GL_CULL_FACE );
+  if ( _isCullingEnabled ) glEnable( GL_CULL_FACE );
+  else glDisable( GL_CULL_FACE );
 
   glm::mat4 mvp;  // model view projection
   glm::vec3 minPos, maxPos;
@@ -454,9 +444,9 @@ bool RendererHw::render( Model*                model,
   glm::mat4 proj    = glm::ortho( -ratio * size, ratio * size, -size, size, 0.0F, 2.0F * size );
   glm::mat4 view    = glm::lookAt( boxCtr + viewDir * size, boxCtr, viewUp );
 
-  if( verbose ) {
-    std::cout << "BBox = " << minPos.x << "," << minPos.y << "," << minPos.z << "/" << maxPos.x << "," << maxPos.y << ","
-              << maxPos.z << std::endl;
+  if ( verbose ) {
+    std::cout << "BBox = " << minPos.x << "," << minPos.y << "," << minPos.z << "/" << maxPos.x << "," << maxPos.y
+              << "," << maxPos.z << std::endl;
     std::cout << "Size = " << size << std::endl;
     std::cout << "Bctr = " << boxCtr.x << "," << boxCtr.y << "," << boxCtr.z << std::endl;
   }
@@ -474,7 +464,7 @@ bool RendererHw::render( Model*                model,
   if ( useMap ) {
     glUniform1iARB( texture_location, 0 );  // the texture sampler
   } else if ( !useCpv ) {
-    glm::vec3 col = {1, 0, 0};
+    glm::vec3 col = { 1, 0, 0 };
     glUniform3fvARB( col_location, 1, (const GLfloat*)( glm::value_ptr( col ) ) );
   }
 
@@ -487,27 +477,25 @@ bool RendererHw::render( Model*                model,
   );
 
   // Now we readback
-  if( verbose ) 
+  if ( verbose )
     std::cout << "Time on render: " << ( (float)( clock() - t1 ) ) / CLOCKS_PER_SEC << " sec." << std::endl;
   t1 = clock();
 
   // frame buffer readback if needed
-  if ( fbuffer.size() != 0 ) {    
-    if( verbose ) 
-      std::cout << "Color readback" << std::endl;
+  if ( fbuffer.size() != 0 ) {
+    if ( verbose ) std::cout << "Color readback" << std::endl;
     glReadBuffer( GL_COLOR_ATTACHMENT0 );
     glReadPixels( 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, fbuffer.data() );
   }
 
   // depth buffer readback if needed
   if ( zbuffer.size() != 0 ) {
-    if( verbose ) 
-      std::cout << "Depth readback" << std::endl;
+    if ( verbose ) std::cout << "Depth readback" << std::endl;
     // glReadPixels(0, 0, width, height, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, zbuffer.data());
     glReadPixels( 0, 0, width, height, GL_DEPTH_COMPONENT, GL_FLOAT, zbuffer.data() );
   }
 
-  if( verbose ) 
+  if ( verbose )
     std::cout << "Time on readback: " << ( (float)( clock() - t1 ) ) / CLOCKS_PER_SEC << " sec." << std::endl;
 
   if ( tmpModel != NULL ) delete tmpModel;
@@ -539,16 +527,16 @@ bool RendererHw::render( Model*             model,
 
   if ( outputImage != "" ) {
     // Write image Y-flipped because OpenGL
-    stbi_write_png( outputImage.c_str(), width, height, 4, fbuffer.data() + ( width * 4 * ( height - 1 ) ),
-                    -(int)width * 4 );
+    stbi_write_png(
+      outputImage.c_str(), width, height, 4, fbuffer.data() + ( width * 4 * ( height - 1 ) ), -(int)width * 4 );
   }
 
   if ( outputDepth != "" ) {
     // Write depth splitted on RGBA
-    stbi_write_png( outputDepth.c_str(), width, height, 4, (char*)zbuffer.data() + ( width * 4 * ( height - 1 ) ),
-                    -(int)width * 4 );
+    stbi_write_png(
+      outputDepth.c_str(), width, height, 4, (char*)zbuffer.data() + ( width * 4 * ( height - 1 ) ), -(int)width * 4 );
   }
-  if( verbose )
+  if ( verbose )
     std::cout << "Time on saving: " << ( (float)( clock() - t1 ) ) / CLOCKS_PER_SEC << " sec." << std::endl;
 
   return true;

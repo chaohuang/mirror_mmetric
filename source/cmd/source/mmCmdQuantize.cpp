@@ -99,16 +99,14 @@ bool CmdQuantize::initialize( Context* ctx, std::string app, int argc, char* arg
       return false;
     }
     //
-    if ( result.count( "inputModel" ) )
-      _inputModelFilename = result["inputModel"].as<std::string>();
+    if ( result.count( "inputModel" ) ) _inputModelFilename = result["inputModel"].as<std::string>();
     else {
       std::cerr << "Error: missing inputModel parameter" << std::endl;
       std::cout << options.help() << std::endl;
       return false;
     }
     //
-    if ( result.count( "outputModel" ) )
-      _outputModelFilename = result["outputModel"].as<std::string>();
+    if ( result.count( "outputModel" ) ) _outputModelFilename = result["outputModel"].as<std::string>();
     else {
       std::cerr << "Error: missing outputModel parameter" << std::endl;
       std::cout << options.help() << std::endl;
@@ -235,26 +233,69 @@ bool CmdQuantize::process( uint32_t frame ) {
   if ( _dequantize ) {
     mm::Model* quantizedModel = new mm::Model();
 
-    mm::Quantize::quantize( *inputModel, *quantizedModel, _qp, _qt, _qn, _qc, _outputVarFilename, _useFixedPoint,
-                            _colorSpaceConversion, minPos, maxPos, minUv, maxUv, minNrm, maxNrm, minCol, maxCol );
+    mm::Quantize::quantize( *inputModel,
+                            *quantizedModel,
+                            _qp,
+                            _qt,
+                            _qn,
+                            _qc,
+                            _outputVarFilename,
+                            _useFixedPoint,
+                            _colorSpaceConversion,
+                            minPos,
+                            maxPos,
+                            minUv,
+                            maxUv,
+                            minNrm,
+                            maxNrm,
+                            minCol,
+                            maxCol );
 
     // uses min/max potentially updated by previous line call to quantize
-    mm::Dequantize::dequantize( *quantizedModel, *outputModel, _qp, _qt, _qn, _qc, minPos, maxPos, minUv, maxUv, minNrm,
-                                maxNrm, minCol, maxCol, _useFixedPoint, _colorSpaceConversion );
+    mm::Dequantize::dequantize( *quantizedModel,
+                                *outputModel,
+                                _qp,
+                                _qt,
+                                _qn,
+                                _qc,
+                                minPos,
+                                maxPos,
+                                minUv,
+                                maxUv,
+                                minNrm,
+                                maxNrm,
+                                minCol,
+                                maxCol,
+                                _useFixedPoint,
+                                _colorSpaceConversion );
 
     delete quantizedModel;
   } else {
     // uses min/max potentially updated by previous frame call to quantize
-    mm::Quantize::quantize( *inputModel, *outputModel, _qp, _qt, _qn, _qc, _outputVarFilename, _useFixedPoint,
-                            _colorSpaceConversion, minPos, maxPos, minUv, maxUv, minNrm, maxNrm, minCol, maxCol );
+    mm::Quantize::quantize( *inputModel,
+                            *outputModel,
+                            _qp,
+                            _qt,
+                            _qn,
+                            _qc,
+                            _outputVarFilename,
+                            _useFixedPoint,
+                            _colorSpaceConversion,
+                            minPos,
+                            maxPos,
+                            minUv,
+                            maxUv,
+                            minNrm,
+                            maxNrm,
+                            minCol,
+                            maxCol );
   }
 
   clock_t t2 = clock();
   std::cout << "Time on processing: " << ( (float)( t2 - t1 ) ) / CLOCKS_PER_SEC << " sec." << std::endl;
 
   // save the result
-  if ( mm::IO::saveModel( _outputModelFilename, outputModel ) )
-    return true;
+  if ( mm::IO::saveModel( _outputModelFilename, outputModel ) ) return true;
   else {
     delete outputModel;
     return false;

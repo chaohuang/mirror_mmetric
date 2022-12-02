@@ -36,10 +36,8 @@ bool Geometry::getBarycentric( glm::vec2 p, glm::vec2 a, glm::vec2 b, glm::vec2 
   res.x         = u;
   res.y         = v;
   res.z         = w;
-  if ( 0 <= u && u <= 1 && 0 <= v && v <= 1 && u + v <= 1 )
-    return true;
-  else
-    return false;
+  if ( 0 <= u && u <= 1 && 0 <= v && v <= 1 && u + v <= 1 ) return true;
+  else return false;
 }
 // return true if there is an intersection
 // and res will contain t (the parameter on the ray to intersection)
