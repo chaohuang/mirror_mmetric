@@ -484,15 +484,17 @@ int removeDuplicatePoints( PccPointCloud& pc, int dropDuplicates, int neighborsP
     // iterate over the duplicate points, accumulating values
     int  count = 0;
     auto it    = it_seq;
-    for ( ; *it == *it_seq; ++it ) {
-      count++;
-      size_t idx = it.idx;
-      if ( pc.bRgb ) {
-        cattr[0] += pc.rgb.c[idx][0];
-        cattr[1] += pc.rgb.c[idx][1];
-        cattr[2] += pc.rgb.c[idx][2];
+    for ( ; *it == *it_seq && it.idx < pc.size; ++it ) {
+      if ( it.idx < pc.size ) {
+        count++;
+        size_t idx = it.idx;
+        if ( pc.bRgb ) {
+          cattr[0] += pc.rgb.c[idx][0];
+          cattr[1] += pc.rgb.c[idx][1];
+          cattr[2] += pc.rgb.c[idx][2];
+        }
+        if ( pc.bLidar ) lattr += pc.lidar.reflectance[idx];
       }
-      if ( pc.bLidar ) lattr += pc.lidar.reflectance[idx];
     }
 
     size_t first_idx = it_seq.idx;
