@@ -5,6 +5,12 @@ Primary author Jean-Eudes Marvie (InterDigital).
 
 Additional contributors mentioned per version or item hereafter.
 
+## Version 1.1.1
+
+Contributor: Julien Ricard (Interdigital)
+
+Add: Fix issues in remove duplicate
+
 ## Version 1.1.0
 
 Contributor: Julien Ricard (Interdigital)
