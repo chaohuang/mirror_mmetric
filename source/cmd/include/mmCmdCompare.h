@@ -72,6 +72,9 @@ class CmdCompare : Command {
     _pccParams.neighborsProc   = 1;
     _pccParams.dropDuplicates  = 2;
     _pccParams.bAverageNormals = true;
+
+    // Modification of D2 metric is enabled for mmetric
+    _pccParams.normalCalcModificationEnable = true;
   };
 
   // Descriptions of the command

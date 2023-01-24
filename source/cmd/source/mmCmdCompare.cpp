@@ -113,6 +113,8 @@ bool CmdCompare::initialize( Context* context, std::string app, int argc, char* 
 				cxxopts::value<int>()->default_value("2"))
 			("bAverageNormals", "false(use provided normals), true(average normal based on neighbors with same geometric distance)",
 				cxxopts::value<bool>()->default_value("true"))
+            ("normalCalcModificationEnable", "0: Calculate normal of cloudB from cloudA, 1: Use normal of cloudB(default).",
+                cxxopts::value<bool>()->default_value("true"))
 			;
 		options.add_options("pcqm mode")
 			("radiusCurvature", "Set a radius for the construction of the neighborhood. As the bounding box is already computed with this program, use proposed value.",
@@ -191,6 +193,7 @@ bool CmdCompare::initialize( Context* context, std::string app, int argc, char* 
     if ( result.count( "dropDuplicates" ) ) _pccParams.dropDuplicates = result["dropDuplicates"].as<int>();
     if ( result.count( "neighborsProc" ) ) _pccParams.neighborsProc = result["neighborsProc"].as<int>();
     if ( result.count( "averageNormals" ) ) _pccParams.bAverageNormals = result["averageNormals"].as<bool>();
+    if ( result.count("normalCalcModificationEnable")) _pccParams.normalCalcModificationEnable = result["normalCalcModificationEnable"].as<bool>();
     // PCQM
     if ( result.count( "radiusCurvature" ) ) _pcqmRadiusCurvature = result["radiusCurvature"].as<double>();
     if ( result.count( "thresholdKnnSearch" ) ) _pcqmThresholdKnnSearch = result["thresholdKnnSearch"].as<int>();
@@ -365,6 +368,7 @@ bool CmdCompare::process( uint32_t frame ) {
     std::cout << "  neighborsProc = " << _pccParams.neighborsProc << std::endl;
     std::cout << "  dropDuplicates = " << _pccParams.dropDuplicates << std::endl;
     std::cout << "  averageNormals = " << _pccParams.bAverageNormals << std::endl;
+
     // just backup for logging because it might be modified by pcc function call if auto mode
     float paramsResolution = _pccParams.resolution;
     res =
