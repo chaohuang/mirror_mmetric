@@ -612,7 +612,8 @@ int Compare::pcc( const mm::Model&         modelA,
 
   // 3 - compute the metric
   pcc_quality::qMetric qm;
-  computeQualityMetric( inCloud1, inCloud1, inCloud2, params, qm, verbose );
+  const double         similarPointThreshold = 1e-20;
+  computeQualityMetric( inCloud1, inCloud1, inCloud2, params, qm, verbose, similarPointThreshold );
 
   // store results to compute statistics in finalize step
   _pccResults.push_back( std::make_pair( (uint32_t)_pccResults.size(), qm ) );
