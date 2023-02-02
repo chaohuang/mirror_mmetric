@@ -6,7 +6,7 @@ set( DIR ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/dmetric )
 if( NOT EXISTS ${DIR} )
   CPMAddPackage( NAME             dmetric
                 GIT_REPOSITORY    http://mpegx.int-evry.fr/software/MPEG/PCC/mpeg-pcc-dmetric.git
-                GIT_TAG           release-v0.14
+                GIT_TAG           release-v0.14.1
                 SOURCE_DIR        ${DIR}
                 DOWNLOAD_ONLY     YES )
 endif()

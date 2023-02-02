@@ -5,6 +5,15 @@ Primary author Jean-Eudes Marvie (InterDigital).
 
 Additional contributors mentioned per version or item hereafter.
 
+## Version 1_1_2
+
+Contributor: Julien Ricard (Interdigital)
+
+Add: Update dmetric and add corresponding parameters:
+
+  - m61585: Update normals used for D2 metrics.
+  - m61975: Add similar point threshold parameter to use 10e-20 value.
+
 ## Version 1.1.1
 
 Contributor: Julien Ricard (Interdigital)

@@ -484,7 +484,7 @@ int removeDuplicatePoints( PccPointCloud& pc, int dropDuplicates, int neighborsP
     // iterate over the duplicate points, accumulating values
     int  count = 0;
     auto it    = it_seq;
-    for ( ; *it == *it_seq && it.idx < pc.size; ++it ) {
+    for ( ; ( it.idx < pc.size ) && ( *it == *it_seq ); ++it ) {
       if ( it.idx < pc.size ) {
         count++;
         size_t idx = it.idx;
