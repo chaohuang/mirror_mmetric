@@ -20,6 +20,7 @@
 #define _MM_MODEL_H_
 
 //
+#include <array>
 #include <set>
 #include <map>
 #include <vector>
@@ -597,12 +598,12 @@ inline bool reorder( const Model& input, std::string sorting, Model& output ) {
     // hence has smaller vertex since they are sorted. preserve orientation
     if ( oriented ) {  // preserve original orientation
       if ( output.triangles[triIdx * 3 + 1] < output.triangles[triIdx * 3 + 0] &&
-           output.triangles[triIdx * 3 + 1] < output.triangles[triIdx * 3 + 2] ) {
+        output.triangles[triIdx * 3 + 1] <= output.triangles[triIdx * 3 + 2] ) {
         // output.triangles[triIdx * 3 + 1] the smallest index
         // rotate left one step
         std::swap( output.triangles[triIdx * 3 + 0], output.triangles[triIdx * 3 + 1] );
         std::swap( output.triangles[triIdx * 3 + 2], output.triangles[triIdx * 3 + 1] );
-      } else if ( output.triangles[triIdx * 3 + 2] < output.triangles[triIdx * 3 + 0] &&
+      } else if ( output.triangles[triIdx * 3 + 2] <= output.triangles[triIdx * 3 + 0] &&
                   output.triangles[triIdx * 3 + 2] < output.triangles[triIdx * 3 + 1] ) {
         // output.triangles[triIdx * 3 + 2] the smallest index
         // rotate left two steps
@@ -613,6 +614,22 @@ inline bool reorder( const Model& input, std::string sorting, Model& output ) {
       std::sort( &output.triangles[triIdx * 3 + 0], &output.triangles[triIdx * 3 + 2] + 1 );
     }
   }
+
+  // sort face triplets
+  std::set<std::array<int, 3>> tripletsSet;
+  for ( size_t triIdx = 0; triIdx < output.triangles.size() / 3; ++triIdx ) {
+    tripletsSet.insert({ { output.triangles[triIdx * 3 + 0],output.triangles[triIdx * 3 + 1],output.triangles[triIdx * 3 + 2] } });
+  }
+  size_t triIdx = 0;
+  for (const auto& t : tripletsSet)
+  {
+    output.triangles[triIdx * 3 + 0] = t[0];
+    output.triangles[triIdx * 3 + 1] = t[1];
+    output.triangles[triIdx++ * 3 + 2] = t[2];
+  }
+  // adjust size in case multiple identical triangles where detected after reordering
+  output.triangles.resize(3 * triIdx);
+
   return true;
 }
 

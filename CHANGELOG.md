@@ -5,6 +5,17 @@ Primary author Jean-Eudes Marvie (InterDigital).
 
 Additional contributors mentioned per version or item hereafter.
 
+
+## PROPOSAL - branch 12-add-reordering-or-face-indices
+
+Contributor: Olivier Mocquard (Interdigital)
+
+Add: reordering of face indices in reindex
+
+- face ordering may impact pcc metrics computations over sampled meshes
+- the proposed face ordering fix when reindexing could be explicitly triggered using additional options/flags
+
+
 ## Version 1_1_2
 
 Contributor: Julien Ricard (Interdigital)
