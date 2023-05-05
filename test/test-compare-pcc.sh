@@ -103,7 +103,6 @@ fi
 
 OUT=compare_pcc_basket_qp16_seq
 if [ "$1" == "ext" ] || [ "$1" == "$OUT" ]; then
-	echo "following p2plane test will work on Linux but not windows that leads to 115"
 	echo $OUT
 	$CMD sequence --firstFrame 1 --lastFrame 3 END \
 		compare --mode pcc  \
@@ -113,7 +112,7 @@ if [ "$1" == "ext" ] || [ "$1" == "$OUT" ]; then
 		--inputMapB  ${DATA}/basketball_player_0000000%1d.png \
 		 --outputCsv ${STATS} > ${TMP}/${OUT}.txt 2>&1
 	grep -iF "error" ${TMP}/${OUT}.txt
-	fileHasString ${TMP}/${OUT}.txt "mseF, PSNR(p2plane) Mean=114" 1
+	fileHasString ${TMP}/${OUT}.txt "mseF, PSNR(p2plane) Mean=99.99" 1
 	fileHasString ${TMP}/${OUT}.txt "c\[0\],PSNRF          Mean=72.3" 1	
 fi
 

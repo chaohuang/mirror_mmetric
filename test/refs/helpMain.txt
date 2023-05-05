@@ -1,9 +1,9 @@
-3D model processing commands v1.0.1
+3D model processing commands v1.1.3
 Usage:
-  mm.exe command [OPTION...]
+  mm command [OPTION...]
 
 Command help:
-  mm.exe command --help
+  mm command --help
 
 Command:
   analyse	Analyse model and/or texture map

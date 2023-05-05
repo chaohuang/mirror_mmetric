@@ -238,7 +238,7 @@ mm.exe \
 # Command references 
 ```
 
-3D model processing commands v1.1.1
+3D model processing commands v1.1.3
 Usage:
   mm command [OPTION...]
 
@@ -330,21 +330,26 @@ Usage:
                                 buffers, use only for debug).
 
  pcc mode options:
-      --singlePass          Force running a single pass, where the loop is
-                            over the original point cloud
-      --hausdorff           Send the Haursdorff metric as well
-      --color               Check color distortion as well (default: true)
-      --resolution arg      Amplitude of the geometric signal. Will be
-                            automatically set to diagonal of the models bounding box
-                            if value = 0 (default: 0.0)
-      --neighborsProc arg   0(undefined), 1(average), 2(weighted average)
-                            3(min), 4(max) neighbors with same geometric distance
-                            (default: 1)
-      --dropDuplicates arg  0(detect), 1(drop), 2(average) subsequent points
-                            with same coordinates (default: 2)
-      --bAverageNormals     false(use provided normals), true(average normal
-                            based on neighbors with same geometric distance)
-                            (default: true)
+      --singlePass              Force running a single pass, where the loop
+                                is over the original point cloud
+      --hausdorff               Send the Haursdorff metric as well
+      --color                   Check color distortion as well (default:
+                                true)
+      --resolution arg          Amplitude of the geometric signal. Will be
+                                automatically set to diagonal of the models
+                                bounding box if value = 0 (default: 0.0)
+      --neighborsProc arg       0(undefined), 1(average), 2(weighted average)
+                                3(min), 4(max) neighbors with same geometric
+                                distance (default: 1)
+      --dropDuplicates arg      0(detect), 1(drop), 2(average) subsequent
+                                points with same coordinates (default: 2)
+      --bAverageNormals         false(use provided normals), true(average
+                                normal based on neighbors with same geometric
+                                distance) (default: true)
+      --normalCalcModificationEnable
+                                0: Calculate normal of cloudB from cloudA, 1:
+                                Use normal of cloudB(default). (default:
+                                true)
 
  pcqm mode options:
       --radiusCurvature arg     Set a radius for the construction of the

@@ -21,7 +21,7 @@ $CMD compare --mode pcc \
 	--inputModelB ${TMP}/${OUT2}.ply \
 	> ${TMP}/${OUT}.txt 2>&1
 grep -iF "error" ${TMP}/${OUT}.txt
-fileHasString ${TMP}/${OUT}.txt "mseF,PSNR (p2plane): 59.7" 1
+fileHasString ${TMP}/${OUT}.txt "mseF,PSNR (p2plane): 58.2" 1
 
 OUT=composed_sample_face_compare_sphere_pcqm
 echo $OUT
@@ -41,7 +41,7 @@ $CMD \
 	compare --mode pcc --inputModelA ID:pc1 --inputModelB ID:pc2 \
 	> ${TMP}/${OUT}.txt 2>&1
 grep -iF "error" ${TMP}/${OUT}.txt
-fileHasString ${TMP}/${OUT}.txt "mseF,PSNR (p2plane): 59.7" 1
+fileHasString ${TMP}/${OUT}.txt "mseF,PSNR (p2plane): 58.2" 1
 
 # external dataset
 if [ "$1" == "ext" ]; 

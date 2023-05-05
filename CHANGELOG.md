@@ -6,15 +6,18 @@ Primary author Jean-Eudes Marvie (InterDigital).
 Additional contributors mentioned per version or item hereafter.
 
 
-## PROPOSAL - branch 12-add-reordering-or-face-indices
+## Version 1_1_3
 
-Contributor: Olivier Mocquard (Interdigital)
-
-Add: reordering of face indices in reindex
-
-- face ordering may impact pcc metrics computations over sampled meshes
-- the proposed face ordering fix when reindexing could be explicitly triggered using additional options/flags
-
+- Fix: clip PSNR values to 100 (m62632)
+  - the maximal PSNR value is set to 99.99
+  - contributor: (Sharp)
+- Fix: mmetric normal handling of duplicate vertices (m62542)
+  - correction to the calculation of the normal of a point that has duplicate values
+  - Contributor: Danillo Graziosi (Sony)
+- Add: reordering of face indices in reindex (m62652)
+  - face ordering may impact pcc metrics computations over sampled meshes
+  - the proposed face ordering fix when reindexing could be explicitly triggered using additional options/flags
+  - Contributor: Olivier Mocquard (InterDigital)
 
 ## Version 1_1_2
 
