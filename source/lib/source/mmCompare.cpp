@@ -480,6 +480,7 @@ int removeDuplicatePoints( PccPointCloud& pc, int dropDuplicates, int neighborsP
     // accumulators for averaging attribute values
     long cattr[3]{};  // sum colors.
     long lattr{};     // sum lidar.
+    float nattr[3]{};  // sum normals.
 
     // iterate over the duplicate points, accumulating values
     int  count = 0;
@@ -494,6 +495,11 @@ int removeDuplicatePoints( PccPointCloud& pc, int dropDuplicates, int neighborsP
           cattr[2] += pc.rgb.c[idx][2];
         }
         if ( pc.bLidar ) lattr += pc.lidar.reflectance[idx];
+        if ( pc.bNormal ) {
+            nattr[0] += pc.normal.n[idx][0];
+            nattr[1] += pc.normal.n[idx][1];
+            nattr[2] += pc.normal.n[idx][2];
+        }
       }
     }
 
@@ -512,6 +518,12 @@ int removeDuplicatePoints( PccPointCloud& pc, int dropDuplicates, int neighborsP
     if ( neighborsProc == 2 ) pc.xyz.nbdup[first_idx] = count;
 
     if ( pc.bLidar ) pc.lidar.reflectance[first_idx] = (unsigned short)( lattr / count );
+
+    if ( pc.bNormal ) {
+        pc.normal.n[first_idx][0] = (float)(nattr[0] / (float)count);
+        pc.normal.n[first_idx][1] = (float)(nattr[1] / (float)count);
+        pc.normal.n[first_idx][2] = (float)(nattr[2] / (float)count);
+    }
   }
 
   int duplicatesFound = 0;
