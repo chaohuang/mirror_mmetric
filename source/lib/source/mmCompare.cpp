@@ -1065,10 +1065,10 @@ int Compare::ibsm( const mm::Model&   modelA,
 
   // compute the PSNRs (can be infinite)
   for ( size_t c = 0; c <= 3; ++c ) {
-    res.rgbPSNR[c] = std::min( 999.99, 10.0 * log10( (double)( 255 * 255 ) / res.rgbMSE[c] ) );
-    res.yuvPSNR[c] = std::min( 999.99, 10.0 * log10( (double)( 255 * 255 ) / res.yuvMSE[c] ) );
+    res.rgbPSNR[c] = std::min( CLIP, 10.0 * log10( (double)( 255 * 255 ) / res.rgbMSE[c] ) );
+    res.yuvPSNR[c] = std::min( CLIP, 10.0 * log10( (double)( 255 * 255 ) / res.yuvMSE[c] ) );
   }
-  res.depthPSNR = std::min( 999.99, 10.0 * log10( (double)( 255 * 255 ) / res.depthMSE ) );
+  res.depthPSNR = std::min(CLIP, 10.0 * log10( (double)( 255 * 255 ) / res.depthMSE ) );
 
   // report the UnmatchedPixelPercentage - we may also report values over a given threshold to cout
   res.unmatchedPixelPercentage = ( maskSizeSum > 0 ) ? 100.0 * (double)unmatchedPixelsSum / (double)maskSizeSum : 100.0;
@@ -1121,13 +1121,11 @@ void Compare::ibsmFinalize( void ) {
     Statistics::Results stats;
 
     Statistics::compute(
-      _ibsmResults.size(), [&]( size_t i ) -> double { return _ibsmResults[i].second.boxRatio; }, stats );
+      _ibsmResults.size(), [&]( size_t i ) -> double { return _ibsmResults[i].second.boxRatio; }, stats, 999.99 );
     Statistics::printToLog( stats, "BoxRatio ", std::cout );
 
     Statistics::compute(
-      _ibsmResults.size(),
-      [&]( size_t i ) -> double { return _ibsmResults[i].second.unmatchedPixelPercentage; },
-      stats );
+      _ibsmResults.size(), [&]( size_t i ) -> double { return _ibsmResults[i].second.unmatchedPixelPercentage; }, stats, 999.99 );
     Statistics::printToLog( stats, "UnmatchedPixelPercentage ", std::cout );
 
     Statistics::compute(
@@ -1160,16 +1158,16 @@ std::vector<double> Compare::getPccResults( const size_t index ) {
   std::vector<double> results;
   results.resize( 10, 0.0 );
   if ( index < _pccResults.size() ) {
-    results[0] = ( std::min )( 999.99, _pccResults[index].second.c2c_psnr );
-    results[1] = ( std::min )( 999.99, _pccResults[index].second.c2p_psnr );
-    results[2] = ( std::min )( 999.99, _pccResults[index].second.color_psnr[0] );
-    results[3] = ( std::min )( 999.99, _pccResults[index].second.color_psnr[1] );
-    results[4] = ( std::min )( 999.99, _pccResults[index].second.color_psnr[2] );
-    results[5] = ( std::min )( 999.99, _pccResults[index].second.c2c_hausdorff_psnr );
-    results[6] = ( std::min )( 999.99, _pccResults[index].second.c2p_hausdorff_psnr );
-    results[7] = ( std::min )( 999.99, _pccResults[index].second.color_rgb_hausdorff_psnr[0] );
-    results[8] = ( std::min )( 999.99, _pccResults[index].second.color_rgb_hausdorff_psnr[1] );
-    results[9] = ( std::min )( 999.99, _pccResults[index].second.color_rgb_hausdorff_psnr[2] );
+    results[0] = ( std::min )( CLIP, _pccResults[index].second.c2c_psnr );
+    results[1] = ( std::min )( CLIP, _pccResults[index].second.c2p_psnr );
+    results[2] = ( std::min )( CLIP, _pccResults[index].second.color_psnr[0] );
+    results[3] = ( std::min )( CLIP, _pccResults[index].second.color_psnr[1] );
+    results[4] = ( std::min )( CLIP, _pccResults[index].second.color_psnr[2] );
+    results[5] = ( std::min )( CLIP, _pccResults[index].second.c2c_hausdorff_psnr );
+    results[6] = ( std::min )( CLIP, _pccResults[index].second.c2p_hausdorff_psnr );
+    results[7] = ( std::min )( CLIP, _pccResults[index].second.color_rgb_hausdorff_psnr[0] );
+    results[8] = ( std::min )( CLIP, _pccResults[index].second.color_rgb_hausdorff_psnr[1] );
+    results[9] = ( std::min )( CLIP, _pccResults[index].second.color_rgb_hausdorff_psnr[2] );
   }
   return results;
 }
@@ -1190,8 +1188,8 @@ std::vector<double> Compare::getPcqmResults( const size_t index ) {
   std::vector<double> results;
   results.resize( 2, 0.0 );
   if ( index < _pcqmResults.size() ) {
-    results[0] = ( std::min )( 999.99, std::get<1>( _pcqmResults[index] ) );
-    results[1] = ( std::min )( 999.99, std::get<2>( _pcqmResults[index] ) );
+    results[0] = ( std::min )( CLIP, std::get<1>( _pcqmResults[index] ) );
+    results[1] = ( std::min )( CLIP, std::get<2>( _pcqmResults[index] ) );
   }
   return results;
 }
@@ -1213,12 +1211,12 @@ std::vector<double> Compare::getIbsmResults( const size_t index ) {
   results.resize( 7, 0.0 );
   if ( index < _ibsmResults.size() ) {
     results[0] = ( std::min )( 999.99, _ibsmResults[index].second.boxRatio );
-    results[1] = ( std::min )( 999.99, _ibsmResults[index].second.rgbPSNR[3] );
-    results[2] = ( std::min )( 999.99, _ibsmResults[index].second.yuvPSNR[0] );
-    results[3] = ( std::min )( 999.99, _ibsmResults[index].second.yuvPSNR[1] );
-    results[4] = ( std::min )( 999.99, _ibsmResults[index].second.yuvPSNR[2] );
-    results[5] = ( std::min )( 999.99, _ibsmResults[index].second.yuvPSNR[3] );
-    results[6] = ( std::min )( 999.99, _ibsmResults[index].second.depthPSNR );
+    results[1] = ( std::min )( CLIP, _ibsmResults[index].second.rgbPSNR[3] );
+    results[2] = ( std::min )( CLIP, _ibsmResults[index].second.yuvPSNR[0] );
+    results[3] = ( std::min )( CLIP, _ibsmResults[index].second.yuvPSNR[1] );
+    results[4] = ( std::min )( CLIP, _ibsmResults[index].second.yuvPSNR[2] );
+    results[5] = ( std::min )( CLIP, _ibsmResults[index].second.yuvPSNR[3] );
+    results[6] = ( std::min )( CLIP, _ibsmResults[index].second.depthPSNR );
   }
   return results;
 }

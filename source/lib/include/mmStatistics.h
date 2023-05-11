@@ -25,6 +25,8 @@
 
 namespace mm {
 
+constexpr double CLIP = 99.99;
+
 namespace Statistics {
 
 struct Results {
@@ -40,7 +42,7 @@ struct Results {
 // sampler is a lambda func that takes size_t parameter and return associated
 // sample value as a double (use closure to store the iterated array of values).
 template <typename F>
-inline void compute( size_t nbSamples, F&& sampler, Results& output ) {
+inline void compute( size_t nbSamples, F&& sampler, Results& output, double clip = CLIP ) {
   output.min       = std::numeric_limits<double>::quiet_NaN();
   output.max       = std::numeric_limits<double>::quiet_NaN();
   output.mean      = std::numeric_limits<double>::quiet_NaN();
@@ -55,14 +57,14 @@ inline void compute( size_t nbSamples, F&& sampler, Results& output ) {
   output.minkowsky = 0.0;
 
   // init mean, min and max
-  const double sample = (std::min)( sampler( 0 ), 999.99 );
+  const double sample = (std::min)( sampler( 0 ), clip);
   output.mean         = fract * sample;  // we do not use sum for the computation since it might be overflow
   output.max          = sample;
   output.min          = sample;
   output.sum          = sample;
   // compute mean, min and max
   for ( size_t i = 1; i < nbSamples; ++i ) {
-    const double sample = (std::min)( sampler( i ), 999.99 );
+    const double sample = (std::min)( sampler( i ), clip);
     output.mean += fract * sample;  // we do not use sum for the computation since it might be overflow
     output.max = std::max( output.max, sample );
     output.min = std::min( output.min, sample );
