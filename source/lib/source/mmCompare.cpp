@@ -527,17 +527,17 @@ int removeDuplicatePoints( PccPointCloud& pc, int dropDuplicates, int neighborsP
   }
 
   int duplicatesFound = 0;
-  if ( dropDuplicates != 0 ) {
-    auto last       = std::unique( pc.begin(), pc.end() );
-    duplicatesFound = (int)std::distance( last, pc.end() );
+  // if ( dropDuplicates != 0 ) {
+  //   auto last       = std::unique( pc.begin(), pc.end() );
+  //   duplicatesFound = (int)std::distance( last, pc.end() );
 
-    pc.size -= duplicatesFound;
-    pc.xyz.p.resize( pc.size );
-    pc.xyz.nbdup.resize( pc.size );
-    if ( pc.bNormal ) pc.normal.n.resize( pc.size );
-    if ( pc.bRgb ) pc.rgb.c.resize( pc.size );
-    if ( pc.bLidar ) pc.lidar.reflectance.resize( pc.size );
-  }
+  //   pc.size -= duplicatesFound;
+  //   pc.xyz.p.resize( pc.size );
+  //   pc.xyz.nbdup.resize( pc.size );
+  //   if ( pc.bNormal ) pc.normal.n.resize( pc.size );
+  //   if ( pc.bRgb ) pc.rgb.c.resize( pc.size );
+  //   if ( pc.bLidar ) pc.lidar.reflectance.resize( pc.size );
+  // }
 
   if ( verbose && duplicatesFound > 0 ) {
     switch ( dropDuplicates ) {
